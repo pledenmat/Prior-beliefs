@@ -19,7 +19,7 @@ curdir <- dirname(rstudioapi::getSourceEditorContext()$path)
 setwd(curdir) ## change our current working directory
 
 plot <- F
-write_csv <- F
+write_csv <- T
 
 # Experiment 1 ------------------------------------------------------------
 N <- 50
