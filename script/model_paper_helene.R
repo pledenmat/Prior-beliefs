@@ -1,15 +1,20 @@
+##' 
+##' 
+
 rm(list=ls())
 curdir <- dirname(rstudioapi::getSourceEditorContext()$path)
-wd <- dirname(curdir)
+setwd(curdir)
 datadir <- paste0(curdir,"/data")
-library(reshape);library(effects);library(lmerTest);library(scales)
+library(reshape)
+library(effects)
+library(lmerTest)
+library(scales)
 setwd(paste0(wd,"/functions"))
-library(Rcpp);library(DEoptim)
-library(prob);library(car)
-sourceCpp("DDM_with_confidence_slow.cpp")
-source('fastmerge.R')
+library(DEoptim)
+library(prob)
+library(car)
+library(myPackage)
 source("quantilefit_function_DDMonly.R")
-source("rw_createHM_driftsign.R")
 
 error.bar <- function(x, y, upper, lower=upper, length=0.1,...){
   if(length(x) != length(y) | length(y) !=length(lower) | length(lower) != length(upper))
@@ -23,12 +28,12 @@ dt <- .001; ev_bound <- .5; ev_window <- dt*10; upperRT <- 5
 ev_mapping <- seq(-ev_bound,ev_bound,by=ev_window)
 timesteps <- upperRT/dt
 
-#List of heat maps
+## List of heat maps
 v_min <- .001; v_max <- .5; step <- .001
 drifts <- seq(v_min,v_max,step)
 
-nsim <- 500 #per drift/cond/participant
-ntrial <- 120; nrepeat <- 20 #Vs fitting
+nsim <- 500 # per drift/cond/participant
+ntrial <- 120; nrepeat <- 20 # Vs fitting
 # EXP 1 -------------------------------------------------------------------
 ## Pre-process ====
 if (!(file.exists(paste0(datadir,'/dataexp1_helene_full.csv')))) {
@@ -94,9 +99,9 @@ if (!(file.exists(paste0(datadir,'/dataexp1_helene_full.csv')))) {
 }
 
 ## Data load ====
-setwd(datadir)
-Data1 <- read.csv('dataexp1_helene_full.csv')
-Data1_train <- read.csv("dataexp1_helene_training_full.csv")
+go_to("results")
+Data1 <- read.csv('data_exp1.csv')
+Data1_train <- read.csv("data_exp1_training.csv")
 
 
 subs1 <- sort(unique(Data1_train$sub)); N1 <- length(subs1) 
@@ -104,32 +109,6 @@ cond <- sort(unique(Data1_train$selfconf)); Ncond <- length(cond)
 coh <- sort(unique(Data1_train$coh));Ndiff <- length(coh)
 
 
-#Retrieve feedback given /!\ Should be within the pre-process
-len_block <- 24
-Data1_train$fb <- -99
-block <- 1
-for (i in seq(1,dim(Data1_train)[1],len_block)) {
-  if (Data1_train[i,"selfconf"]=="lowSC") {
-    if (block%%5==1) {
-      Data1_train[i:(i+len_block-1),]$fb <- round(runif(1,min=.66,max=.69),2)
-    }else{
-      Data1_train[i:(i+len_block-1),]$fb <- round(runif(1,min=.53,max=.66),2)
-    }
-  }
-  
-  if (Data1_train[i,"selfconf"]=="mediumSC") {
-    Data1_train[i:(i+len_block-1),]$fb <- round(runif(1,min=.69,max=.82),2)
-  }
-  
-  if (Data1_train[i,"selfconf"]=="highSC") {
-    if (block%%5==2) {
-      Data1_train[i:(i+len_block-1),]$fb <- round(runif(1,min=.82,max=.84),2)
-    }else{
-      Data1_train[i:(i+len_block-1),]$fb <- round(runif(1,min=.85,max=.98),2)
-    }
-  }
-  block <- block + 1
-}
 
 #Load fitted DDM parameters in the training phase + median confidence RT
 setwd(wd)
@@ -337,13 +316,6 @@ Data2_train <- read.csv("dataexp2_helene_training.csv")
 # Data2 <- subset(Data2,!(sub %in% exclusion))
 # Data2_train <- subset(Data2_train,!(sub %in% exclusion))
 
-#Retrieve feedback given
-len_block <- 24
-Data2_train$fb <- -99
-for (i in seq(1,dim(Data2_train)[1],len_block)) {
-  Data2_train[i:(i+len_block-1),]$fb <- round(mean(Data2_train[i:(i+len_block-1),]$cor),2)
-}
-Data2_train[Data2_train$fb<.5,]$fb <- .5 #Actual feedback was "lower than 50%"
 
 subs <- sort(unique(Data2_train$sub)); N <- length(subs)
 cond <- sort(unique(Data2_train$traindiffcond)); Ncond <- length(cond)

@@ -19,6 +19,7 @@ curdir <- dirname(rstudioapi::getSourceEditorContext()$path)
 setwd(curdir) ## change our current working directory
 
 plot <- F
+write_csv <- F
 
 # Experiment 1 ------------------------------------------------------------
 N <- 50
@@ -34,13 +35,14 @@ for(i in 1:N){
 
 head(Data_exp1)
 
+Training_exp1 <- subset(Data_exp1, running == "training")
 Data_exp1 <- subset(Data_exp1, running == "main")
-
-Data_exp1['response'] <- 0
-Data_exp1$response[Data_exp1$resp == "['n']"] <- 1
 
 Data_exp1 <- subset(Data_exp1,rt>200) #There was no trial below 200ms
 Data_exp1 <- subset(Data_exp1,rt<5000)
+
+Data_exp1['response'] <- 0
+Data_exp1$response[Data_exp1$resp == "['n']"] <- 1
 
 ## Diagnostic plot per participant and task + chance performance testing
 N <- length(unique(Data_exp1$sub))
@@ -70,19 +72,61 @@ for(i in 1:N){
 }
 
 Data_exp1 <- subset(Data_exp1,!(sub %in% exclusion)) #Sub 10 and 49 removed
+Data_exp1 <- Data_exp1[complete.cases(Data_exp1$rt),]
 
 Data_exp1$response[Data_exp1$response==0] <- -1
 
-df_1 <- Data_exp1[,c("sub","task","selfconf","difflevel","rt","response","cor","cj","RTconf","block")]
-names(df_1) <- c("sub","task","selfconf","coh","rt","resp","cor","cj","RTconf","block")
+Data_exp1 <- Data_exp1[,c("sub","task","selfconf","difflevel","rt","response","cor","cj","RTconf","block")]
+names(Data_exp1) <- c("sub","task","selfconf","coh","rt","resp","cor","cj","RTconf","block")
 ## Convert into seconds
-df_1$rt <- df_1$rt/1000
-df_1$RTconf <- df_1$RTconf/1000
+Data_exp1$rt <- Data_exp1$rt/1000
+Data_exp1$RTconf <- Data_exp1$RTconf/1000
+
+Training_exp1 <- subset(Training_exp1,!(sub %in% exclusion))
+Training_exp1['response'] <- -1
+Training_exp1$response[Training_exp1$resp == "['n']"] <- 1
+Training_exp1 <- Training_exp1[,c("sub","task","selfconf","difflevel","rt","response","cor","cj","RTconf")]
+names(Training_exp1) <- c("sub","task","selfconf","coh","rt","resp","cor","cj","RTconf")
+Training_exp1$rt <- Training_exp1$rt/1000;
+Training_exp1$RTconf <- Training_exp1$RTconf/1000
+
+##' The exact fake feedback values were not saved in the experiment so we're generating
+##' them again using the same rules.
+##' As feedback was given at the end of each block, we assign the same fb to all
+##' trials within a block
+len_block <- 24
+Training_exp1$fb <- -99
+block <- 1
+for (i in seq(1,dim(Training_exp1)[1],len_block)) {
+  if (Training_exp1[i,"selfconf"]=="lowSC") {
+    if (block%%5==1) {
+      Training_exp1[i:(i+len_block-1),]$fb <- round(runif(1,min=.66,max=.69),2)
+    }else{
+      Training_exp1[i:(i+len_block-1),]$fb <- round(runif(1,min=.53,max=.66),2)
+    }
+  }
+
+  if (Training_exp1[i,"selfconf"]=="mediumSC") {
+    Training_exp1[i:(i+len_block-1),]$fb <- round(runif(1,min=.69,max=.82),2)
+  }
+
+  if (Training_exp1[i,"selfconf"]=="highSC") {
+    if (block%%5==2) {
+      Training_exp1[i:(i+len_block-1),]$fb <- round(runif(1,min=.82,max=.84),2)
+    }else{
+      Training_exp1[i:(i+len_block-1),]$fb <- round(runif(1,min=.85,max=.98),2)
+    }
+  }
+  block <- block + 1
+}
+Training_exp1 <- subset(Training_exp1,rt>.2)
+Training_exp1 <- subset(Training_exp1,rt<5)
+
 # Experiment 2 ------------------------------------------------------------
 go_to("data")
 N <- 50
-for(i in 1:N){ 
-  if(i == 1){ 
+for(i in 1:N){
+  if(i == 1){
     Data_exp2 <- read.csv(paste0('RealData_1B/selfconfidence1B_sub',i,'.csv'),fileEncoding="UTF-8-BOM")
   }else{
     temp <- read.csv(paste0('RealData_1B/selfconfidence1B_sub',i,'.csv'),fileEncoding="UTF-8-BOM")
@@ -92,16 +136,17 @@ for(i in 1:N){
 
 head(Data_exp2)
 
+Training_exp2 <- subset(Data_exp2, running == "training")
 Data_exp2 <- subset(Data_exp2, running == "main")
-
-Data_exp2['response'] <- 0
-Data_exp2$response[Data_exp2$resp == "['n']"] <- 1
 
 Data_exp2 <- subset(Data_exp2,rt>200) #There was no trial below 200ms
 Data_exp2 <- subset(Data_exp2,rt<5000)
 
+Data_exp2['response'] <- 0
+Data_exp2$response[Data_exp2$resp == "['n']"] <- 1
+
 ## Diagnostic plot per participant and task + chance performance testing
-N <- length(unique(Data_exp2$sub)) 
+N <- length(unique(Data_exp2$sub))
 sub_list <- unique(Data_exp2$sub)
 exclusion <- c()
 tasks <- unique(Data_exp2$task)
@@ -127,18 +172,43 @@ for(i in 1:N){
 }
 
 Data_exp2 <- subset(Data_exp2,!(sub %in% exclusion)) #Sub 12, 32 and 50 removed
+Data_exp2 <- Data_exp2[complete.cases(Data_exp2$rt),]
 
 Data_exp2$response[Data_exp2$response==0] <- -1
 
-df_2 <- Data_exp2[,c("sub","task","traindiffcond","trialdifflevel","rt","response","cor","cj","RTconf","block")]
-names(df_2) <- c("sub","task","traindiffcond","coh","rt","resp","cor","cj","RTconf","block")
+Data_exp2 <- Data_exp2[,c("sub","task","traindiffcond","trialdifflevel","rt","response","cor","cj","RTconf","block")]
+names(Data_exp2) <- c("sub","task","traindiffcond","coh","rt","resp","cor","cj","RTconf","block")
 ## Convert into seconds
-df_2$rt <- df_2$rt/1000
-df_2$RTconf <- df_2$RTconf/1000
+Data_exp2$rt <- Data_exp2$rt/1000
+Data_exp2$RTconf <- Data_exp2$RTconf/1000
 
+Training_exp2 <- subset(Training_exp2,!(sub %in% exclusion))
+Training_exp2['response'] <- -1
+Training_exp2$response[Training_exp2$resp == "['n']"] <- 1
+Training_exp2 <- Training_exp2[,c("sub","task","traindiffcond","trialdifflevel","rt","response","cor","cj","RTconf")]
+names(Training_exp2) <- c("sub","task","traindiffcond","coh","rt","resp","cor","cj","RTconf")
+Training_exp2$rt <- Training_exp2$rt/1000;
+Training_exp2$RTconf <- Training_exp2$RTconf/1000
+
+##' Again, we're retrieving the feedback at the end of each block and assign it to
+##' every trials of the block.
+##' Here, the exact fb value is known since it was equal to the accuracy within the block
+len_block <- 24
+Training_exp2$fb <- -99
+for (i in seq(1,dim(Training_exp2)[1],len_block)) {
+  Training_exp2[i:(i+len_block-1),]$fb <- round(mean(Training_exp2[i:(i+len_block-1),]$cor),2)
+}
+Training_exp2[Training_exp2$fb<.5,]$fb <- .5 # Actual feedback was "lower than 50%"
+
+Training_exp2 <- subset(Training_exp2,rt>.2) 
+Training_exp2 <- subset(Training_exp2,rt<5)
 
 # Export aggregated data in csv files -------------------------------------
-go_to("results")
-write.csv(df_1,"data_exp1.csv",row.names = FALSE)
-write.csv(df_2,"data_exp2.csv",row.names = FALSE)
+if (write_csv) {
+  go_to("results")
+  write.csv(Data_exp1,"data_exp1.csv",row.names = FALSE)
+  write.csv(Data_exp2,"data_exp2.csv",row.names = FALSE)
+  write.csv(Training_exp1,"data_exp1_training.csv",row.names = FALSE)
+  write.csv(Training_exp2,"data_exp2_training.csv",row.names = FALSE)
+}
 
