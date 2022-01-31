@@ -262,16 +262,16 @@ resid <- matrix(NA,Nsub_2,Ncond_2)
 v2 <- matrix(NA,Nsub_2,Ncond_2); v3 <- matrix(NA,Nsub_2,Ncond_2)
 conf_rt <- matrix(NA,Nsub_2,Ncond_2)
 
-setwd(wd)
 for (i in 1:Nsub_2) {
   tempAll <- subset(Data2_train,sub==subs_2[i])
   for (c in 1:Ncond_2) {
     tempDat <- subset(tempAll,traindiffcond==cond_2[c])
-    if(file.exists(paste0('realdata_fit/RealData_1B/fits/trainfit/trainfit',cond_2[c],i,'.Rdata'))){
-      load(paste0('realdata_fit/RealData_1B/fits/trainfit/trainfit',cond_2[c],i,'.Rdata'))
+    file_name <- paste0('exp2/train/trainfit',cond_2[c],subs_2[i],'.Rdata')
+    if(file.exists(file_name)){
+      load(file_name)
     }
     else{ #if not, fit the model
-      optimal_params <- DEoptim(chi_square_optim, # function to optimize
+      optimal_params <- DEoptim(chi_square_optim_DDM, # function to optimize
                                 # a,ter,z,ntrials,sigma,dt,t2time,vratio,alpha,beta,v
                                 lower = c( 0, 0, 0, 5000, .1, .0025, 0,   1,0), 
                                 upper = c(.2, 2, 0, 5000, .1, .0025, 0, 1,.5),
@@ -279,7 +279,7 @@ for (i in 1:Nsub_2) {
                                 control=c(itermax=1000,steptol=100,reltol=.001,NP=30))
       results <- summary(optimal_params)
       #save individual results
-      save(results, file=paste0('realdata_fit/RealData_1B/fits/trainfit/trainfit',cond_2[c],i,'.Rdata'))
+      save(results, file=file_name)
     }
     bound_train[i,c] <- results$optim$bestmem[1]
     ter_train[i,c] <- results$optim$bestmem[2]
@@ -288,17 +288,16 @@ for (i in 1:Nsub_2) {
   }
 }
 
-setwd(paste0(wd,"/realdata_fit/RealData_1B"))
 bound <- matrix(NA,Nsub_2,Ncond_2);v <- matrix(NA,Nsub_2,Ncond_2);
 ter <- matrix(NA,Nsub_2,Ncond_2);
 conf_rt <- matrix(NA,Nsub_2,Ncond_2); resid <- matrix(NA,Nsub_2,Ncond_2)
 #Adjust the number of drift parameters to the model loaded
 v2 <- matrix(NA,Nsub_2,Ncond_2);v3 <- matrix(NA,Nsub_2,Ncond_2);
-for(i in 1:N){
+for(i in 1:Nsub_2){
   for(c in 1:Ncond_2){
     print(paste('Running participant',i,'from',Nsub_2,"condition",c))
-    # load(paste0('fits/results_sub_',subs_2[i],'_',cond_2[c],'.Rdata'))
-    load(paste0('fits/2_vratio/results_sub_',subs_2[i],'_',cond_2[c],'.Rdata'))
+    file_name <- paste0('exp2/test/testfit',cond_2[c],subs_2[i],'.Rdata')
+    load(file_name)
     # plot(results$member$bestvalit[1:results$optim$iter],ylab='Goal function',ylim=c(-1,1),frame=F,type='l',main=paste('sub',i,'condition',cond_2[c]))
     bound[i,c] <- results$optim$bestmem[1]
     ter[i,c] <- results$optim$bestmem[2]
