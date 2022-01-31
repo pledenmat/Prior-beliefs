@@ -36,6 +36,7 @@ ntrial <- 120; nrepeat <- 20 # Vs fitting
 go_to("results")
 Data1 <- read.csv('data_exp1.csv')
 Data1_train <- read.csv("data_exp1_training.csv")
+Data2_train <- read.csv("data_exp2_training.csv")
 
 
 subs1 <- sort(unique(Data1_train$sub)); N1 <- length(subs1) 
@@ -53,8 +54,9 @@ conf_rt <- matrix(NA,N1,Ncond)
 for (i in 1:N1) {
   tempAll <- subset(Data1_train,sub==subs1[i])
   for (cond in 1:Ncond) {
+    print(paste('Running participant',i,'from',N1,"condition",cond))
     tempDat <- subset(tempAll,selfconf==conditions[cond])
-    file_name <- paste0('train/trainfit',conditions[cond],subs1[i],'.Rdata')
+    file_name <- paste0('exp1/train/trainfit',conditions[cond],subs1[i],'.Rdata')
     if(file.exists(file_name)){
       load(file_name)
     }
@@ -62,19 +64,19 @@ for (i in 1:N1) {
       optimal_params <- DEoptim(chi_square_optim_DDM, # function to optimize
                                 lower = c( 0, 0, 0, 5000, .1, .0025, 0,1,0,0,0), # a,ter,z,ntrials,sigma,dt,t2time,vratio,alpha,beta,v
                                 upper = c(.2, 2, 0, 5000, .1, .0025, 0,1,.5,.5,.5), # a,ter,z,ntrials,sigma,dt,t2time,vratio,alpha,beta,v
-                                observations = tempDat,control=c(itermax=1000,steptol=100,reltol=.001,NP=50), returnFit = 1)
+                                observations = tempDat,
+                                control=c(itermax=1000,steptol=100,reltol=.001,NP=50), 
+                                returnFit = 1)
       results <- summary(optimal_params)
       #save individual results
       save(results, file=file_name)
     }
     bound_train[i,cond] <- results$optim$bestmem[1]
     ter_train[i,cond] <- results$optim$bestmem[2]
-    v_train[i,cond] <- results$optim$bestmem[11]
-    v2_train[i,cond] <- results$optim$bestmem[12]
-    v3_train[i,cond] <- results$optim$bestmem[13]
+    v_train[i,cond] <- results$optim$bestmem[9]
+    v2_train[i,cond] <- results$optim$bestmem[10]
+    v3_train[i,cond] <- results$optim$bestmem[11]
     resid_train[i,cond] <- results$optim$bestval
-
-    conf_rt[i,cond] <- median(tempDat$RTconf)
   }  
 }
 
@@ -86,15 +88,17 @@ v2 <- matrix(NA,N1,Ncond);v3 <- matrix(NA,N1,Ncond)
 for(i in 1:N1){
   for(cond in 1:Ncond){
     print(paste('Running participant',i,'from',N1,"condition",cond))
-    file_name <- paste0('test/testfit',conditions[cond],subs1[i],'.Rdata')
+    file_name <- paste0('exp1/test/testfit',conditions[cond],subs1[i],'.Rdata')
     if(file.exists(file_name)){
       load(file_name)
     }
     else{ #if not, fit the model
-      optimal_params <- DEoptim(chi_square_optim, # function to optimize
+      optimal_params <- DEoptim(chi_square_optim_DDM, # function to optimize
                                 lower = c( 0, 0, 0, 5000, .1, .0025, 0,1,0,0,0), # a,ter,z,ntrials,sigma,dt,t2time,vratio,alpha,beta,v
                                 upper = c(.2, 2, 0, 5000, .1, .0025, 0,1,.5,.5,.5), # a,ter,z,ntrials,sigma,dt,t2time,vratio,alpha,beta,v
-                                observations = tempDat,control=c(itermax=1000,steptol=100,reltol=.001,NP=50), returnFit = 1)
+                                observations = tempDat,
+                                control=c(itermax=1000,steptol=100,reltol=.001,NP=50), 
+                                returnFit = 1)
       results <- summary(optimal_params)
       #save individual results
       save(results, file=file_name)
@@ -108,10 +112,10 @@ for(i in 1:N1){
     resid[i,cond] <- results$optim$bestval
   }
 }
-param_1 <- data.frame(drift = c(v,v2,v3),bound=rep(bound,3),ter=rep(ter,3),
-                      sub=rep(subs1,3*Ncond),
-                      condition=rep(cond,each=N1,length.out=N1*Ncond*3),
-                      difflevel=rep(coh,each=N1*Ncond),exp=2,resid=rep(resid,3))
+param_1 <- data.frame(drift = c(v,v2,v3),bound=rep(bound,Ndiff),ter=rep(ter,Ndiff),
+                      sub=rep(subs1,Ndiff*Ncond),
+                      condition=rep(cond,each=N1,length.out=N1*Ncond*Ndiff),
+                      difflevel=rep(coh,each=N1*Ncond),exp=1,resid=rep(resid,Ndiff))
 
 ##' Aggregate train and test
 bounds <- data.frame(bound = c(bound_train,bound),
