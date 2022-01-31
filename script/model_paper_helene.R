@@ -195,18 +195,6 @@ df <- data.frame(Vs=Vs,bound = c(bound_train), ter = c(ter_train),Vo=c(v_train),
                  sub=rep(subs1,Ncond),condition=rep(conditions,each=N1))
 
 
-## Plot cost for each drift ====
-# 
-# 
-# n <- ncol(means)
-# N <- length(subs)
-# for (i in 1:nrow(means)) {
-#   plot(0:(n-1),means[i,],type='b',lty=2,cex=1,lwd=lwdgr,pch=16,col=rgb(0,0,0,.5), xlim=c(-.05,n+-1),frame=F,xaxt="n",ylab="",xlab="",cex.axis=1.25,main=paste("Participant",subs[i%%N],"Condition",cond[(i%/%N)+1]))
-#   polygon(c(0:(n-1),(n-1):0),c(means[i,] + (stds[i,]/sqrt(nrepeat)),(means[i,] - stds[i,]/sqrt(nrepeat))[n:1]),
-#           border=F,col=rgb(0,0,0,.2))
-#   mtext("Cost value",2,at=mean(c(max(means[i,]),min(means[i,]))),line=3,cex=1.5);axis(1,at=round(seq(0,n-1,length.out = 6)),labels=round(drifts[round(seq(0,n,length.out = 6))+1],2), cex.axis=1.25);mtext("Confidence",1,2.5,at=n/2,cex=1.5)
-# }
-# 
 ## Generate model prediction ====
 setwd(wd)
 rm(Simuls)
@@ -390,34 +378,6 @@ Vs <- drifts[result]
 Vs_matrix <- matrix(Vs,nrow=N,ncol=Ncond_2)
 df2 <- data.frame(drift=Vs,bound = c(bound_train), ter = c(ter_train),v=c(v_train),
                   sub=rep(subs_2,Ndiff),condition=rep(cond_2,each=Nsub_2))
-## Plot cost for each drift ====
-# error.bar <- function(x, y, upper, lower=upper, length=0.1,...){
-#   if(length(x) != length(y) | length(y) !=length(lower) | length(lower) != length(upper))
-#     stop("vectors must be same length")
-#   arrows(x,y+upper, x, y-lower, angle=90, code=3, length=length, ...)
-# }
-# cexkl <- 2.5;cexgr <- 2;lwdgr <- 3;
-# 
-# 
-# n <- ncol(means)
-# N <- length(subs_2)
-# for (i in 1:nrow(means)) {
-#   plot(0:(n-1),means[i,],type='b',lty=2,cex=1,lwd=lwdgr,pch=16,col=rgb(0,0,0,.5), xlim=c(-.05,n+-1),frame=F,xaxt="n",ylab="",xlab="",cex.axis=1.25,main=paste("Participant",subs_2[i%%N],"condition",cond_2[(i%/%N)+1]))
-#   polygon(c(0:(n-1),(n-1):0),c(means[i,] + (stds[i,]/sqrt(nrepeat)),(means[i,] - stds[i,]/sqrt(nrepeat))[n:1]),
-#           border=F,col=rgb(0,0,0,.2))
-#   mtext("Cost value",2,at=max(means[i,]/2),line=3,cex=1.5);axis(1,at=round(seq(0,n-1,length.out = 6)),labels=round(drifts[round(seq(0,n,length.out = 6))+1],2), cex.axis=1.25);mtext("Confidence",1,2.5,at=n/2,cex=1.5)
-# }
-# # stripchart(x, ylim=c(0,1), xlim=c(-.05,n+-1), vertical = TRUE, col="white",frame=F,xaxt='n',
-#            # main="",cex.axis=1.25)
-# # means <- sapply(x, mean, na.rm=T);n<- length(x)
-# plot(x=0:(n-1),y=means,type='b',lty=2,cex=cexkl,lwd=lwdgr,pch=16,col=rgb(0,0,0,.5),ylim=c(0,1), xlim=c(-.05,n+-1),frame=F,xaxt="n")
-# polygon(c(0:(n-1),(n-1):0),c(means + (stds/sqrt(N)),(means - stds/sqrt(N))[n:1]),
-#         border=F,col=rgb(0,0,0,.2))
-# mtext("Cost value",2,at=.5,line=3,cex=1.5);axis(1,at=0:(n-1),labels=names(x), cex.axis=1.25);mtext("Confidence",1,2.5,at=2.5,cex=1.5)
-# # lines(0:(n-1),means,type='p',pch=16,cex=cexkl)
-# # error.bar(0:(n-1),means,colSds(as.matrix(x),na.rm=T)/sqrt(N),lwd=lwdgr,length=.05)
-# 
-# 
 ## Generate model prediction ====
 setwd(wd)
 rm(Simuls2)
