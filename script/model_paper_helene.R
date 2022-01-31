@@ -35,6 +35,7 @@ ntrial <- 120; nrepeat <- 20 # Vs fitting
 ## Data load ====
 go_to("results")
 Data1 <- read.csv('data_exp1.csv')
+Data2 <- read.csv('data_exp2.csv')
 Data1_train <- read.csv("data_exp1_training.csv")
 Data2_train <- read.csv("data_exp2_training.csv")
 
@@ -133,7 +134,7 @@ vs <- data.frame(v = c(v_train,v2_train,v3_train,v,v2,v3),
                  difficulty=rep(coh,each=N1*Ncond,length.out=N1*Ncond*2))
 
 ## Fit subjective drift ====
-
+go_to("results")
 cost_conf <- matrix(NA,nrow=nrepeat,ncol=length(drifts))
 if (!(file.exists(paste0(datadir,"/means_exp1_full.Rdata")))) {
   means <- matrix(NA,nrow=Ncond*N1,ncol=length(drifts)) 
@@ -142,9 +143,11 @@ if (!(file.exists(paste0(datadir,"/means_exp1_full.Rdata")))) {
     print(paste("Running participant",s,"of",N1))
     for (cond in 1:Ncond) {
       tempDat <- subset(Data1_train,sub==subs1[s]&selfconf==conditions[cond])
-      temp <- chi_square_optim(c(bound_train[s,cond],ter_train[s,cond],0,ntrial*nrepeat/Ndiff,.1,.0025,conf_rt[s,cond],1,0,0,v_train[s,cond],v2_train[s,cond],v3_train[s,cond]),NULL,0,binning=F)
+      temp_par <- c(bound_train[s,cond],ter_train[s,cond],0,ntrial*nrepeat/Ndiff,
+                    .1,.001,conf_rt[s,cond],1,v_train[s,cond],v2_train[s,cond],v3_train[s,cond])
+      temp <- chi_square_optim_DDM(temp_par,observations=NULL,returnFit=0)
       
-      #match to the heatmap
+      # match to the heatmap
       temp$closest_evdnc2 <- match.closest(temp$evidence2,ev_mapping)
       temp$temprt2 <- temp$rt2;
       temp$temprt2[temp$temprt2>5] <- 5 #heatmap doesn't go higher (5 seconds)
@@ -172,11 +175,9 @@ if (!(file.exists(paste0(datadir,"/means_exp1_full.Rdata")))) {
       stds[s+N*(c-1),] <- colSds(cost_conf)
     }
   }
-  setwd(datadir)
-  # save(means,file="means_exp1_full.Rdata")
-  # save(stds,file="stds_exp1_full.Rdata")
+  save(means,file="means_exp1_full.Rdata")
+  save(stds,file="stds_exp1_full.Rdata")
 }else{
-  setwd(datadir)
   load("means_exp1_full.Rdata")
   load("stds_exp1_full.Rdata")
 }
@@ -262,95 +263,83 @@ for (i in 1:N1) {
 # for(i in 1:N) Conf1_p_all[,i] <- predict(lm(as.numeric(CJ0[i,1:10])~Conf1_p_all[,i]))
 # EXP 2 -------------------------------------------------------------------
 ## Data Load ====
-setwd(paste0(wd,"/realdata_fit/RealData_1B"))
-Data2 <- read.csv('dataexp2_helene.csv')
-
-setwd(datadir)
-Data2_train <- read.csv("dataexp2_helene_training.csv")
-
-# exclusion <- c(50) #Fit didn't work
-# Data2 <- subset(Data2,!(sub %in% exclusion))
-# Data2_train <- subset(Data2_train,!(sub %in% exclusion))
-
-
-subs <- sort(unique(Data2_train$sub)); N <- length(subs)
-cond <- sort(unique(Data2_train$traindiffcond)); Ncond <- length(cond)
+subs_2 <- sort(unique(Data2_train$sub)); Nsub_2 <- length(subs_2)
+cond_2 <- sort(unique(Data2_train$traindiffcond)); Ncond_2 <- length(cond_2)
 coh <- sort(unique(Data2_train$coh));Ndiff <- length(coh)
 
 #Load fitted train DDM parameters
-bound_train <- matrix(NA,N,Ncond);v_train <- matrix(NA,N,Ncond);ter_train <- matrix(NA,N,Ncond); resid_train <- matrix(NA,N,Ncond)
-resid <- matrix(NA,N,Ncond)
-v2 <- matrix(NA,N,Ncond); v3 <- matrix(NA,N,Ncond)
-conf_rt <- matrix(NA,N,Ncond)
+bound_train <- matrix(NA,Nsub_2,Ncond_2);v_train <- matrix(NA,Nsub_2,Ncond_2);
+ter_train <- matrix(NA,Nsub_2,Ncond_2); resid_train <- matrix(NA,Nsub_2,Ncond_2)
+resid <- matrix(NA,Nsub_2,Ncond_2)
+v2 <- matrix(NA,Nsub_2,Ncond_2); v3 <- matrix(NA,Nsub_2,Ncond_2)
+conf_rt <- matrix(NA,Nsub_2,Ncond_2)
 
 setwd(wd)
-for (i in 1:N) {
-  tempAll <- subset(Data2_train,sub==subs[i])
-  for (c in 1:Ncond) {
-    tempDat <- subset(tempAll,traindiffcond==cond[c])
-    if(file.exists(paste0('realdata_fit/RealData_1B/fits/trainfit/trainfit',cond[c],i,'.Rdata'))){
-      load(paste0('realdata_fit/RealData_1B/fits/trainfit/trainfit',cond[c],i,'.Rdata'))
+for (i in 1:Nsub_2) {
+  tempAll <- subset(Data2_train,sub==subs_2[i])
+  for (c in 1:Ncond_2) {
+    tempDat <- subset(tempAll,traindiffcond==cond_2[c])
+    if(file.exists(paste0('realdata_fit/RealData_1B/fits/trainfit/trainfit',cond_2[c],i,'.Rdata'))){
+      load(paste0('realdata_fit/RealData_1B/fits/trainfit/trainfit',cond_2[c],i,'.Rdata'))
     }
     else{ #if not, fit the model
       optimal_params <- DEoptim(chi_square_optim, # function to optimize
-                                 # a,ter,z,ntrials,sigma,dt,t2time,vratio,alpha,beta,v
-                                 lower = c( 0, 0, 0, 5000, .1, .0025, 0,   1,0,0,0), 
-                                 upper = c(.2, 2, 0, 5000, .1, .0025, 0, 1,0,0,.5),
-                                 observations = tempDat,returnFit = 1, binning = F,
-                                 control=c(itermax=1000,steptol=100,reltol=.001,NP=30))
+                                # a,ter,z,ntrials,sigma,dt,t2time,vratio,alpha,beta,v
+                                lower = c( 0, 0, 0, 5000, .1, .0025, 0,   1,0), 
+                                upper = c(.2, 2, 0, 5000, .1, .0025, 0, 1,.5),
+                                observations = tempDat,returnFit = 1, binning = F,
+                                control=c(itermax=1000,steptol=100,reltol=.001,NP=30))
       results <- summary(optimal_params)
       #save individual results
-      save(results, file=paste0('realdata_fit/RealData_1B/fits/trainfit/trainfit',cond[c],i,'.Rdata'))
+      save(results, file=paste0('realdata_fit/RealData_1B/fits/trainfit/trainfit',cond_2[c],i,'.Rdata'))
     }
     bound_train[i,c] <- results$optim$bestmem[1]
     ter_train[i,c] <- results$optim$bestmem[2]
-    v_train[i,c] <- results$optim$bestmem[11]
+    v_train[i,c] <- results$optim$bestmem[9]
     resid_train[i,c] <- results$optim$bestval
-    
-    #Fit DDM param2eters for the testing phase
-    tempDat <- subset(Data2,sub==subs[i]&traindiffcond==cond[c])
-    conf_rt[i,c] <- median(tempDat$RTconf)
   }
 }
 
 setwd(paste0(wd,"/realdata_fit/RealData_1B"))
-bound <- matrix(NA,N,Ncond);v <- matrix(NA,N,Ncond);ter <- matrix(NA,N,Ncond);
-conf_rt <- matrix(NA,N,Ncond); resid <- matrix(NA,N,Ncond)
+bound <- matrix(NA,Nsub_2,Ncond_2);v <- matrix(NA,Nsub_2,Ncond_2);
+ter <- matrix(NA,Nsub_2,Ncond_2);
+conf_rt <- matrix(NA,Nsub_2,Ncond_2); resid <- matrix(NA,Nsub_2,Ncond_2)
 #Adjust the number of drift parameters to the model loaded
-v2 <- matrix(NA,N,Ncond);v3 <- matrix(NA,N,Ncond);
+v2 <- matrix(NA,Nsub_2,Ncond_2);v3 <- matrix(NA,Nsub_2,Ncond_2);
 for(i in 1:N){
-  for(c in 1:Ncond){
-    print(paste('Running participant',i,'from',N,"condition",c))
-    # load(paste0('fits/results_sub_',subs[i],'_',cond[c],'.Rdata'))
-    load(paste0('fits/exp2_vratio/results_sub_',subs[i],'_',cond[c],'.Rdata'))
-    # plot(results$member$bestvalit[1:results$optim$iter],ylab='Goal function',ylim=c(-1,1),frame=F,type='l',main=paste('sub',i,'condition',cond[c]))
+  for(c in 1:Ncond_2){
+    print(paste('Running participant',i,'from',Nsub_2,"condition",c))
+    # load(paste0('fits/results_sub_',subs_2[i],'_',cond_2[c],'.Rdata'))
+    load(paste0('fits/2_vratio/results_sub_',subs_2[i],'_',cond_2[c],'.Rdata'))
+    # plot(results$member$bestvalit[1:results$optim$iter],ylab='Goal function',ylim=c(-1,1),frame=F,type='l',main=paste('sub',i,'condition',cond_2[c]))
     bound[i,c] <- results$optim$bestmem[1]
     ter[i,c] <- results$optim$bestmem[2]
     conf_rt[i,c] <- results$optim$bestmem[7]
-    v[i,c] <- results$optim$bestmem[11]
-    v2[i,c] <-   results$optim$bestmem[12]
-    v3[i,c] <-   results$optim$bestmem[13]
+    v[i,c] <- results$optim$bestmem[9]
+    v2[i,c] <-   results$optim$bestmem[10]
+    v3[i,c] <-   results$optim$bestmem[11]
     resid[i,c] <- results$optim$bestval
   }
 }
 
-param2 <- data.frame(drift = c(v,v2,v3),bound=rep(bound,3),ter=rep(ter,3),
-                     sub=rep(subs,3*Ncond),
-                     condition=rep(cond,each=N,length.out=N*Ncond*3),
-                     difflevel=rep(coh,each=N*Ncond),exp=2,resid=rep(resid,3))
+param2 <- data.frame(drift = c(v,v2,v3),bound=rep(bound,Ndiff),ter=rep(ter,Ndiff),
+                     sub=rep(subs_2,Ndiff*Ncond_2),
+                     condition=rep(cond_2,each=Nsub_2,length.out=Nsub_2*Ncond_2*Ndiff),
+                     difflevel=rep(coh,each=Nsub_2*Ncond_2),exp=2,resid=rep(resid,Ndiff))
 
 ## Fit subjective drift ====
 setwd(wd)
 #Generate model simulations
 Ndiff <- 1 #Only one difficulty level in the training phase
-Ncond <- length(cond)
+Ncond_2 <- length(cond_2)
 cost_conf <- matrix(NA,nrow=nrepeat,ncol=length(drifts))
-means <- matrix(NA,nrow=Ncond*N,ncol=length(drifts)); stds <- matrix(NA,nrow=Ncond*N,ncol=length(drifts))
-if (!(file.exists(paste0(datadir,"/means_exp2.Rdata")))){
-  for (s in 1:N) {
-    print(paste("Running participant",s,"of",N))
-    for (c in 1:Ncond) {
-      tempDat <- subset(Data2_train,sub==subs[s]&traindiffcond==cond[c])
+means <- matrix(NA,nrow=Ncond_2*Nsub_2,ncol=length(drifts))
+stds <- matrix(NA,nrow=Ncond_2*Nsub_2,ncol=length(drifts))
+if (!(file.exists(paste0(datadir,"/means_2.Rdata")))){
+  for (s in 1:Nsub_2) {
+    print(paste("Running participant",s,"of",Nsub_2))
+    for (c in 1:Ncond_2) {
+      tempDat <- subset(Data2_train,sub==subs_2[s]&traindiffcond==cond_2[c])
       
       temp <- chi_square_optim(c(bound_train[s,c],ter_train[s,c],0,ntrial*nrepeat/Ndiff,.1,.0025,conf_rt[s,c],1,0,0,v_train[s,c]),NULL,0,binning=F)
       
@@ -377,18 +366,16 @@ if (!(file.exists(paste0(datadir,"/means_exp2.Rdata")))){
           cost_conf[i,d] <- diff
         }
         
-        means[s+N*(c-1),] <- colMeans(cost_conf)
-        stds[s+N*(c-1),] <- colSds(cost_conf)
+        means[s+Nsub_2*(c-1),] <- colMeans(cost_conf)
+        stds[s+Nsub_2*(c-1),] <- colSds(cost_conf)
       }
     }
   }
-  setwd(datadir)
-  # save(means,file="means_exp2.Rdata")
-  # save(stds,file="stds_exp2.Rdata")
+  save(means,file="means_2.Rdata")
+  save(stds,file="stds_2.Rdata")
 }else{
-  setwd(datadir)
-  load("means_exp2.Rdata")
-  load("stds_exp2.Rdata")
+  load("means_2.Rdata")
+  load("stds_2.Rdata")
 }
 
 
@@ -400,8 +387,9 @@ result <- sapply(seq(nrow(means)),function(i) {
 
 
 Vs <- drifts[result]
-Vs_matrix <- matrix(Vs,nrow=N,ncol=Ncond)
-df2 <- data.frame(drift=Vs,bound = c(bound_train), ter = c(ter_train),v=c(v_train),sub=rep(subs,3),condition=rep(cond,each=N))
+Vs_matrix <- matrix(Vs,nrow=N,ncol=Ncond_2)
+df2 <- data.frame(drift=Vs,bound = c(bound_train), ter = c(ter_train),v=c(v_train),
+                  sub=rep(subs_2,Ndiff),condition=rep(cond_2,each=Nsub_2))
 ## Plot cost for each drift ====
 # error.bar <- function(x, y, upper, lower=upper, length=0.1,...){
 #   if(length(x) != length(y) | length(y) !=length(lower) | length(lower) != length(upper))
@@ -412,9 +400,9 @@ df2 <- data.frame(drift=Vs,bound = c(bound_train), ter = c(ter_train),v=c(v_trai
 # 
 # 
 # n <- ncol(means)
-# N <- length(subs)
+# N <- length(subs_2)
 # for (i in 1:nrow(means)) {
-#   plot(0:(n-1),means[i,],type='b',lty=2,cex=1,lwd=lwdgr,pch=16,col=rgb(0,0,0,.5), xlim=c(-.05,n+-1),frame=F,xaxt="n",ylab="",xlab="",cex.axis=1.25,main=paste("Participant",subs[i%%N],"Condition",cond[(i%/%N)+1]))
+#   plot(0:(n-1),means[i,],type='b',lty=2,cex=1,lwd=lwdgr,pch=16,col=rgb(0,0,0,.5), xlim=c(-.05,n+-1),frame=F,xaxt="n",ylab="",xlab="",cex.axis=1.25,main=paste("Participant",subs_2[i%%N],"condition",cond_2[(i%/%N)+1]))
 #   polygon(c(0:(n-1),(n-1):0),c(means[i,] + (stds[i,]/sqrt(nrepeat)),(means[i,] - stds[i,]/sqrt(nrepeat))[n:1]),
 #           border=F,col=rgb(0,0,0,.2))
 #   mtext("Cost value",2,at=max(means[i,]/2),line=3,cex=1.5);axis(1,at=round(seq(0,n-1,length.out = 6)),labels=round(drifts[round(seq(0,n,length.out = 6))+1],2), cex.axis=1.25);mtext("Confidence",1,2.5,at=n/2,cex=1.5)
@@ -433,10 +421,10 @@ df2 <- data.frame(drift=Vs,bound = c(bound_train), ter = c(ter_train),v=c(v_trai
 ## Generate model prediction ====
 setwd(wd)
 rm(Simuls2)
-for(i in 1:N){
-  print(paste('simulating',i,'from',N))
-  for(c in 1:Ncond){
-    tempdat <- subset(Data2, sub==subs[i] & traindiffcond==cond[c])
+for(i in 1:Nsub_2){
+  print(paste('simulating',i,'from',Nsub_2))
+  for(c in 1:Ncond_2){
+    tempdat <- subset(Data2, sub==subs_2[i] & traindiffcond==cond_2[c])
     load(paste0("heatmaps/hm_",Vs_matrix[i,c],"_filled.Rdata"))
     hm_low <- output$lower; hm_up <- output$upper
     hmvec_low <- as.vector(hm_low); hmvec_up <- as.vector(hm_up)
@@ -453,28 +441,18 @@ for(i in 1:N){
     
     temp$cj_cont <- temp$cj
     
-    #/!\ What is this ?
-    tempDat <- subset(Data2,sub==subs[i]&traindiffcond==cond[c])
-    for(k in 1:6){
-      temp$cj[temp$cj < quantile(temp$cj,probs=sum(tempDat$cj==k)/dim(tempDat)[1])] <- k
-    }
-    temp$cj[temp$cj<1] <- 6 #put the extremes to six
     
-    if(!exists('Simuls2')){ Simuls2 <- cbind(temp,rep(cond[c],nsim),rep(subs[i],nsim))
-    }else{ Simuls2 <- rbind(Simuls2,cbind(temp,rep(cond[c],nsim),rep(subs[i],nsim)))
+    if(!exists('Simuls2')){ Simuls2 <- cbind(temp,rep(cond_2[c],nsim),rep(subs_2[i],nsim))
+    }else{ Simuls2 <- rbind(Simuls2,cbind(temp,rep(cond_2[c],nsim),rep(subs_2[i],nsim)))
     }
   }
 }
 Simuls2 <- data.frame(Simuls2);names(Simuls2) <- c('rt','resp','cor','evidence2','rt2', 'cj','drift','closest_evdnc2',"temprt2",'cj_cont','condition','sub')
 
-#Linear scaling into confidence ratings (deprecated)
-Simuls2$cj_bin <- as.numeric(cut(Simuls2$cj_cont,breaks=seq(0,1,length.out = 7),include.lowest = TRUE))
-Simuls2$cj_scaled <- Simuls2$cj #/!\ Delete ?
-
 coherences <- sort(unique(Data2$coh))
 Simuls2$coh <- 0
 for (i in 1:N) {
-  for(d in 1:length(coherences)) Simuls2$coh[Simuls2$sub==subs[i] & Simuls2$drift %in% c(unique(subset(Simuls2,sub==subs[i])$drift)[d],unique(subset(Simuls2,sub==subs[i])$drift)[d+3],unique(subset(Simuls2,sub==subs[i])$drift)[d+6])] <- coherences[d] #recode drift to coherence
+  for(d in 1:length(coherences)) Simuls2$coh[Simuls2$sub==subs_2[i] & Simuls2$drift %in% c(unique(subset(Simuls2,sub==subs_2[i])$drift)[d],unique(subset(Simuls2,sub==subs_2[i])$drift)[d+3],unique(subset(Simuls2,sub==subs_2[i])$drift)[d+6])] <- coherences[d] #recode drift to coherence
 }
 
 # Remove ? ----------------------------------------------------------------
