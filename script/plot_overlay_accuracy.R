@@ -42,23 +42,26 @@ stripchart(x, ylim=c(0.6,1), xlim=c(-.05,n-1), vertical = TRUE, col="white",fram
 mtext("Accuracy",2,at=.8,line=3,cex=1.75);axis(1,at=0:(n-1),labels=names(x), cex.axis=1.5);mtext("Trial difficulty",1,3,at=1,cex=1.75)
 means <- sapply(x, mean);n<- length(x)
 # lines(0:(n-1),colMeans(x_sim,na.rm=T),type='b',lty=2,cex=cexkl,lwd=lwdgr,pch=16,col=rgb(1,0,0,.5))
-polygon(c(0:(n-1),(n-1):0),c(colMeans(x_sim,na.rm=T) + (colSds(as.matrix(x_sim))/sqrt(N)),(colMeans(x_sim,na.rm=T) - colSds(as.matrix(x_sim))/sqrt(N))[3:1]),
+polygon(c(0:(n-1),(n-1):0),c(colMeans(x_sim,na.rm=T) + (colSds(as.matrix(x_sim))/sqrt(N1)),
+                             (colMeans(x_sim,na.rm=T) - colSds(as.matrix(x_sim))/sqrt(N1))[3:1]),
         border=F,col=rgb(1,0,0,.2))
 # lines(0:(n-1),colMeans(xmed_sim,na.rm=T),type='b',lty=2,cex=cexkl,lwd=lwdgr,pch=16,col=rgb(1,.5,0,.5))
-polygon(c(0:(n-1),(n-1):0),c(colMeans(xmed_sim,na.rm=T) + (colSds(as.matrix(xmed_sim),na.rm=T)/sqrt(N)),(colMeans(xmed_sim,na.rm=T) - colSds(as.matrix(xmed_sim),na.rm=T)/sqrt(N))[3:1]),
+polygon(c(0:(n-1),(n-1):0),c(colMeans(xmed_sim,na.rm=T) + (colSds(as.matrix(xmed_sim),na.rm=T)/sqrt(N1)),
+                             (colMeans(xmed_sim,na.rm=T) - colSds(as.matrix(xmed_sim),na.rm=T)/sqrt(N1))[3:1]),
         border=F,col=rgb(1,.5,0,.2))
 # lines(0:(n-1),colMeans(xhigh_sim,na.rm=T),type='b',lty=2,cex=cexkl,lwd=lwdgr,pch=16,col=rgb(0,0,1,.5))
-polygon(c(0:(n-1),(n-1):0),c(colMeans(xhigh_sim,na.rm=T) + (colSds(as.matrix(xhigh_sim),na.rm=T)/sqrt(N)),(colMeans(xhigh_sim,na.rm=T) - colSds(as.matrix(xhigh_sim),na.rm=T)/sqrt(N))[3:1]),
+polygon(c(0:(n-1),(n-1):0),c(colMeans(xhigh_sim,na.rm=T) + (colSds(as.matrix(xhigh_sim),na.rm=T)/sqrt(N1)),
+                             (colMeans(xhigh_sim,na.rm=T) - colSds(as.matrix(xhigh_sim),na.rm=T)/sqrt(N1))[3:1]),
         border=F,col=rgb(0,0,1,.2))
 legend(.05,1,legend=c("Negative","Average","Positive"),title = "Fake Feedback condition",pch=rep(16,3),bty = "n",inset=.1, cex = 1.25,col=c("red","orange","blue"))
 lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="red",lwd=lwddat)
-error.bar(0:(n-1),means,colSds(as.matrix(x),na.rm=T)/sqrt(N),lwd=lwdgr,length=.05,col="red")
+error.bar(0:(n-1),means,colSds(as.matrix(x),na.rm=T)/sqrt(N1),lwd=lwdgr,length=.05,col="red")
 means <- sapply(xmed, mean,na.rm=T)
 lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="orange",lwd=lwddat)
-error.bar(0:(n-1),means,colSds(as.matrix(xmed),na.rm=T)/sqrt(N),lwd=lwdgr,length=.05,col="orange")
+error.bar(0:(n-1),means,colSds(as.matrix(xmed),na.rm=T)/sqrt(N1),lwd=lwdgr,length=.05,col="orange")
 means <- sapply(xhigh, mean,na.rm=T)
 lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="blue",lwd=lwddat)
-error.bar(0:(n-1),means,colSds(as.matrix(xhigh),na.rm=T)/sqrt(N),lwd=lwdgr,length=.05,col="blue")
+error.bar(0:(n-1),means,colSds(as.matrix(xhigh),na.rm=T)/sqrt(N1),lwd=lwdgr,length=.05,col="blue")
 
 ## Experiment 2
 #Aggregate conf for Data2
@@ -96,20 +99,21 @@ stripchart(x, ylim=c(.6,1), xlim=c(-.05,n-1), vertical = TRUE, col="white",frame
 mtext("Accuracy",2,at=.8,line=3,cex=1.75);axis(1,at=0:(n-1),labels=names(x), cex.axis=1.5);mtext("Trial difficulty",1,3,at=1,cex=1.75)
 means <- sapply(x, mean);n<- length(x)
 # lines(0:(n-1),colMeans(x_sim,na.rm=T),type='b',lty=2,cex=cexkl,lwd=lwdgr,pch=16,col=rgb(1,0,0,.5))
-polygon(c(0:(n-1),(n-1):0),c(colMeans(x_sim,na.rm=T) + (colSds(as.matrix(x_sim))/sqrt(N)),(colMeans(x_sim,na.rm=T) - colSds(as.matrix(x_sim))/sqrt(N))[3:1]),
+polygon(c(0:(n-1),(n-1):0),c(colMeans(x_sim,na.rm=T) + (colSds(as.matrix(x_sim))/sqrt(Nsub_2)),(colMeans(x_sim,na.rm=T) - colSds(as.matrix(x_sim))/sqrt(Nsub_2))[3:1]),
         border=F,col=rgb(1,0,0,.2))
 # lines(0:(n-1),colMeans(xmed_sim,na.rm=T),type='b',lty=2,cex=cexkl,lwd=lwdgr,pch=16,col=rgb(1,.5,0,.5))
-polygon(c(0:(n-1),(n-1):0),c(colMeans(xmed_sim,na.rm=T) + (colSds(as.matrix(xmed_sim),na.rm=T)/sqrt(N)),(colMeans(xmed_sim,na.rm=T) - colSds(as.matrix(xmed_sim),na.rm=T)/sqrt(N))[3:1]),
+polygon(c(0:(n-1),(n-1):0),c(colMeans(xmed_sim,na.rm=T) + (colSds(as.matrix(xmed_sim),na.rm=T)/sqrt(Nsub_2)),
+                             (colMeans(xmed_sim,na.rm=T) - colSds(as.matrix(xmed_sim),na.rm=T)/sqrt(Nsub_2))[3:1]),
         border=F,col=rgb(1,.5,0,.2))
 # lines(0:(n-1),colMeans(xhigh_sim,na.rm=T),type='b',lty=2,cex=cexkl,lwd=lwdgr,pch=16,col=rgb(0,0,1,.5))
-polygon(c(0:(n-1),(n-1):0),c(colMeans(xhigh_sim,na.rm=T) + (colSds(as.matrix(xhigh_sim),na.rm=T)/sqrt(N)),(colMeans(xhigh_sim,na.rm=T) - colSds(as.matrix(xhigh_sim),na.rm=T)/sqrt(N))[3:1]),
+polygon(c(0:(n-1),(n-1):0),c(colMeans(xhigh_sim,na.rm=T) + (colSds(as.matrix(xhigh_sim),na.rm=T)/sqrt(Nsub_2)),(colMeans(xhigh_sim,na.rm=T) - colSds(as.matrix(xhigh_sim),na.rm=T)/sqrt(Nsub_2))[3:1]),
         border=F,col=rgb(0,0,1,.2))
 legend(.05,1,legend=c("Hard","Average","Easy"),title = "Training difficulty condition",pch=rep(16,3),bty = "n",inset=.1, cex = 1.5,col=c("red","orange","blue"))
 lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="red",lwd=lwddat)
-error.bar(0:(n-1),means,colSds(as.matrix(x),na.rm=T)/sqrt(N),lwd=lwdgr,length=.05,col="red")
+error.bar(0:(n-1),means,colSds(as.matrix(x),na.rm=T)/sqrt(Nsub_2),lwd=lwdgr,length=.05,col="red")
 means <- sapply(xmed, mean,na.rm=T)
 lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="orange",lwd=lwddat)
-error.bar(0:(n-1),means,colSds(as.matrix(xmed),na.rm=T)/sqrt(N),lwd=lwdgr,length=.05,col="orange")
+error.bar(0:(n-1),means,colSds(as.matrix(xmed),na.rm=T)/sqrt(Nsub_2),lwd=lwdgr,length=.05,col="orange")
 means <- sapply(xhigh, mean,na.rm=T)
 lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="blue",lwd=lwddat)
-error.bar(0:(n-1),means,colSds(as.matrix(xhigh),na.rm=T)/sqrt(N),lwd=lwdgr,length=.05,col="blue")
+error.bar(0:(n-1),means,colSds(as.matrix(xhigh),na.rm=T)/sqrt(Nsub_2),lwd=lwdgr,length=.05,col="blue")
