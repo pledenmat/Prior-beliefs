@@ -14,12 +14,12 @@ library(car)
 library(myPackage)
 library(MALDIquant)
 
-error.bar <- function(x, y, upper, lower=upper, length=0.1,...){
+error.bar <- function(x, y, upper, lower=upper, length=0,...){
   if(length(x) != length(y) | length(y) !=length(lower) | length(lower) != length(upper))
     stop("vectors must be same length")
   arrows(x,y+upper, x, y-lower, angle=90, code=3, length=length, ...)
 }
-cexkl <- 2.5;cexgr <- 2;lwdgr <- 3;
+cexkl <- 1.5;cexgr <- 2;lwdgr <- 3; lwddat <- 2
 # Global parameters --------------------------------------------------------------
 ## Heat map resolution
 dt <- .001; ev_bound <- .5; ev_window <- dt*10; upperRT <- 5
@@ -448,160 +448,11 @@ m <- lm(drift ~ condition*difflevel,data=param2); Anova(m);
 #Train vs Test
 m <- lm(bound ~ phase*condition,data = bounds2); Anova(m)
 m <- lm(ter ~ phase*condition,data = ters2); Anova(m)
-## Correlation Objective/Subjective drift ====
-for (c in 1:Ncond) {
-  obj_drift <- subset(df2,condition==cond_2[c])$Vo
-  subj_drift <- subset(df2,condition==cond_2[c])$Vs
-  drift_range <- c(min(min(subj_drift),min(obj_drift)),max(max(subj_drift),max(obj_drift)))
-  plot(obj_drift~subj_drift,cex.axis=1.75,cex.lab=1.75,frame=F,pch=19, xlim=drift_range, ylim =drift_range );
-  print(cor.test(obj_drift,subj_drift));
-  abline(lm(obj_drift~subj_drift),lty=2)
-  ;mtext(paste(cond_2[c],'r = ',round(cor(obj_drift,subj_drift),3)))
-}
-# Plot Vs ~ Condition -----------------------------------------------------
-##Exp1
-plot_drift <- with(df,aggregate(Vs,by=list(sub=sub,condition=condition),mean))
-plot_drift <- cast(plot_drift,sub~condition)
-plot_drift <- plot_drift[,c(3,4,2)] #Reorder columns to have hard -> easy
-plot(colMeans(plot_drift),frame=F,type='n',cex.lab=2,cex.axis=1.75,
-     xlim=c(.8,Ncond+.2),ylab='',ylim=c(min(plot_drift),max(plot_drift)),
-     xlab="Fake Feedback",xaxt='n')
-axis(1,1:Ncond,c("Negative","Average","Positive"),cex.axis=1.75)
-mtext("Subjective drift",side = 2, line = 2.5, cex = 2)
-for(i in 1:N1) lines(1:Ncond,plot_drift[i,1:Ncond],type='b',lty=2,col="grey",pch=19)
-points(colMeans(plot_drift),type='b',lwd=5)
-error.bar(1:Ncond,colMeans(plot_drift),colSds(plot_drift,na.rm=T)/sqrt(N1),lwd=3,length=.05)
-
-##Exp2
-plot_drift <- with(df2,aggregate(Vs,by=list(sub=sub,condition=condition),mean));
-plot_drift <- cast(plot_drift,sub~condition)
-plot_drift <- plot_drift[,c(4,2,3)] #Reorder columns to have hard -> easy
-plot(colMeans(plot_drift),frame=F,type='n',cex.lab=2,cex.axis=1.75,
-     xlim=c(.8,Ncond+.2),ylim=c(min(plot_drift),max(plot_drift)),
-     ylab="",xlab="Training Difficulty",xaxt='n');
-axis(1,1:Ncond,c("Hard","Average","Easy"),cex.axis=1.75)
-mtext("Subjective drift",side = 2, line = 2.5, cex = 2)
-for(i in 1:Nsub_2) lines(1:Ncond,plot_drift[i,1:Ncond],type='b',lty=2,col="grey",pch=19)
-points(colMeans(plot_drift),type='b',lwd=5)
-error.bar(1:Ncond,colMeans(plot_drift),colSds(plot_drift,na.rm=T)/sqrt(Nsub_2),lwd=3,length=.05)
-
-
-# Plot DDM parameters test phase EXP1 ------------------------------------------
-##Non-decision time
-par(mfrow=c(1,2))
-plot_ter <- with(param_1,aggregate(ter,by=list(sub=sub,condition=condition),mean))
-plot_ter <- cast(plot_ter,sub~condition)
-plot_ter <- plot_ter[,c(3,4,2)] #Reorder columns to have easy -> hard
-plot(colMeans(plot_ter),frame=F,type='n',cex.lab=2.5,cex.axis=1.75,
-     xlim=c(.8,Ncond+.2),ylim=c(min(plot_ter),max(plot_ter)),ylab="",
-     xlab="Condition",xaxt='n',main="Non-decision time", cex.main = 2);
-axis(1,1:Ncond,c("Negative","Average","Positive"),cex.axis=1.75)
-for(i in 1:N1) lines(1:Ncond,plot_ter[i,1:Ncond],type='b',lty=2,col="grey",pch=19)
-points(colMeans(plot_ter),type='b',lwd=5)
-error.bar(1:Ncond,colMeans(plot_ter),colSds(plot_ter,na.rm=T)/sqrt(N1),lwd=3,length=0)
-
-##Bound
-plot_bound <- with(param_1,aggregate(bound,by=list(sub=sub,condition=condition),mean))
-plot_bound <- cast(plot_bound,sub~condition)
-plot_bound <- plot_bound[,c(3,4,2)] #Reorder columns to have easy -> hard
-plot(colMeans(plot_bound),frame=F,type='n',cex.lab=2.5,cex.axis=1.75,
-     xlim=c(.8,Ncond+.2),ylim=c(min(plot_bound),max(plot_bound)),ylab="",
-     xlab="Condition",xaxt='n',main="Bound", cex.main = 2);
-axis(1,1:Ncond,c("Negative","Average","Positive"),cex.axis=1.75)
-for(i in 1:N1) lines(1:Ncond,plot_bound[i,1:Ncond],type='b',lty=2,col="grey",pch=19)
-points(colMeans(plot_bound),type='b',lwd=5)
-error.bar(1:Ncond,colMeans(plot_bound),colSds(plot_bound,na.rm=T)/sqrt(N1),lwd=3,length=0)
-
-##Drift interaction
-par(mfrow=c(1,1))
-plot_drift_minus <- with(subset(param_1,condition=="lowSC"),
-                         aggregate(drift,by=list(sub=sub,difflevel=difflevel),mean))
-plot_drift_minus <- cast(plot_drift_minus,sub~difflevel)
-plot_drift_minus <- plot_drift_minus[,c(4,2,3)] #Reorder columns to have easy -> hard
-plot(colMeans(plot_drift_minus),frame=F,type='n',cex.lab=2,cex.axis=1.75,xlim=c(.8,Ncond+.2),
-     ylim=c(min(plot_drift_minus),.25),ylab="Drift rate",xlab="Trial Difficulty",xaxt='n');
-axis(1,1:Ncond,c("Hard","Medium","Easy"),cex.axis=1.75)
-points(colMeans(plot_drift_minus),type='b',lwd=5,col="red")
-error.bar(1:Ncond,colMeans(plot_drift_minus),
-          colSds(plot_drift_minus,na.rm=T)/sqrt(N1),lwd=3,length=0,col="red")
-
-plot_drift_control <- with(subset(param_1,condition=="mediumSC"),
-                           aggregate(drift,by=list(sub=sub,difflevel=difflevel),mean))
-plot_drift_control <- cast(plot_drift_control,sub~difflevel)
-plot_drift_control <- plot_drift_control[,c(4,2,3)] #Reorder columns to have easy -> hard
-points(colMeans(plot_drift_control),type='b',lwd=5,col="orange")
-error.bar(1:Ncond,colMeans(plot_drift_control),
-          colSds(plot_drift_control,na.rm=T)/sqrt(N1),lwd=3,length=0,col="orange")
-
-plot_drift_plus <- with(subset(param_1,condition=="highSC"),
-                        aggregate(drift,by=list(sub=sub,difflevel=difflevel),mean))
-plot_drift_plus <- cast(plot_drift_plus,sub~difflevel)
-plot_drift_plus <- plot_drift_plus[,c(4,2,3)] #Reorder columns to have easy -> hard
-points(colMeans(plot_drift_plus),type='b',lwd=5,col="blue")
-error.bar(1:Ncond,colMeans(plot_drift_plus),
-          colSds(plot_drift_plus,na.rm=T)/sqrt(N1),lwd=3,length=0,col="blue")
-legend("topleft",border=F,legend=c("Negative","Average","Positive"),lwd=2,
-       col=c("red","orange","blue"),bty="n",cex=1.5,title = "Condition")
-
-
-# Plot DDM parameters test phase EXP2 -------------------------------------
-##Non-decision time
-par(mfrow=c(1,2))
-plot_ter <- with(param2,aggregate(ter,by=list(sub=sub,condition=condition),mean))
-plot_ter <- cast(plot_ter,sub~condition)
-plot_ter <- plot_ter[,c(4,2,3)] #Reorder columns to have easy -> hard
-plot(colMeans(plot_ter),frame=F,type='n',cex.lab=2.5,cex.axis=1.75,
-     xlim=c(.8,Ncond+.2),ylim=c(min(plot_ter),max(plot_ter)),ylab="",
-     xlab="Condition",xaxt='n',main="Non-decision time", cex.main = 2);
-axis(1,1:Ncond,c("Hard","Medium","Easy"),cex.axis=1.75)
-for(i in 1:Nsub_2) lines(1:Ncond,plot_ter[i,1:Ncond],type='b',lty=2,col="grey",pch=19)
-points(colMeans(plot_ter),type='b',lwd=5)
-error.bar(1:Ncond,colMeans(plot_ter),colSds(plot_ter,na.rm=T)/sqrt(Nsub_2),lwd=3,length=0)
-
-##Bound
-plot_bound <- with(param2,aggregate(bound,by=list(sub=sub,condition=condition),mean))
-plot_bound <- cast(plot_bound,sub~condition)
-plot_bound <- plot_bound[,c(4,2,3)] #Reorder columns to have easy -> hard
-plot(colMeans(plot_bound),frame=F,type='n',cex.lab=2.5,cex.axis=1.75,
-     xlim=c(.8,Ncond+.2),ylim=c(min(plot_bound),max(plot_bound)),ylab="",
-     xlab="Condition",xaxt='n',main="Bound", cex.main = 2);
-axis(1,1:Ncond,c("Hard","Medium","Easy"),cex.axis=1.75)
-for(i in 1:Nsub_2) lines(1:Ncond,plot_bound[i,1:Ncond],type='b',lty=2,col="grey",pch=19)
-points(colMeans(plot_bound),type='b',lwd=5)
-error.bar(1:Ncond,colMeans(plot_bound),colSds(plot_bound,na.rm=T)/sqrt(Nsub_2),lwd=3,length=0)
-
-##Drift interaction
-par(mfrow=c(1,1))
-plot_drift_minus <- with(subset(param2,condition=="hard"),
-                         aggregate(drift,by=list(sub=sub,difflevel=difflevel),mean))
-plot_drift_minus <- cast(plot_drift_minus,sub~difflevel)
-plot_drift_minus <- plot_drift_minus[,c(4,2,3)] #Reorder columns to have easy -> hard
-plot(colMeans(plot_drift_minus),frame=F,type='n',cex.lab=2,cex.axis=1.75,xlim=c(.8,Ncond+.2),
-     ylim=c(min(plot_drift_minus),.25),ylab="Drift rate",xlab="Trial Difficulty",xaxt='n');
-axis(1,1:Ncond,c("Hard","Medium","Easy"),cex.axis=1.75)
-points(colMeans(plot_drift_minus),type='b',lwd=5,col="red")
-error.bar(1:Ncond,colMeans(plot_drift_minus),
-          colSds(plot_drift_minus,na.rm=T)/sqrt(Nsub_2),lwd=3,length=0,col="red")
-
-plot_drift_control <- with(subset(param2,condition=="average"),
-                           aggregate(drift,by=list(sub=sub,difflevel=difflevel),mean))
-plot_drift_control <- cast(plot_drift_control,sub~difflevel)
-plot_drift_control <- plot_drift_control[,c(4,2,3)] #Reorder columns to have easy -> hard
-points(colMeans(plot_drift_control),type='b',lwd=5,col="orange")
-error.bar(1:Ncond,colMeans(plot_drift_control),
-          colSds(plot_drift_control,na.rm=T)/sqrt(Nsub_2),lwd=3,length=0,col="orange")
-
-plot_drift_plus <- with(subset(param2,condition=="easy"),
-                        aggregate(drift,by=list(sub=sub,difflevel=difflevel),mean))
-plot_drift_plus <- cast(plot_drift_plus,sub~difflevel)
-plot_drift_plus <- plot_drift_plus[,c(4,2,3)] #Reorder columns to have easy -> hard
-points(colMeans(plot_drift_plus),type='b',lwd=5,col="blue")
-error.bar(1:Ncond,colMeans(plot_drift_plus),
-          colSds(plot_drift_plus,na.rm=T)/sqrt(Nsub_2),lwd=3,length=0,col="blue")
-legend("topleft",border=F,legend=c("Hard","Medium","Easy"),lwd=2,
-       col=c("red","orange","blue"),bty="n",cex=1.5,title = "Condition")
-
 # Plot confidence prediction ----------------------------------------------
+go_to("plot")
+windowsFonts(A = windowsFont("Calibri")) 
+par(mfrow=c(1,1),mar=c(5,4,1,2) + 0.1, family="A")
+
 Simuls$cj <- Simuls$cj_cont
 ## Experiment 1
 #Aggregate conf for data
@@ -621,20 +472,35 @@ x <- x[,c("hard","average","easy")];
 xmed <- xmed[,c("hard","average","easy")];
 xhigh <- xhigh[,c("hard","average","easy")]
 
-par(mfrow=c(1,1))
-stripchart(x,ylim=c(.45,.95), xlim=c(-.05,n-1), vertical = TRUE, col="white",frame=F,xaxt='n',
-           main="Model prediction",cex.axis=1.25)
-mtext("Confidence",2,at=.7,line=2.5,cex=1.75);axis(1,at=0:(n-1),labels=names(x), cex.axis=1.5);mtext("Trial difficulty",1,3,at=1,cex=1.75)
+jpeg(
+  filename="confidence_prediction_1.jpeg",
+  width=6.5,
+  height=8,
+  units="in",
+  res=500)
+
+stripchart(x,ylim=c(.45,1), xlim=c(-.05,n-1), vertical = TRUE, col="white",frame=F,xaxt='n',
+           main=NULL, yaxt = 'n',family="A")
+mtext("Confidence",2,at=.7,line=2.5,cex=1.75);
+axis(1,at=0:(n-1),labels=names(x), cex.axis=1.5);
+mtext("Trial difficulty",1,3,at=1,cex=1.75)
 means <- sapply(x, mean);n<- length(x)
-legend(0,.95,legend=c("Negative","Average","Positive"),title = "Fake Feedback condition",pch=rep(16,3),bty = "n",inset=.1, cex = 1.25,col=c("red","orange","blue"))
-lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="red",lwd=lwddat)
-error.bar(0:(n-1),means,colSds(as.matrix(x),na.rm=T)/sqrt(N1),lwd=lwdgr,length=.05,col="red")
+legend("top",legend=c("Negative","Average","Positive"),
+       title = "Feedback condition",pch=rep(16,3),bty = "n",inset=0, 
+       cex = 1.5,col=c("brown3","cyan4","darkgoldenrod3"), horiz = T)
+for(i in seq(.5,.9,length.out = 5)) abline(h=i,col="lightgrey",lty = "dashed")
+lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="brown3",lwd=lwddat,lty = "dashed")
+error.bar(0:(n-1),means,colSds(as.matrix(x),na.rm=T)/sqrt(N1),lwd=lwdgr,col="brown3")
 means <- sapply(xmed, mean,na.rm=T)
-lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="orange",lwd=lwddat)
-error.bar(0:(n-1),means,colSds(as.matrix(xmed),na.rm=T)/sqrt(N1),lwd=lwdgr,length=.05,col="orange")
+lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="cyan4",lwd=lwddat,lty = "dashed")
+error.bar(0:(n-1),means,colSds(as.matrix(xmed),na.rm=T)/sqrt(N1),lwd=lwdgr,col="cyan4")
 means <- sapply(xhigh, mean,na.rm=T)
-lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="blue",lwd=lwddat)
-error.bar(0:(n-1),means,colSds(as.matrix(xhigh),na.rm=T)/sqrt(N1),lwd=lwdgr,length=.05,col="blue")
+lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="darkgoldenrod3",lwd=lwddat,lty = "dashed")
+error.bar(0:(n-1),means,colSds(as.matrix(xhigh),na.rm=T)/sqrt(N1),lwd=lwdgr,col="darkgoldenrod3")
+axis(2, seq(.5,.9,length.out = 5), cex.axis=1.5)
+
+#'save
+dev.off()
 
 
 ## Experiment 2
@@ -656,22 +522,131 @@ x <- x[,c("hard","average","easy")];
 xmed <- xmed[,c("hard","average","easy")];
 xhigh <- xhigh[,c("hard","average","easy")]
 
-stripchart(x, ylim=c(.45,.95), xlim=c(-.05,n-1), vertical = TRUE, col="white",frame=F,xaxt='n',
-           main="Model prediction",cex.axis=1.25)
-mtext("Confidence",2,at=.7,line=2.5,cex=1.75);axis(1,at=0:(n-1),labels=names(x), cex.axis=1.5);mtext("Trial difficulty",1,3,at=1,cex=1.75)
+jpeg(
+  filename="confidence_prediction_2.jpeg",
+  width=6.5,
+  height=8,
+  units="in",
+  res=500)
+
+stripchart(x,ylim=c(.45,1), xlim=c(-.05,n-1), vertical = TRUE, col="white",frame=F,xaxt='n',
+           main=NULL, yaxt = 'n',family="A")
+mtext("Confidence",2,at=.7,line=2.5,cex=1.75);
+axis(1,at=0:(n-1),labels=names(x), cex.axis=1.5);
+mtext("Trial difficulty",1,3,at=1,cex=1.75)
 means <- sapply(x, mean);n<- length(x)
-legend(0,.95,legend=c("Hard","Average","Easy"),title = "Training difficulty condition",pch=rep(16,3),bty = "n",inset=.1, cex = 1.25,col=c("red","orange","blue"))
-lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="red",lwd=lwddat)
-error.bar(0:(n-1),means,colSds(as.matrix(x),na.rm=T)/sqrt(Nsub_2),lwd=lwdgr,length=.05,col="red")
+legend("top",legend=c("Difficult","Medium","Easy"),
+       title = "Training condition",pch=rep(16,3),bty = "n",inset=0, 
+       cex = 1.5,col=c("brown3","cyan4","darkgoldenrod3"), horiz = T)
+for(i in seq(.5,.9,length.out = 5)) abline(h=i,col="lightgrey",lty = "dashed")
+lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="brown3",lwd=lwddat,lty = "dashed")
+error.bar(0:(n-1),means,colSds(as.matrix(x),na.rm=T)/sqrt(N1),lwd=lwdgr,col="brown3")
 means <- sapply(xmed, mean,na.rm=T)
-lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="orange",lwd=lwddat)
-error.bar(0:(n-1),means,colSds(as.matrix(xmed),na.rm=T)/sqrt(Nsub_2),lwd=lwdgr,length=.05,col="orange")
+lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="cyan4",lwd=lwddat,lty = "dashed")
+error.bar(0:(n-1),means,colSds(as.matrix(xmed),na.rm=T)/sqrt(N1),lwd=lwdgr,col="cyan4")
 means <- sapply(xhigh, mean,na.rm=T)
-lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="blue",lwd=lwddat)
-error.bar(0:(n-1),means,colSds(as.matrix(xhigh),na.rm=T)/sqrt(Nsub_2),lwd=lwdgr,length=.05,col="blue")
+lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="darkgoldenrod3",lwd=lwddat,lty = "dashed")
+error.bar(0:(n-1),means,colSds(as.matrix(xhigh),na.rm=T)/sqrt(N1),lwd=lwdgr,col="darkgoldenrod3")
+axis(2, seq(.5,.9,length.out = 5), cex.axis=1.5)
+
+#'save
+dev.off()
+# Plot Confidence - Empirical Data ----------------------------------------
+##Experiment 1
+#Aggregate conf for data
+CJlow <- with(subset(Data1,selfconf=="lowSC"),aggregate(cj,by=list(sub,coh),mean));names(CJlow) <- c('sub','coh','cj')
+CJlow <- cast(CJlow,sub~coh,)
+CJmed <- with(subset(Data1,selfconf=="mediumSC"),aggregate(cj,by=list(sub,coh),mean));names(CJmed) <- c('sub','coh','cj')
+CJmed <- cast(CJmed,sub~coh)
+CJhigh <- with(subset(Data1,selfconf=="highSC"),aggregate(cj,by=list(sub,coh),mean));names(CJhigh) <- c('sub','coh','cj')
+CJhigh <- cast(CJhigh,sub~coh)
 
 
+#aggregate cj for model
+x <- CJlow[,c(2:4)];xmed <- CJmed[,c(2:4)];xhigh <- CJhigh[,c(2:4)]
+n <- length(x)
 
+x <- x[,c("hard","average","easy")];
+xmed <- xmed[,c("hard","average","easy")];
+xhigh <- xhigh[,c("hard","average","easy")]
+
+jpeg(
+  filename="confidence_empirical_1.jpeg",
+  width=6.5,
+  height=8,
+  units="in",
+  res=500)
+
+stripchart(x,ylim=c(3.75,6), xlim=c(-.05,n-1), vertical = TRUE, col="white",frame=F,xaxt='n',
+           main=NULL, yaxt = 'n',family="A")
+axis(1,at=0:(n-1),labels=names(x), cex.axis=1.5);
+axis(2, seq(4,5.5,.5), cex.axis=1.5)
+mtext("Confidence",2,at=4.75,line=2.5,cex=1.75);
+mtext("Trial difficulty",1,3,at=1,cex=1.75)
+means <- sapply(x, mean);n<- length(x)
+legend("top",legend=c("Negative","Average","Positive"),
+       title = "Feedback condition",pch=rep(16,3),bty = "n",inset=0, 
+       cex = 1.5,col=c("brown3","cyan4","darkgoldenrod3"), horiz = T)
+for(i in seq(4,5.5,.5)) abline(h=i,col="lightgrey",lty = "dashed")
+lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="brown3",lwd=lwddat,lty = "dashed")
+error.bar(0:(n-1),means,colSds(as.matrix(x),na.rm=T)/sqrt(N1),lwd=lwdgr,col="brown3")
+means <- sapply(xmed, mean,na.rm=T)
+lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="cyan4",lwd=lwddat,lty = "dashed")
+error.bar(0:(n-1),means,colSds(as.matrix(xmed),na.rm=T)/sqrt(N1),lwd=lwdgr,col="cyan4")
+means <- sapply(xhigh, mean,na.rm=T)
+lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="darkgoldenrod3",lwd=lwddat,lty = "dashed")
+error.bar(0:(n-1),means,colSds(as.matrix(xhigh),na.rm=T)/sqrt(N1),lwd=lwdgr,col="darkgoldenrod3")
+
+#'save
+dev.off()
+
+## Experiment 2
+#Aggregate conf for data
+CJlow <- with(subset(Data2,traindiffcond=="hard"),aggregate(cj,by=list(sub,coh),mean));names(CJlow) <- c('sub','coh','cj')
+CJlow <- cast(CJlow,sub~coh,)
+CJmed <- with(subset(Data2,traindiffcond=="average"),aggregate(cj,by=list(sub,coh),mean));names(CJmed) <- c('sub','coh','cj')
+CJmed <- cast(CJmed,sub~coh)
+CJhigh <- with(subset(Data2,traindiffcond=="easy"),aggregate(cj,by=list(sub,coh),mean));names(CJhigh) <- c('sub','coh','cj')
+CJhigh <- cast(CJhigh,sub~coh)
+
+
+#aggregate cj for model
+x <- CJlow[,c(2:4)];xmed <- CJmed[,c(2:4)];xhigh <- CJhigh[,c(2:4)]
+n <- length(x)
+
+x <- x[,c("hard","average","easy")];
+xmed <- xmed[,c("hard","average","easy")];
+xhigh <- xhigh[,c("hard","average","easy")]
+
+jpeg(
+  filename="confidence_empirical_2.jpeg",
+  width=6.5,
+  height=8,
+  units="in",
+  res=500)
+
+stripchart(x,ylim=c(3.75,6), xlim=c(-.05,n-1), vertical = TRUE, col="white",frame=F,xaxt='n',
+           main=NULL, yaxt = 'n',family="A")
+axis(1,at=0:(n-1),labels=names(x), cex.axis=1.5);
+axis(2, seq(4,5.5,.5), cex.axis=1.5)
+mtext("Confidence",2,at=4.75,line=2.5,cex=1.75);
+mtext("Trial difficulty",1,3,at=1,cex=1.75)
+means <- sapply(x, mean);n<- length(x)
+legend("top",legend=c("Difficult","Medium","Easy"),
+       title = "Training condition",pch=rep(16,3),bty = "n",inset=0, 
+       cex = 1.5,col=c("brown3","cyan4","darkgoldenrod3"), horiz = T)
+for(i in seq(4,5.5,.5)) abline(h=i,col="lightgrey",lty = "dashed")
+lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="brown3",lwd=lwddat,lty = "dashed")
+error.bar(0:(n-1),means,colSds(as.matrix(x),na.rm=T)/sqrt(N1),lwd=lwdgr,col="brown3")
+means <- sapply(xmed, mean,na.rm=T)
+lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="cyan4",lwd=lwddat,lty = "dashed")
+error.bar(0:(n-1),means,colSds(as.matrix(xmed),na.rm=T)/sqrt(N1),lwd=lwdgr,col="cyan4")
+means <- sapply(xhigh, mean,na.rm=T)
+lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="darkgoldenrod3",lwd=lwddat,lty = "dashed")
+error.bar(0:(n-1),means,colSds(as.matrix(xhigh),na.rm=T)/sqrt(N1),lwd=lwdgr,col="darkgoldenrod3")
+
+#'save
+dev.off()
 # Plot overlay accuracy ---------------------------------------------------
 ## Experiment 1
 #Aggregate conf for data
@@ -721,15 +696,16 @@ polygon(c(0:(n-1),(n-1):0),c(colMeans(xmed_sim,na.rm=T) + (colSds(as.matrix(xmed
 polygon(c(0:(n-1),(n-1):0),c(colMeans(xhigh_sim,na.rm=T) + (colSds(as.matrix(xhigh_sim),na.rm=T)/sqrt(N1)),
                              (colMeans(xhigh_sim,na.rm=T) - colSds(as.matrix(xhigh_sim),na.rm=T)/sqrt(N1))[3:1]),
         border=F,col=rgb(0,0,1,.2))
-legend(.05,1,legend=c("Negative","Average","Positive"),title = "Fake Feedback condition",pch=rep(16,3),bty = "n",inset=.1, cex = 1.25,col=c("red","orange","blue"))
-lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="red",lwd=lwddat)
-error.bar(0:(n-1),means,colSds(as.matrix(x),na.rm=T)/sqrt(N1),lwd=lwdgr,length=.05,col="red")
+legend(.05,1,legend=c("Negative","Average","Positive"),title = "Feedback condition",
+       pch=rep(16,3),bty = "n",inset=.1, cex = 1.5,col=c("brown3","cyan4","darkgoldenrod3"))
+lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="brown3",lwd=lwddat)
+error.bar(0:(n-1),means,colSds(as.matrix(x),na.rm=T)/sqrt(N1),lwd=lwdgr,col="brown3")
 means <- sapply(xmed, mean,na.rm=T)
-lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="orange",lwd=lwddat)
-error.bar(0:(n-1),means,colSds(as.matrix(xmed),na.rm=T)/sqrt(N1),lwd=lwdgr,length=.05,col="orange")
+lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="cyan4",lwd=lwddat)
+error.bar(0:(n-1),means,colSds(as.matrix(xmed),na.rm=T)/sqrt(N1),lwd=lwdgr,col="cyan4")
 means <- sapply(xhigh, mean,na.rm=T)
-lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="blue",lwd=lwddat)
-error.bar(0:(n-1),means,colSds(as.matrix(xhigh),na.rm=T)/sqrt(N1),lwd=lwdgr,length=.05,col="blue")
+lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="darkgoldenrod3",lwd=lwddat)
+error.bar(0:(n-1),means,colSds(as.matrix(xhigh),na.rm=T)/sqrt(N1),lwd=lwdgr,col="darkgoldenrod3")
 
 ## Experiment 2
 #Aggregate conf for Data2
@@ -776,15 +752,16 @@ polygon(c(0:(n-1),(n-1):0),c(colMeans(xmed_sim,na.rm=T) + (colSds(as.matrix(xmed
 # lines(0:(n-1),colMeans(xhigh_sim,na.rm=T),type='b',lty=2,cex=cexkl,lwd=lwdgr,pch=16,col=rgb(0,0,1,.5))
 polygon(c(0:(n-1),(n-1):0),c(colMeans(xhigh_sim,na.rm=T) + (colSds(as.matrix(xhigh_sim),na.rm=T)/sqrt(Nsub_2)),(colMeans(xhigh_sim,na.rm=T) - colSds(as.matrix(xhigh_sim),na.rm=T)/sqrt(Nsub_2))[3:1]),
         border=F,col=rgb(0,0,1,.2))
-legend(.05,1,legend=c("Hard","Average","Easy"),title = "Training difficulty condition",pch=rep(16,3),bty = "n",inset=.1, cex = 1.5,col=c("red","orange","blue"))
-lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="red",lwd=lwddat)
-error.bar(0:(n-1),means,colSds(as.matrix(x),na.rm=T)/sqrt(Nsub_2),lwd=lwdgr,length=.05,col="red")
+legend(.05,1,legend=c("Hard","Average","Easy"),title = "Training condition",
+       pch=rep(16,3),bty = "n",inset=.1, cex = 1.5,col=c("brown3","cyan4","darkgoldenrod3"))
+lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="brown3",lwd=lwddat)
+error.bar(0:(n-1),means,colSds(as.matrix(x),na.rm=T)/sqrt(Nsub_2),lwd=lwdgr,col="brown3")
 means <- sapply(xmed, mean,na.rm=T)
-lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="orange",lwd=lwddat)
-error.bar(0:(n-1),means,colSds(as.matrix(xmed),na.rm=T)/sqrt(Nsub_2),lwd=lwdgr,length=.05,col="orange")
+lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="cyan4",lwd=lwddat)
+error.bar(0:(n-1),means,colSds(as.matrix(xmed),na.rm=T)/sqrt(Nsub_2),lwd=lwdgr,col="cyan4")
 means <- sapply(xhigh, mean,na.rm=T)
-lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="blue",lwd=lwddat)
-error.bar(0:(n-1),means,colSds(as.matrix(xhigh),na.rm=T)/sqrt(Nsub_2),lwd=lwdgr,length=.05,col="blue")
+lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="darkgoldenrod3",lwd=lwddat)
+error.bar(0:(n-1),means,colSds(as.matrix(xhigh),na.rm=T)/sqrt(Nsub_2),lwd=lwdgr,col="darkgoldenrod3")
 
 
 # Plot overlay RT ---------------------------------------------------------
@@ -836,15 +813,16 @@ polygon(c(0:(n-1),(n-1):0),c(colMeans(xmed_sim,na.rm=T) + (colSds(as.matrix(xmed
 # lines(0:(n-1),colMeans(xhigh_sim,na.rm=T),type='b',lty=2,cex=cexkl,lwd=lwdgr,pch=16,col=rgb(0,0,1,.5))
 polygon(c(0:(n-1),(n-1):0),c(colMeans(xhigh_sim,na.rm=T) + (colSds(as.matrix(xhigh_sim),na.rm=T)/sqrt(N1)),(colMeans(xhigh_sim,na.rm=T) - colSds(as.matrix(xhigh_sim),na.rm=T)/sqrt(N1))[3:1]),
         border=F,col=rgb(0,0,1,.2))
-legend(.05,1.1,legend=c("Negative","Average","Positive"),title = "Fake Feedback condition",pch=rep(16,3),bty = "n",inset=.1, cex = 1.25,col=c("red","orange","blue"))
-lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="red",lwd=lwddat)
-error.bar(0:(n-1),means,colSds(as.matrix(x),na.rm=T)/sqrt(N1),lwd=lwdgr,length=.05,col="red")
+legend(.05,1.1,legend=c("Negative","Average","Positive"),title = "Feedback condition",
+       pch=rep(16,3),bty = "n",inset=.1, cex = 1.5,col=c("brown3","cyan4","darkgoldenrod3"))
+lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="brown3",lwd=lwddat)
+error.bar(0:(n-1),means,colSds(as.matrix(x),na.rm=T)/sqrt(N1),lwd=lwdgr,col="brown3")
 means <- sapply(xmed, mean,na.rm=T)
-lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="orange",lwd=lwddat)
-error.bar(0:(n-1),means,colSds(as.matrix(xmed),na.rm=T)/sqrt(N1),lwd=lwdgr,length=.05,col="orange")
+lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="cyan4",lwd=lwddat)
+error.bar(0:(n-1),means,colSds(as.matrix(xmed),na.rm=T)/sqrt(N1),lwd=lwdgr,col="cyan4")
 means <- sapply(xhigh, mean,na.rm=T)
-lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="blue",lwd=lwddat)
-error.bar(0:(n-1),means,colSds(as.matrix(xhigh),na.rm=T)/sqrt(N1),lwd=lwdgr,length=.05,col="blue")
+lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="darkgoldenrod3",lwd=lwddat)
+error.bar(0:(n-1),means,colSds(as.matrix(xhigh),na.rm=T)/sqrt(N1),lwd=lwdgr,col="darkgoldenrod3")
 
 ## Experiment 2
 #Aggregate conf for Data2
@@ -890,15 +868,171 @@ polygon(c(0:(n-1),(n-1):0),c(colMeans(xmed_sim,na.rm=T) + (colSds(as.matrix(xmed
 # lines(0:(n-1),colMeans(xhigh_sim,na.rm=T),type='b',lty=2,cex=cexkl,lwd=lwdgr,pch=16,col=rgb(0,0,1,.5))
 polygon(c(0:(n-1),(n-1):0),c(colMeans(xhigh_sim,na.rm=T) + (colSds(as.matrix(xhigh_sim),na.rm=T)/sqrt(Nsub_2)),(colMeans(xhigh_sim,na.rm=T) - colSds(as.matrix(xhigh_sim),na.rm=T)/sqrt(Nsub_2))[3:1]),
         border=F,col=rgb(0,0,1,.2))
-legend("bottomleft",legend=c("Hard","Average","Easy"),title = "Training difficulty condition",pch=rep(16,3),bty = "n",inset=.1, cex = 1.5,col=c("red","orange","blue"))
-lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="red",lwd=lwddat)
-error.bar(0:(n-1),means,colSds(as.matrix(x),na.rm=T)/sqrt(Nsub_2),lwd=lwdgr,length=.05,col="red")
+legend("bottomleft",legend=c("Hard","Average","Easy"),title = "Training condition",
+       pch=rep(16,3),bty = "n",inset=.1, cex = 1.5,col=c("brown3","cyan4","darkgoldenrod3"))
+lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="brown3",lwd=lwddat)
+error.bar(0:(n-1),means,colSds(as.matrix(x),na.rm=T)/sqrt(Nsub_2),lwd=lwdgr,col="brown3")
 means <- sapply(xmed, mean,na.rm=T)
-lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="orange",lwd=lwddat)
-error.bar(0:(n-1),means,colSds(as.matrix(xmed),na.rm=T)/sqrt(Nsub_2),lwd=lwdgr,length=.05,col="orange")
+lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="cyan4",lwd=lwddat)
+error.bar(0:(n-1),means,colSds(as.matrix(xmed),na.rm=T)/sqrt(Nsub_2),lwd=lwdgr,col="cyan4")
 means <- sapply(xhigh, mean,na.rm=T)
-lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="blue",lwd=lwddat)
-error.bar(0:(n-1),means,colSds(as.matrix(xhigh),na.rm=T)/sqrt(Nsub_2),lwd=lwdgr,length=.05,col="blue")
+lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="darkgoldenrod3",lwd=lwddat)
+error.bar(0:(n-1),means,colSds(as.matrix(xhigh),na.rm=T)/sqrt(Nsub_2),lwd=lwdgr,col="darkgoldenrod3")
+
+# OTHER PLOTS -------------------------------------------------------------,
+## Correlation Objective/Subjective drift ====
+for (c in 1:Ncond) {
+  obj_drift <- subset(df2,condition==cond_2[c])$Vo
+  subj_drift <- subset(df2,condition==cond_2[c])$Vs
+  drift_range <- c(min(min(subj_drift),min(obj_drift)),max(max(subj_drift),max(obj_drift)))
+  plot(obj_drift~subj_drift,cex.axis=1.75,cex.lab=1.75,frame=F,pch=19, xlim=drift_range, ylim =drift_range );
+  print(cor.test(obj_drift,subj_drift));
+  abline(lm(obj_drift~subj_drift),lty=2)
+  ;mtext(paste(cond_2[c],'r = ',round(cor(obj_drift,subj_drift),3)))
+}
+# Plot Vs ~ Condition -----------------------------------------------------
+##Exp1
+plot_drift <- with(df,aggregate(Vs,by=list(sub=sub,condition=condition),mean))
+plot_drift <- cast(plot_drift,sub~condition)
+plot_drift <- plot_drift[,c(3,4,2)] #Reorder columns to have hard -> easy
+plot(colMeans(plot_drift),frame=F,type='n',cex.lab=2,cex.axis=1.75,
+     xlim=c(.8,Ncond+.2),ylab='',ylim=c(min(plot_drift),max(plot_drift)),
+     xlab="Feedback",xaxt='n')
+axis(1,1:Ncond,c("Negative","Average","Positive"),cex.axis=1.75)
+mtext("Subjective drift",side = 2, line = 2.5, cex = 2)
+for(i in 1:N1) lines(1:Ncond,plot_drift[i,1:Ncond],type='b',lty=2,col="grey",pch=19)
+points(colMeans(plot_drift),type='b',lwd=5)
+error.bar(1:Ncond,colMeans(plot_drift),colSds(plot_drift,na.rm=T)/sqrt(N1),lwd=3)
+
+##Exp2
+plot_drift <- with(df2,aggregate(Vs,by=list(sub=sub,condition=condition),mean));
+plot_drift <- cast(plot_drift,sub~condition)
+plot_drift <- plot_drift[,c(4,2,3)] #Reorder columns to have hard -> easy
+plot(colMeans(plot_drift),frame=F,type='n',cex.lab=2,cex.axis=1.75,
+     xlim=c(.8,Ncond+.2),ylim=c(min(plot_drift),max(plot_drift)),
+     ylab="",xlab="Training",xaxt='n');
+axis(1,1:Ncond,c("Hard","Average","Easy"),cex.axis=1.75)
+mtext("Subjective drift",side = 2, line = 2.5, cex = 2)
+for(i in 1:Nsub_2) lines(1:Ncond,plot_drift[i,1:Ncond],type='b',lty=2,col="grey",pch=19)
+points(colMeans(plot_drift),type='b',lwd=5)
+error.bar(1:Ncond,colMeans(plot_drift),colSds(plot_drift,na.rm=T)/sqrt(Nsub_2),lwd=3)
+
+
+# Plot DDM parameters test phase EXP1 ------------------------------------------
+##Non-decision time
+par(mfrow=c(1,2))
+plot_ter <- with(param_1,aggregate(ter,by=list(sub=sub,condition=condition),mean))
+plot_ter <- cast(plot_ter,sub~condition)
+plot_ter <- plot_ter[,c(3,4,2)] #Reorder columns to have easy -> hard
+plot(colMeans(plot_ter),frame=F,type='n',cex.lab=2.5,cex.axis=1.75,
+     xlim=c(.8,Ncond+.2),ylim=c(min(plot_ter),max(plot_ter)),ylab="",
+     xlab="Condition",xaxt='n',main="Non-decision time", cex.main = 2);
+axis(1,1:Ncond,c("Negative","Average","Positive"),cex.axis=1.75)
+for(i in 1:N1) lines(1:Ncond,plot_ter[i,1:Ncond],type='b',lty=2,col="grey",pch=19)
+points(colMeans(plot_ter),type='b',lwd=5)
+error.bar(1:Ncond,colMeans(plot_ter),colSds(plot_ter,na.rm=T)/sqrt(N1),lwd=3,length=0)
+
+##Bound
+plot_bound <- with(param_1,aggregate(bound,by=list(sub=sub,condition=condition),mean))
+plot_bound <- cast(plot_bound,sub~condition)
+plot_bound <- plot_bound[,c(3,4,2)] #Reorder columns to have easy -> hard
+plot(colMeans(plot_bound),frame=F,type='n',cex.lab=2.5,cex.axis=1.75,
+     xlim=c(.8,Ncond+.2),ylim=c(min(plot_bound),max(plot_bound)),ylab="",
+     xlab="Condition",xaxt='n',main="Bound", cex.main = 2);
+axis(1,1:Ncond,c("Negative","Average","Positive"),cex.axis=1.75)
+for(i in 1:N1) lines(1:Ncond,plot_bound[i,1:Ncond],type='b',lty=2,col="grey",pch=19)
+points(colMeans(plot_bound),type='b',lwd=5)
+error.bar(1:Ncond,colMeans(plot_bound),colSds(plot_bound,na.rm=T)/sqrt(N1),lwd=3,length=0)
+
+##Drift interaction
+par(mfrow=c(1,1))
+plot_drift_minus <- with(subset(param_1,condition=="lowSC"),
+                         aggregate(drift,by=list(sub=sub,difflevel=difflevel),mean))
+plot_drift_minus <- cast(plot_drift_minus,sub~difflevel)
+plot_drift_minus <- plot_drift_minus[,c(4,2,3)] #Reorder columns to have easy -> hard
+plot(colMeans(plot_drift_minus),frame=F,type='n',cex.lab=2,cex.axis=1.75,xlim=c(.8,Ncond+.2),
+     ylim=c(min(plot_drift_minus),.25),ylab="Drift rate",xlab="Trial Difficulty",xaxt='n');
+axis(1,1:Ncond,c("Hard","Medium","Easy"),cex.axis=1.75)
+points(colMeans(plot_drift_minus),type='b',lwd=5,col="brown3")
+error.bar(1:Ncond,colMeans(plot_drift_minus),
+          colSds(plot_drift_minus,na.rm=T)/sqrt(N1),lwd=3,length=0,col="brown3")
+
+plot_drift_control <- with(subset(param_1,condition=="mediumSC"),
+                           aggregate(drift,by=list(sub=sub,difflevel=difflevel),mean))
+plot_drift_control <- cast(plot_drift_control,sub~difflevel)
+plot_drift_control <- plot_drift_control[,c(4,2,3)] #Reorder columns to have easy -> hard
+points(colMeans(plot_drift_control),type='b',lwd=5,col="cyan4")
+error.bar(1:Ncond,colMeans(plot_drift_control),
+          colSds(plot_drift_control,na.rm=T)/sqrt(N1),lwd=3,length=0,col="cyan4")
+
+plot_drift_plus <- with(subset(param_1,condition=="highSC"),
+                        aggregate(drift,by=list(sub=sub,difflevel=difflevel),mean))
+plot_drift_plus <- cast(plot_drift_plus,sub~difflevel)
+plot_drift_plus <- plot_drift_plus[,c(4,2,3)] #Reorder columns to have easy -> hard
+points(colMeans(plot_drift_plus),type='b',lwd=5,col="darkgoldenrod3")
+error.bar(1:Ncond,colMeans(plot_drift_plus),
+          colSds(plot_drift_plus,na.rm=T)/sqrt(N1),lwd=3,length=0,col="darkgoldenrod3")
+legend("topleft",border=F,legend=c("Negative","Average","Positive"),lwd=2,
+       col=c("brown3","cyan4","darkgoldenrod3"),bty="n",cex=1.5,title = "Condition")
+
+
+# Plot DDM parameters test phase EXP2 -------------------------------------
+##Non-decision time
+par(mfrow=c(1,2))
+plot_ter <- with(param2,aggregate(ter,by=list(sub=sub,condition=condition),mean))
+plot_ter <- cast(plot_ter,sub~condition)
+plot_ter <- plot_ter[,c(4,2,3)] #Reorder columns to have easy -> hard
+plot(colMeans(plot_ter),frame=F,type='n',cex.lab=2.5,cex.axis=1.75,
+     xlim=c(.8,Ncond+.2),ylim=c(min(plot_ter),max(plot_ter)),ylab="",
+     xlab="Condition",xaxt='n',main="Non-decision time", cex.main = 2);
+axis(1,1:Ncond,c("Hard","Medium","Easy"),cex.axis=1.75)
+for(i in 1:Nsub_2) lines(1:Ncond,plot_ter[i,1:Ncond],type='b',lty=2,col="grey",pch=19)
+points(colMeans(plot_ter),type='b',lwd=5)
+error.bar(1:Ncond,colMeans(plot_ter),colSds(plot_ter,na.rm=T)/sqrt(Nsub_2),lwd=3,length=0)
+
+##Bound
+plot_bound <- with(param2,aggregate(bound,by=list(sub=sub,condition=condition),mean))
+plot_bound <- cast(plot_bound,sub~condition)
+plot_bound <- plot_bound[,c(4,2,3)] #Reorder columns to have easy -> hard
+plot(colMeans(plot_bound),frame=F,type='n',cex.lab=2.5,cex.axis=1.75,
+     xlim=c(.8,Ncond+.2),ylim=c(min(plot_bound),max(plot_bound)),ylab="",
+     xlab="Condition",xaxt='n',main="Bound", cex.main = 2);
+axis(1,1:Ncond,c("Hard","Medium","Easy"),cex.axis=1.75)
+for(i in 1:Nsub_2) lines(1:Ncond,plot_bound[i,1:Ncond],type='b',lty=2,col="grey",pch=19)
+points(colMeans(plot_bound),type='b',lwd=5)
+error.bar(1:Ncond,colMeans(plot_bound),colSds(plot_bound,na.rm=T)/sqrt(Nsub_2),lwd=3,length=0)
+
+##Drift interaction
+par(mfrow=c(1,1))
+plot_drift_minus <- with(subset(param2,condition=="hard"),
+                         aggregate(drift,by=list(sub=sub,difflevel=difflevel),mean))
+plot_drift_minus <- cast(plot_drift_minus,sub~difflevel)
+plot_drift_minus <- plot_drift_minus[,c(4,2,3)] #Reorder columns to have easy -> hard
+plot(colMeans(plot_drift_minus),frame=F,type='n',cex.lab=2,cex.axis=1.75,xlim=c(.8,Ncond+.2),
+     ylim=c(min(plot_drift_minus),.25),ylab="Drift rate",xlab="Trial Difficulty",xaxt='n');
+axis(1,1:Ncond,c("Hard","Medium","Easy"),cex.axis=1.75)
+points(colMeans(plot_drift_minus),type='b',lwd=5,col="brown3")
+error.bar(1:Ncond,colMeans(plot_drift_minus),
+          colSds(plot_drift_minus,na.rm=T)/sqrt(Nsub_2),lwd=3,length=0,col="brown3")
+
+plot_drift_control <- with(subset(param2,condition=="average"),
+                           aggregate(drift,by=list(sub=sub,difflevel=difflevel),mean))
+plot_drift_control <- cast(plot_drift_control,sub~difflevel)
+plot_drift_control <- plot_drift_control[,c(4,2,3)] #Reorder columns to have easy -> hard
+points(colMeans(plot_drift_control),type='b',lwd=5,col="cyan4")
+error.bar(1:Ncond,colMeans(plot_drift_control),
+          colSds(plot_drift_control,na.rm=T)/sqrt(Nsub_2),lwd=3,length=0,col="cyan4")
+
+plot_drift_plus <- with(subset(param2,condition=="easy"),
+                        aggregate(drift,by=list(sub=sub,difflevel=difflevel),mean))
+plot_drift_plus <- cast(plot_drift_plus,sub~difflevel)
+plot_drift_plus <- plot_drift_plus[,c(4,2,3)] #Reorder columns to have easy -> hard
+points(colMeans(plot_drift_plus),type='b',lwd=5,col="darkgoldenrod3")
+error.bar(1:Ncond,colMeans(plot_drift_plus),
+          colSds(plot_drift_plus,na.rm=T)/sqrt(Nsub_2),lwd=3,length=0,col="darkgoldenrod3")
+legend("topleft",border=F,legend=c("Hard","Medium","Easy"),lwd=2,
+       col=c("brown3","cyan4","darkgoldenrod3"),bty="n",cex=1.5,title = "Condition")
+
 
 
 # Standardizing -- DEAD END -----------------------------------------------
@@ -968,16 +1102,16 @@ polygon(c(0:(n-1),(n-1):0),c(colMeans(xhigh_sim,na.rm=T) + (colSds(as.matrix(xhi
                              (colMeans(xhigh_sim,na.rm=T) - colSds(as.matrix(xhigh_sim),na.rm=T)/sqrt(N1))[3:1]),
         border=F,col=rgb(0,0,1,.2))
 legend(0,1.75,legend=c("Negative","Average","Positive"),
-       title = "Fake Feedback condition",pch=rep(16,3),bty = "n",inset=.1, 
-       cex = 1.25,col=c("red","orange","blue"))
-lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="red",lwd=lwddat)
-error.bar(0:(n-1),means,colSds(as.matrix(x),na.rm=T)/sqrt(N1),lwd=lwdgr,length=.05,col="red")
+       title = "Feedback condition",pch=rep(16,3),bty = "n",inset=.1, 
+       cex = 1.25,col=c("brown3","cyan4","darkgoldenrod3"))
+lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="brown3",lwd=lwddat)
+error.bar(0:(n-1),means,colSds(as.matrix(x),na.rm=T)/sqrt(N1),lwd=lwdgr,col="brown3")
 means <- sapply(xmed, mean,na.rm=T)
-lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="orange",lwd=lwddat)
-error.bar(0:(n-1),means,colSds(as.matrix(xmed),na.rm=T)/sqrt(N1),lwd=lwdgr,length=.05,col="orange")
+lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="cyan4",lwd=lwddat)
+error.bar(0:(n-1),means,colSds(as.matrix(xmed),na.rm=T)/sqrt(N1),lwd=lwdgr,col="cyan4")
 means <- sapply(xhigh, mean,na.rm=T)
-lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="blue",lwd=lwddat)
-error.bar(0:(n-1),means,colSds(as.matrix(xhigh),na.rm=T)/sqrt(N1),lwd=lwdgr,length=.05,col="blue")
+lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="darkgoldenrod3",lwd=lwddat)
+error.bar(0:(n-1),means,colSds(as.matrix(xhigh),na.rm=T)/sqrt(N1),lwd=lwdgr,col="darkgoldenrod3")
 
 ## Experiment 2
 #Aggregate conf for Data2
@@ -1028,14 +1162,14 @@ polygon(c(0:(n-1),(n-1):0),c(colMeans(xmed_sim,na.rm=T) + (colSds(as.matrix(xmed
 polygon(c(0:(n-1),(n-1):0),c(colMeans(xhigh_sim,na.rm=T) + (colSds(as.matrix(xhigh_sim),na.rm=T)/sqrt(Nsub_2)),(colMeans(xhigh_sim,na.rm=T) - colSds(as.matrix(xhigh_sim),na.rm=T)/sqrt(Nsub_2))[3:1]),
         border=F,col=rgb(0,0,1,.2))
 legend(0,1.75,legend=c("Hard","Average","Easy"),
-       title = "Training difficulty condition",pch=rep(16,3),bty = "n",inset=.1,
-       cex = 1.25,col=c("red","orange","blue"))
-lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="red",lwd=lwddat)
-error.bar(0:(n-1),means,colSds(as.matrix(x),na.rm=T)/sqrt(Nsub_2),lwd=lwdgr,length=.05,col="red")
+       title = "Training condition",pch=rep(16,3),bty = "n",inset=.1,
+       cex = 1.25,col=c("brown3","cyan4","darkgoldenrod3"))
+lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="brown3",lwd=lwddat)
+error.bar(0:(n-1),means,colSds(as.matrix(x),na.rm=T)/sqrt(Nsub_2),lwd=lwdgr,col="brown3")
 means <- sapply(xmed, mean,na.rm=T)
-lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="orange",lwd=lwddat)
-error.bar(0:(n-1),means,colSds(as.matrix(xmed),na.rm=T)/sqrt(Nsub_2),lwd=lwdgr,length=.05,col="orange")
+lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="cyan4",lwd=lwddat)
+error.bar(0:(n-1),means,colSds(as.matrix(xmed),na.rm=T)/sqrt(Nsub_2),lwd=lwdgr,col="cyan4")
 means <- sapply(xhigh, mean,na.rm=T)
-lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="blue",lwd=lwddat)
-error.bar(0:(n-1),means,colSds(as.matrix(xhigh),na.rm=T)/sqrt(Nsub_2),lwd=lwdgr,length=.05,col="blue")
+lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="darkgoldenrod3",lwd=lwddat)
+error.bar(0:(n-1),means,colSds(as.matrix(xhigh),na.rm=T)/sqrt(Nsub_2),lwd=lwdgr,col="darkgoldenrod3")
 
