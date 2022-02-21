@@ -418,6 +418,8 @@ write.csv(Simuls2,file = "model_prediction_exp2.csv")
 # Exp1 ====
 #DDM train
 m <- lm(Vs ~ condition,data=df); Anova(m);
+m <- lmer(Vs ~ condition + (1|sub),data=df); Anova(m);
+m <- aov(Vs ~ condition+ Error(sub/condition), data = df); summary(m)
 m <- lm(Vo ~ condition,data=df); Anova(m);
 m <- lm(bound ~ condition,data=df); Anova(m);
 m <- lm(ter ~ condition,data=df); Anova(m);
@@ -600,13 +602,6 @@ legend("topleft",border=F,legend=c("Hard","Medium","Easy"),lwd=2,
        col=c("red","orange","blue"),bty="n",cex=1.5,title = "Condition")
 
 # Plot confidence prediction ----------------------------------------------
-error.bar <- function(x, y, upper, lower=upper, length=0.1,...){
-  if(length(x) != length(y) | length(y) !=length(lower) | length(lower) != length(upper))
-    stop("vectors must be same length")
-  arrows(x,y+upper, x, y-lower, angle=90, code=3, length=length, ...)
-}
-cexkl <- 2;cexgr <- 2;lwdgr <- 3; lwddat <- 2
-
 Simuls$cj <- Simuls$cj_cont
 ## Experiment 1
 #Aggregate conf for data
@@ -793,13 +788,6 @@ error.bar(0:(n-1),means,colSds(as.matrix(xhigh),na.rm=T)/sqrt(Nsub_2),lwd=lwdgr,
 
 
 # Plot overlay RT ---------------------------------------------------------
-error.bar <- function(x, y, upper, lower=upper, length=0.1,...){
-  if(length(x) != length(y) | length(y) !=length(lower) | length(lower) != length(upper))
-    stop("vectors must be same length")
-  arrows(x,y+upper, x, y-lower, angle=90, code=3, length=length, ...)
-}
-cexkl <- 2;cexgr <- 2;lwdgr <- 3; lwddat <- 2
-
 ## Experiment 1
 #Aggregate conf for data
 rtlow <- with(subset(Data1,selfconf=="lowSC"),aggregate(rt,by=list(sub,coh),mean));names(rtlow) <- c('sub','coh','rt')
@@ -928,13 +916,6 @@ cj2_obs <- with(Data2,aggregate(cj,by=list(sub=sub,condition=traindiffcond,coh=c
 cj2_obs$x <- scale(cj2_obs$x)
 
 # Plot confidence prediction ----------------------------------------------
-error.bar <- function(x, y, upper, lower=upper, length=0.1,...){
-  if(length(x) != length(y) | length(y) !=length(lower) | length(lower) != length(upper))
-    stop("vectors must be same length")
-  arrows(x,y+upper, x, y-lower, angle=90, code=3, length=length, ...)
-}
-cexkl <- 2;cexgr <- 2;lwdgr <- 3; lwddat <- 2
-
 Simuls$cj <- Simuls$cj_cont
 ## Experiment 1
 #Aggregate conf for data
