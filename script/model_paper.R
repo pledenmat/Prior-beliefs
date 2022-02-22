@@ -448,206 +448,35 @@ m <- lm(drift ~ condition*difflevel,data=param2); Anova(m);
 #Train vs Test
 m <- lm(bound ~ phase*condition,data = bounds2); Anova(m)
 m <- lm(ter ~ phase*condition,data = ters2); Anova(m)
-# Plot confidence prediction ----------------------------------------------
+# Plot Layout -------------------------------------------------------------
 go_to("plot")
+
 windowsFonts(A = windowsFont("Calibri")) 
-par(mfrow=c(1,1),mar=c(5,4,1,2) + 0.1, family="A")
+par(family="A")
 
-Simuls$cj <- Simuls$cj_cont
-## Experiment 1
-#Aggregate conf for data
-CJlow <- with(subset(Simuls,condition=="lowSC"),aggregate(cj,by=list(sub,coh),mean));names(CJlow) <- c('sub','coh','cj')
-CJlow <- cast(CJlow,sub~coh,)
-CJmed <- with(subset(Simuls,condition=="mediumSC"),aggregate(cj,by=list(sub,coh),mean));names(CJmed) <- c('sub','coh','cj')
-CJmed <- cast(CJmed,sub~coh)
-CJhigh <- with(subset(Simuls,condition=="highSC"),aggregate(cj,by=list(sub,coh),mean));names(CJhigh) <- c('sub','coh','cj')
-CJhigh <- cast(CJhigh,sub~coh)
-
-
-#aggregate cj for model
-x <- CJlow[,c(2:4)];xmed <- CJmed[,c(2:4)];xhigh <- CJhigh[,c(2:4)]
-n <- length(x)
-
-x <- x[,c("hard","average","easy")];
-xmed <- xmed[,c("hard","average","easy")];
-xhigh <- xhigh[,c("hard","average","easy")]
-
+cex_axis <- 1.5; cex_legend <- 3 
 jpeg(
-  filename="confidence_prediction_1.jpeg",
-  width=6.5,
-  height=8,
+  filename="results4.jpeg",
+  width=13,
+  height=18,
   units="in",
   res=500)
+layout(matrix(c(1,3,7,9,10,1,5,7,9,10,2,4,8,9,11,2,6,8,9,11),ncol=4),heights = c(.4,1,2,.2,2))
 
-stripchart(x,ylim=c(.45,1), xlim=c(-.05,n-1), vertical = TRUE, col="white",frame=F,xaxt='n',
-           main=NULL, yaxt = 'n',family="A")
-mtext("Confidence",2,at=.7,line=2.5,cex=1.75);
-axis(1,at=0:(n-1),labels=names(x), cex.axis=1.5);
-mtext("Trial difficulty",1,3,at=1,cex=1.75)
-means <- sapply(x, mean);n<- length(x)
+#' Add legend for both experiments on top
+par(mar=c(0,0,0,0))
+plot.new()
 legend("top",legend=c("Negative","Average","Positive"),
        title = "Feedback condition",pch=rep(16,3),bty = "n",inset=0, 
-       cex = 1.5,col=c("brown3","cyan4","darkgoldenrod3"), horiz = T)
-for(i in seq(.5,.9,length.out = 5)) abline(h=i,col="lightgrey",lty = "dashed")
-lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="brown3",lwd=lwddat,lty = "dashed")
-error.bar(0:(n-1),means,colSds(as.matrix(x),na.rm=T)/sqrt(N1),lwd=lwdgr,col="brown3")
-means <- sapply(xmed, mean,na.rm=T)
-lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="cyan4",lwd=lwddat,lty = "dashed")
-error.bar(0:(n-1),means,colSds(as.matrix(xmed),na.rm=T)/sqrt(N1),lwd=lwdgr,col="cyan4")
-means <- sapply(xhigh, mean,na.rm=T)
-lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="darkgoldenrod3",lwd=lwddat,lty = "dashed")
-error.bar(0:(n-1),means,colSds(as.matrix(xhigh),na.rm=T)/sqrt(N1),lwd=lwdgr,col="darkgoldenrod3")
-axis(2, seq(.5,.9,length.out = 5), cex.axis=1.5)
+       cex = cex_legend,col=c("brown3","cyan4","darkgoldenrod3"), horiz = T)
 
-#'save
-dev.off()
-
-
-## Experiment 2
-Simuls2$cj <- Simuls2$cj_cont
-#Aggregate conf for Simuls2
-CJlow <- with(subset(Simuls2,condition=="hard"),aggregate(cj,by=list(sub,coh),mean));names(CJlow) <- c('sub','coh','cj')
-CJlow <- cast(CJlow,sub~coh,)
-CJmed <- with(subset(Simuls2,condition=="average"),aggregate(cj,by=list(sub,coh),mean));names(CJmed) <- c('sub','coh','cj')
-CJmed <- cast(CJmed,sub~coh)
-CJhigh <- with(subset(Simuls2,condition=="easy"),aggregate(cj,by=list(sub,coh),mean));names(CJhigh) <- c('sub','coh','cj')
-CJhigh <- cast(CJhigh,sub~coh)
-
-
-#aggregate cj for model
-x <- CJlow[,c(2:4)];xmed <- CJmed[,c(2:4)];xhigh <- CJhigh[,c(2:4)]
-n <- length(x)
-
-x <- x[,c("hard","average","easy")];
-xmed <- xmed[,c("hard","average","easy")];
-xhigh <- xhigh[,c("hard","average","easy")]
-
-jpeg(
-  filename="confidence_prediction_2.jpeg",
-  width=6.5,
-  height=8,
-  units="in",
-  res=500)
-
-stripchart(x,ylim=c(.45,1), xlim=c(-.05,n-1), vertical = TRUE, col="white",frame=F,xaxt='n',
-           main=NULL, yaxt = 'n',family="A")
-mtext("Confidence",2,at=.7,line=2.5,cex=1.75);
-axis(1,at=0:(n-1),labels=names(x), cex.axis=1.5);
-mtext("Trial difficulty",1,3,at=1,cex=1.75)
-means <- sapply(x, mean);n<- length(x)
-legend("top",legend=c("Difficult","Medium","Easy"),title = "Training condition",
-       pch=rep(16,3),bty = "n",inset=0, 
-       cex = 1.5,col=c("brown3","cyan4","darkgoldenrod3"), horiz = T)
-for(i in seq(.5,.9,length.out = 5)) abline(h=i,col="lightgrey",lty = "dashed")
-lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="brown3",lwd=lwddat,lty = "dashed")
-error.bar(0:(n-1),means,colSds(as.matrix(x),na.rm=T)/sqrt(N1),lwd=lwdgr,col="brown3")
-means <- sapply(xmed, mean,na.rm=T)
-lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="cyan4",lwd=lwddat,lty = "dashed")
-error.bar(0:(n-1),means,colSds(as.matrix(xmed),na.rm=T)/sqrt(N1),lwd=lwdgr,col="cyan4")
-means <- sapply(xhigh, mean,na.rm=T)
-lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="darkgoldenrod3",lwd=lwddat,lty = "dashed")
-error.bar(0:(n-1),means,colSds(as.matrix(xhigh),na.rm=T)/sqrt(N1),lwd=lwdgr,col="darkgoldenrod3")
-axis(2, seq(.5,.9,length.out = 5), cex.axis=1.5)
-
-#'save
-dev.off()
-# Plot Confidence - Empirical Data ----------------------------------------
-##Experiment 1
-#Aggregate conf for data
-CJlow <- with(subset(Data1,selfconf=="lowSC"),aggregate(cj,by=list(sub,coh),mean));names(CJlow) <- c('sub','coh','cj')
-CJlow <- cast(CJlow,sub~coh,)
-CJmed <- with(subset(Data1,selfconf=="mediumSC"),aggregate(cj,by=list(sub,coh),mean));names(CJmed) <- c('sub','coh','cj')
-CJmed <- cast(CJmed,sub~coh)
-CJhigh <- with(subset(Data1,selfconf=="highSC"),aggregate(cj,by=list(sub,coh),mean));names(CJhigh) <- c('sub','coh','cj')
-CJhigh <- cast(CJhigh,sub~coh)
-
-
-#aggregate cj for model
-x <- CJlow[,c(2:4)];xmed <- CJmed[,c(2:4)];xhigh <- CJhigh[,c(2:4)]
-n <- length(x)
-
-x <- x[,c("hard","average","easy")];
-xmed <- xmed[,c("hard","average","easy")];
-xhigh <- xhigh[,c("hard","average","easy")]
-
-jpeg(
-  filename="confidence_empirical_1.jpeg",
-  width=6.5,
-  height=8,
-  units="in",
-  res=500)
-
-stripchart(x,ylim=c(3.75,6), xlim=c(-.05,n-1), vertical = TRUE, col="white",frame=F,xaxt='n',
-           main=NULL, yaxt = 'n',family="A")
-axis(1,at=0:(n-1),labels=names(x), cex.axis=1.5);
-axis(2, seq(4,5.5,.5), cex.axis=1.5)
-mtext("Confidence",2,at=4.75,line=2.5,cex=1.75);
-mtext("Trial difficulty",1,3,at=1,cex=1.75)
-means <- sapply(x, mean);n<- length(x)
-legend("top",legend=c("Negative","Average","Positive"),
-       title = "Feedback condition",pch=rep(16,3),bty = "n",inset=0, 
-       cex = 1.5,col=c("brown3","cyan4","darkgoldenrod3"), horiz = T)
-for(i in seq(4,5.5,.5)) abline(h=i,col="lightgrey",lty = "dashed")
-lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="brown3",lwd=lwddat,lty = "dashed")
-error.bar(0:(n-1),means,colSds(as.matrix(x),na.rm=T)/sqrt(N1),lwd=lwdgr,col="brown3")
-means <- sapply(xmed, mean,na.rm=T)
-lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="cyan4",lwd=lwddat,lty = "dashed")
-error.bar(0:(n-1),means,colSds(as.matrix(xmed),na.rm=T)/sqrt(N1),lwd=lwdgr,col="cyan4")
-means <- sapply(xhigh, mean,na.rm=T)
-lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="darkgoldenrod3",lwd=lwddat,lty = "dashed")
-error.bar(0:(n-1),means,colSds(as.matrix(xhigh),na.rm=T)/sqrt(N1),lwd=lwdgr,col="darkgoldenrod3")
-
-#'save
-dev.off()
-
-## Experiment 2
-#Aggregate conf for data
-CJlow <- with(subset(Data2,traindiffcond=="hard"),aggregate(cj,by=list(sub,coh),mean));names(CJlow) <- c('sub','coh','cj')
-CJlow <- cast(CJlow,sub~coh,)
-CJmed <- with(subset(Data2,traindiffcond=="average"),aggregate(cj,by=list(sub,coh),mean));names(CJmed) <- c('sub','coh','cj')
-CJmed <- cast(CJmed,sub~coh)
-CJhigh <- with(subset(Data2,traindiffcond=="easy"),aggregate(cj,by=list(sub,coh),mean));names(CJhigh) <- c('sub','coh','cj')
-CJhigh <- cast(CJhigh,sub~coh)
-
-
-#aggregate cj for model
-x <- CJlow[,c(2:4)];xmed <- CJmed[,c(2:4)];xhigh <- CJhigh[,c(2:4)]
-n <- length(x)
-
-x <- x[,c("hard","average","easy")];
-xmed <- xmed[,c("hard","average","easy")];
-xhigh <- xhigh[,c("hard","average","easy")]
-
-jpeg(
-  filename="confidence_empirical_2.jpeg",
-  width=6.5,
-  height=8,
-  units="in",
-  res=500)
-
-stripchart(x,ylim=c(3.75,6), xlim=c(-.05,n-1), vertical = TRUE, col="white",frame=F,xaxt='n',
-           main=NULL, yaxt = 'n',family="A")
-axis(1,at=0:(n-1),labels=names(x), cex.axis=1.5);
-axis(2, seq(4,5.5,.5), cex.axis=1.5)
-mtext("Confidence",2,at=4.75,line=2.5,cex=1.75);
-mtext("Trial difficulty",1,3,at=1,cex=1.75)
-means <- sapply(x, mean);n<- length(x)
+plot.new()
 legend("top",legend=c("Difficult","Medium","Easy"),
        title = "Training condition",pch=rep(16,3),bty = "n",inset=0, 
-       cex = 1.5,col=c("brown3","cyan4","darkgoldenrod3"), horiz = T)
-for(i in seq(4,5.5,.5)) abline(h=i,col="lightgrey",lty = "dashed")
-lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="brown3",lwd=lwddat,lty = "dashed")
-error.bar(0:(n-1),means,colSds(as.matrix(x),na.rm=T)/sqrt(N1),lwd=lwdgr,col="brown3")
-means <- sapply(xmed, mean,na.rm=T)
-lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="cyan4",lwd=lwddat,lty = "dashed")
-error.bar(0:(n-1),means,colSds(as.matrix(xmed),na.rm=T)/sqrt(N1),lwd=lwdgr,col="cyan4")
-means <- sapply(xhigh, mean,na.rm=T)
-lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="darkgoldenrod3",lwd=lwddat,lty = "dashed")
-error.bar(0:(n-1),means,colSds(as.matrix(xhigh),na.rm=T)/sqrt(N1),lwd=lwdgr,col="darkgoldenrod3")
-
-#'save
-dev.off()
+       cex = cex_legend,col=c("brown3","cyan4","darkgoldenrod3"), horiz = T)
+par(mar=c(5,5,0,2)+0.1)
 # Plot overlay accuracy ---------------------------------------------------
+
 ## Experiment 1
 #Aggregate conf for data
 corlow <- with(subset(Data1,selfconf=="lowSC"),aggregate(cor,by=list(sub,coh),mean));names(corlow) <- c('sub','coh','cor')
@@ -679,26 +508,14 @@ x_sim = cast(snrcorlowSim,sub~coh,value='cor');xmed_sim = cast(snrcormedSim,sub~
 x <- x[,c("hard","average","easy")];xmed <- xmed[,c("hard","average","easy")];x_sim <- x_sim[,c("hard","average","easy")];xmed_sim <- xmed_sim[,c("hard","average","easy")];
 xhigh_sim <- xhigh_sim[,c("hard","average","easy")];xhigh <- xhigh[,c("hard","average","easy")]
 
-jpeg(
-  filename="accuracy_overlay_1.jpeg",
-  width=6.5,
-  height=8,
-  units="in",
-  res=500)
 
-stripchart(x, ylim=c(0.6,1.1), xlim=c(-.05,n-1), vertical = TRUE, col="white",
+stripchart(x, ylim=c(0.6,1), xlim=c(-.05,n-1), vertical = TRUE, col="white",
            frame=F,xaxt='n',main=NULL,yaxt='n')
 axis(1,at=0:(n-1),labels=names(x), cex.axis=1.5);
 axis(2,seq(0.6,1,.1),cex.axis=1.5)
-mtext("Accuracy",2,at=.8,line=2.5,cex=1.75);
-mtext("Trial difficulty",1,3,at=1,cex=1.75)
+mtext("Accuracy",2,at=.8,line=2.5,cex=cex_axis);
+mtext("Trial difficulty",1,3,at=1,cex=cex_axis)
 for(i in seq(.6,1,.1)) abline(h=i,col="lightgrey",lty = "dashed")
-legend_order <- matrix(1:6,ncol=3,byrow = T)
-legend("top",legend=c("Negative","Average","Positive",rep("model fit",3))[legend_order],
-       title = "Feedback condition",pch=c(rep(16,3),rep(NA,3))[legend_order],
-       fill = c(rep(NA,3),c("brown3","cyan4","darkgoldenrod3"))[legend_order], 
-       cex = 1.5,col=rep(c("brown3","cyan4","darkgoldenrod3"),2)[legend_order],
-       bty = "n",inset=0,ncol=3,border="white")
 polygon(c(0:(n-1),(n-1):0),
         c(colMeans(x_sim,na.rm=T) + (colSds(as.matrix(x_sim))/sqrt(N1)),
           (colMeans(x_sim,na.rm=T) - colSds(as.matrix(x_sim))/sqrt(N1))[3:1]),
@@ -720,9 +537,6 @@ error.bar(0:(n-1),means,colSds(as.matrix(xmed),na.rm=T)/sqrt(N1),lwd=lwdgr,col="
 means <- sapply(xhigh, mean,na.rm=T)
 lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="darkgoldenrod3",lwd=lwddat)
 error.bar(0:(n-1),means,colSds(as.matrix(xhigh),na.rm=T)/sqrt(N1),lwd=lwdgr,col="darkgoldenrod3")
-
-#'save
-dev.off()
 
 ## Experiment 2
 #Aggregate conf for Data2
@@ -755,26 +569,14 @@ x_sim = cast(snrcorlowSim,sub~coh,value='cor');xmed_sim = cast(snrcormedSim,sub~
 x <- x[,c("hard","average","easy")];xmed <- xmed[,c("hard","average","easy")];x_sim <- x_sim[,c("hard","average","easy")];xmed_sim <- xmed_sim[,c("hard","average","easy")];
 xhigh_sim <- xhigh_sim[,c("hard","average","easy")];xhigh <- xhigh[,c("hard","average","easy")]
 
-jpeg(
-  filename="accuracy_overlay_2.jpeg",
-  width=6.5,
-  height=8,
-  units="in",
-  res=500)
 
-stripchart(x, ylim=c(0.6,1.1), xlim=c(-.05,n-1), vertical = TRUE, col="white",
+stripchart(x, ylim=c(0.6,1), xlim=c(-.05,n-1), vertical = TRUE, col="white",
            frame=F,xaxt='n',main=NULL,yaxt='n')
 axis(1,at=0:(n-1),labels=names(x), cex.axis=1.5);
 axis(2,seq(0.6,1,.1),cex.axis=1.5)
-mtext("Accuracy",2,at=.8,line=2.5,cex=1.75);
-mtext("Trial difficulty",1,3,at=1,cex=1.75)
+mtext("Accuracy",2,at=.8,line=2.5,cex=cex_axis);
+mtext("Trial difficulty",1,3,at=1,cex=cex_axis)
 for(i in seq(.6,1,.1)) abline(h=i,col="lightgrey",lty = "dashed")
-legend_order <- matrix(1:6,ncol=3,byrow = T)
-legend("top",legend=c("Difficult","Medium","Easy",rep("model fit",3))[legend_order],
-       title = "Training condition",pch=c(rep(16,3),rep(NA,3))[legend_order],
-       fill = c(rep(NA,3),c("brown3","cyan4","darkgoldenrod3"))[legend_order], 
-       cex = 1.5,col=rep(c("brown3","cyan4","darkgoldenrod3"),2)[legend_order],
-       bty = "n",inset=0,ncol=3,border="white")
 polygon(c(0:(n-1),(n-1):0),
         c(colMeans(x_sim,na.rm=T) + (colSds(as.matrix(x_sim))/sqrt(N1)),
           (colMeans(x_sim,na.rm=T) - colSds(as.matrix(x_sim))/sqrt(N1))[3:1]),
@@ -797,8 +599,6 @@ means <- sapply(xhigh, mean,na.rm=T)
 lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="darkgoldenrod3",lwd=lwddat)
 error.bar(0:(n-1),means,colSds(as.matrix(xhigh),na.rm=T)/sqrt(N1),lwd=lwdgr,col="darkgoldenrod3")
 
-#'save
-dev.off()
 # Plot overlay RT ---------------------------------------------------------
 ## Experiment 1
 #Aggregate conf for data
@@ -837,26 +637,14 @@ x_sim = cast(snrrtlowSim,sub~coh,value='rt');xmed_sim = cast(snrrtmedSim,sub~coh
 x <- x[,c("hard","average","easy")];xmed <- xmed[,c("hard","average","easy")];x_sim <- x_sim[,c("hard","average","easy")];xmed_sim <- xmed_sim[,c("hard","average","easy")];
 xhigh_sim <- xhigh_sim[,c("hard","average","easy")];xhigh <- xhigh[,c("hard","average","easy")]
 
-jpeg(
-  filename="RT_overlay_1.jpeg",
-  width=6.5,
-  height=8,
-  units="in",
-  res=500)
 
-stripchart(x, ylim=c(0.6,1.2), xlim=c(-.05,n-1), vertical = TRUE, col="white",
+stripchart(x, ylim=c(0.6,1.1), xlim=c(-.05,n-1), vertical = TRUE, col="white",
            frame=F,xaxt='n',main=NULL,yaxt='n')
 axis(1,at=0:(n-1),labels=names(x), cex.axis=1.5);
 axis(2,seq(0.6,1.1,.1),cex.axis=1.5)
-mtext("RT (s)",2,at=.85,line=2.5,cex=1.75);
-mtext("Trial difficulty",1,3,at=1,cex=1.75)
+mtext("RT (s)",2,at=.85,line=2.5,cex=cex_axis);
+mtext("Trial difficulty",1,3,at=1,cex=cex_axis)
 for(i in seq(.6,1.1,.1)) abline(h=i,col="lightgrey",lty = "dashed")
-legend_order <- matrix(1:6,ncol=3,byrow = T)
-legend("top",legend=c("Negative","Average","Positive",rep("model fit",3))[legend_order],
-       title = "Feedback condition",pch=c(rep(16,3),rep(NA,3))[legend_order],
-       fill = c(rep(NA,3),c("brown3","cyan4","darkgoldenrod3"))[legend_order], 
-       cex = 1.5,col=rep(c("brown3","cyan4","darkgoldenrod3"),2)[legend_order],
-       bty = "n",inset=0,ncol=3,border="white")
 
 polygon(c(0:(n-1),(n-1):0),
         c(colMeans(x_sim,na.rm=T) + (colSds(as.matrix(x_sim))/sqrt(N1)),
@@ -879,9 +667,6 @@ error.bar(0:(n-1),means,colSds(as.matrix(xmed),na.rm=T)/sqrt(N1),lwd=lwdgr,col="
 means <- sapply(xhigh, mean,na.rm=T)
 lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="darkgoldenrod3",lwd=lwddat)
 error.bar(0:(n-1),means,colSds(as.matrix(xhigh),na.rm=T)/sqrt(N1),lwd=lwdgr,col="darkgoldenrod3")
-
-#'save
-dev.off()
 
 ## Experiment 2
 #Aggregate conf for Data2
@@ -914,26 +699,14 @@ x_sim = cast(snrrtlowSim,sub~coh,value='rt');xmed_sim = cast(snrrtmedSim,sub~coh
 x <- x[,c("hard","average","easy")];xmed <- xmed[,c("hard","average","easy")];x_sim <- x_sim[,c("hard","average","easy")];xmed_sim <- xmed_sim[,c("hard","average","easy")];
 xhigh_sim <- xhigh_sim[,c("hard","average","easy")];xhigh <- xhigh[,c("hard","average","easy")]
 
-jpeg(
-  filename="RT_overlay_2.jpeg",
-  width=6.5,
-  height=8,
-  units="in",
-  res=500)
 
-stripchart(x, ylim=c(0.6,1.2), xlim=c(-.05,n-1), vertical = TRUE, col="white",
+stripchart(x, ylim=c(0.6,1.1), xlim=c(-.05,n-1), vertical = TRUE, col="white",
            frame=F,xaxt='n',main=NULL,yaxt='n')
 axis(1,at=0:(n-1),labels=names(x), cex.axis=1.5);
 axis(2,seq(0.6,1.1,.1),cex.axis=1.5)
-mtext("RT (s)",2,at=.85,line=2.5,cex=1.75);
-mtext("Trial difficulty",1,3,at=1,cex=1.75)
+mtext("RT (s)",2,at=.85,line=2.5,cex=cex_axis);
+mtext("Trial difficulty",1,3,at=1,cex=cex_axis)
 for(i in seq(.6,1.1,.1)) abline(h=i,col="lightgrey",lty = "dashed")
-legend_order <- matrix(1:6,ncol=3,byrow = T)
-legend("top",legend=c("Difficult","Medium","Easy",rep("model fit",3))[legend_order],
-       title = "Training condition",pch=c(rep(16,3),rep(NA,3))[legend_order],
-       fill = c(rep(NA,3),c("brown3","cyan4","darkgoldenrod3"))[legend_order], 
-       cex = 1.5,col=rep(c("brown3","cyan4","darkgoldenrod3"),2)[legend_order],
-       bty = "n",inset=0,ncol=3,border="white")
 polygon(c(0:(n-1),(n-1):0),
         c(colMeans(x_sim,na.rm=T) + (colSds(as.matrix(x_sim))/sqrt(N1)),
           (colMeans(x_sim,na.rm=T) - colSds(as.matrix(x_sim))/sqrt(N1))[3:1]),
@@ -956,9 +729,156 @@ means <- sapply(xhigh, mean,na.rm=T)
 lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="darkgoldenrod3",lwd=lwddat)
 error.bar(0:(n-1),means,colSds(as.matrix(xhigh),na.rm=T)/sqrt(N1),lwd=lwdgr,col="darkgoldenrod3")
 
+# Plot Confidence - Empirical Data ----------------------------------------
+##Experiment 1
+#Aggregate conf for data
+CJlow <- with(subset(Data1,selfconf=="lowSC"),aggregate(cj,by=list(sub,coh),mean));names(CJlow) <- c('sub','coh','cj')
+CJlow <- cast(CJlow,sub~coh,)
+CJmed <- with(subset(Data1,selfconf=="mediumSC"),aggregate(cj,by=list(sub,coh),mean));names(CJmed) <- c('sub','coh','cj')
+CJmed <- cast(CJmed,sub~coh)
+CJhigh <- with(subset(Data1,selfconf=="highSC"),aggregate(cj,by=list(sub,coh),mean));names(CJhigh) <- c('sub','coh','cj')
+CJhigh <- cast(CJhigh,sub~coh)
+
+
+#aggregate cj for model
+x <- CJlow[,c(2:4)];xmed <- CJmed[,c(2:4)];xhigh <- CJhigh[,c(2:4)]
+n <- length(x)
+
+x <- x[,c("hard","average","easy")];
+xmed <- xmed[,c("hard","average","easy")];
+xhigh <- xhigh[,c("hard","average","easy")]
+
+stripchart(x,ylim=c(3.75,5.5), xlim=c(-.05,n-1), vertical = TRUE, col="white",frame=F,xaxt='n',
+           main=NULL, yaxt = 'n',family="A")
+axis(1,at=0:(n-1),labels=names(x), cex.axis=1.5);
+axis(2, seq(4,5.5,.5), cex.axis=1.5)
+mtext("Confidence",2,at=4.75,line=2.5,cex=cex_axis);
+means <- sapply(x, mean);n<- length(x)
+for(i in seq(4,5.5,.5)) abline(h=i,col="lightgrey",lty = "dashed")
+lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="brown3",lwd=lwddat,lty = "dashed")
+error.bar(0:(n-1),means,colSds(as.matrix(x),na.rm=T)/sqrt(N1),lwd=lwdgr,col="brown3")
+means <- sapply(xmed, mean,na.rm=T)
+lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="cyan4",lwd=lwddat,lty = "dashed")
+error.bar(0:(n-1),means,colSds(as.matrix(xmed),na.rm=T)/sqrt(N1),lwd=lwdgr,col="cyan4")
+means <- sapply(xhigh, mean,na.rm=T)
+lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="darkgoldenrod3",lwd=lwddat,lty = "dashed")
+error.bar(0:(n-1),means,colSds(as.matrix(xhigh),na.rm=T)/sqrt(N1),lwd=lwdgr,col="darkgoldenrod3")
+
+## Experiment 2
+#Aggregate conf for data
+CJlow <- with(subset(Data2,traindiffcond=="hard"),aggregate(cj,by=list(sub,coh),mean));names(CJlow) <- c('sub','coh','cj')
+CJlow <- cast(CJlow,sub~coh,)
+CJmed <- with(subset(Data2,traindiffcond=="average"),aggregate(cj,by=list(sub,coh),mean));names(CJmed) <- c('sub','coh','cj')
+CJmed <- cast(CJmed,sub~coh)
+CJhigh <- with(subset(Data2,traindiffcond=="easy"),aggregate(cj,by=list(sub,coh),mean));names(CJhigh) <- c('sub','coh','cj')
+CJhigh <- cast(CJhigh,sub~coh)
+
+
+#aggregate cj for model
+x <- CJlow[,c(2:4)];xmed <- CJmed[,c(2:4)];xhigh <- CJhigh[,c(2:4)]
+n <- length(x)
+
+x <- x[,c("hard","average","easy")];
+xmed <- xmed[,c("hard","average","easy")];
+xhigh <- xhigh[,c("hard","average","easy")]
+
+stripchart(x,ylim=c(3.75,5.5), xlim=c(-.05,n-1), vertical = TRUE, col="white",frame=F,xaxt='n',
+           main=NULL, yaxt = 'n',family="A")
+axis(1,at=0:(n-1),labels=names(x), cex.axis=1.5);
+axis(2, seq(4,5.5,.5), cex.axis=1.5)
+mtext("Confidence",2,at=4.75,line=2.5,cex=cex_axis);
+means <- sapply(x, mean);n<- length(x)
+for(i in seq(4,5.5,.5)) abline(h=i,col="lightgrey",lty = "dashed")
+lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="brown3",lwd=lwddat,lty = "dashed")
+error.bar(0:(n-1),means,colSds(as.matrix(x),na.rm=T)/sqrt(N1),lwd=lwdgr,col="brown3")
+means <- sapply(xmed, mean,na.rm=T)
+lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="cyan4",lwd=lwddat,lty = "dashed")
+error.bar(0:(n-1),means,colSds(as.matrix(xmed),na.rm=T)/sqrt(N1),lwd=lwdgr,col="cyan4")
+means <- sapply(xhigh, mean,na.rm=T)
+lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="darkgoldenrod3",lwd=lwddat,lty = "dashed")
+error.bar(0:(n-1),means,colSds(as.matrix(xhigh),na.rm=T)/sqrt(N1),lwd=lwdgr,col="darkgoldenrod3")
+
+# Plot confidence prediction ----------------------------------------------
+par(mar=c(0,0,0,0))
+plot.new()
+text(.5,.75, labels="Model Prediction",cex = cex_legend+.5)
+par(mar=c(5,5,0,2)+0.1)
+
+Simuls$cj <- Simuls$cj_cont
+## Experiment 1
+#Aggregate conf for data
+CJlow <- with(subset(Simuls,condition=="lowSC"),aggregate(cj,by=list(sub,coh),mean));names(CJlow) <- c('sub','coh','cj')
+CJlow <- cast(CJlow,sub~coh,)
+CJmed <- with(subset(Simuls,condition=="mediumSC"),aggregate(cj,by=list(sub,coh),mean));names(CJmed) <- c('sub','coh','cj')
+CJmed <- cast(CJmed,sub~coh)
+CJhigh <- with(subset(Simuls,condition=="highSC"),aggregate(cj,by=list(sub,coh),mean));names(CJhigh) <- c('sub','coh','cj')
+CJhigh <- cast(CJhigh,sub~coh)
+
+
+#aggregate cj for model
+x <- CJlow[,c(2:4)];xmed <- CJmed[,c(2:4)];xhigh <- CJhigh[,c(2:4)]
+n <- length(x)
+
+x <- x[,c("hard","average","easy")];
+xmed <- xmed[,c("hard","average","easy")];
+xhigh <- xhigh[,c("hard","average","easy")]
+
+stripchart(x,ylim=c(.45,1), xlim=c(-.05,n-1), vertical = TRUE, col="white",frame=F,xaxt='n',
+           main=NULL, yaxt = 'n',family="A")
+mtext("Confidence",2,at=.75,line=2.5,cex=cex_axis);
+mtext("Trial difficulty",1,3,at=1,cex=cex_axis)
+axis(1,at=0:(n-1),labels=names(x), cex.axis=1.5);
+axis(2, seq(.5,1,.1), cex.axis=1.5)
+means <- sapply(x, mean);n<- length(x)
+for(i in seq(.5,1,length.out = 5)) abline(h=i,col="lightgrey",lty = "dashed")
+lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="brown3",lwd=lwddat,lty = "dashed")
+error.bar(0:(n-1),means,colSds(as.matrix(x),na.rm=T)/sqrt(N1),lwd=lwdgr,col="brown3")
+means <- sapply(xmed, mean,na.rm=T)
+lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="cyan4",lwd=lwddat,lty = "dashed")
+error.bar(0:(n-1),means,colSds(as.matrix(xmed),na.rm=T)/sqrt(N1),lwd=lwdgr,col="cyan4")
+means <- sapply(xhigh, mean,na.rm=T)
+lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="darkgoldenrod3",lwd=lwddat,lty = "dashed")
+error.bar(0:(n-1),means,colSds(as.matrix(xhigh),na.rm=T)/sqrt(N1),lwd=lwdgr,col="darkgoldenrod3")
+
+
+## Experiment 2
+Simuls2$cj <- Simuls2$cj_cont
+#Aggregate conf for Simuls2
+CJlow <- with(subset(Simuls2,condition=="hard"),aggregate(cj,by=list(sub,coh),mean));names(CJlow) <- c('sub','coh','cj')
+CJlow <- cast(CJlow,sub~coh,)
+CJmed <- with(subset(Simuls2,condition=="average"),aggregate(cj,by=list(sub,coh),mean));names(CJmed) <- c('sub','coh','cj')
+CJmed <- cast(CJmed,sub~coh)
+CJhigh <- with(subset(Simuls2,condition=="easy"),aggregate(cj,by=list(sub,coh),mean));names(CJhigh) <- c('sub','coh','cj')
+CJhigh <- cast(CJhigh,sub~coh)
+
+
+#aggregate cj for model
+x <- CJlow[,c(2:4)];xmed <- CJmed[,c(2:4)];xhigh <- CJhigh[,c(2:4)]
+n <- length(x)
+
+x <- x[,c("hard","average","easy")];
+xmed <- xmed[,c("hard","average","easy")];
+xhigh <- xhigh[,c("hard","average","easy")]
+
+stripchart(x,ylim=c(.45,1), xlim=c(-.05,n-1), vertical = TRUE, col="white",frame=F,xaxt='n',
+           main=NULL, yaxt = 'n',family="A")
+mtext("Confidence",2,at=.75,line=2.5,cex=cex_axis);
+axis(1,at=0:(n-1),labels=names(x), cex.axis=1.5);
+mtext("Trial difficulty",1,3,at=1,cex=cex_axis)
+means <- sapply(x, mean);n<- length(x)
+for(i in seq(.5,1,.1)) abline(h=i,col="lightgrey",lty = "dashed")
+lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="brown3",lwd=lwddat,lty = "dashed")
+error.bar(0:(n-1),means,colSds(as.matrix(x),na.rm=T)/sqrt(N1),lwd=lwdgr,col="brown3")
+means <- sapply(xmed, mean,na.rm=T)
+lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="cyan4",lwd=lwddat,lty = "dashed")
+error.bar(0:(n-1),means,colSds(as.matrix(xmed),na.rm=T)/sqrt(N1),lwd=lwdgr,col="cyan4")
+means <- sapply(xhigh, mean,na.rm=T)
+lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="darkgoldenrod3",lwd=lwddat,lty = "dashed")
+error.bar(0:(n-1),means,colSds(as.matrix(xhigh),na.rm=T)/sqrt(N1),lwd=lwdgr,col="darkgoldenrod3")
+axis(2, seq(.5,1,.1), cex.axis=1.5)
+
 #'save
 dev.off()
-# OTHER PLOTS -------------------------------------------------------------,
 ## Correlation Objective/Subjective drift ====
 for (c in 1:Ncond) {
   obj_drift <- subset(df2,condition==cond_2[c])$Vo
