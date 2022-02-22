@@ -679,6 +679,13 @@ x_sim = cast(snrcorlowSim,sub~coh,value='cor');xmed_sim = cast(snrcormedSim,sub~
 x <- x[,c("hard","average","easy")];xmed <- xmed[,c("hard","average","easy")];x_sim <- x_sim[,c("hard","average","easy")];xmed_sim <- xmed_sim[,c("hard","average","easy")];
 xhigh_sim <- xhigh_sim[,c("hard","average","easy")];xhigh <- xhigh[,c("hard","average","easy")]
 
+jpeg(
+  filename="accuracy_overlay_1.jpeg",
+  width=6.5,
+  height=8,
+  units="in",
+  res=500)
+
 stripchart(x, ylim=c(0.6,1.1), xlim=c(-.05,n-1), vertical = TRUE, col="white",
            frame=F,xaxt='n',main=NULL,yaxt='n')
 axis(1,at=0:(n-1),labels=names(x), cex.axis=1.5);
@@ -686,9 +693,12 @@ axis(2,seq(0.6,1,.1),cex.axis=1.5)
 mtext("Accuracy",2,at=.8,line=2.5,cex=1.75);
 mtext("Trial difficulty",1,3,at=1,cex=1.75)
 for(i in seq(.6,1,.1)) abline(h=i,col="lightgrey",lty = "dashed")
-legend("top",legend=c("Negative","Average","Positive"),title = "Feedback condition",
-       pch=rep(16,3),bty = "n",inset=0, cex = 1.5,col=c("brown3","cyan4","darkgoldenrod3"),
-       horiz = T)
+legend_order <- matrix(1:6,ncol=3,byrow = T)
+legend("top",legend=c("Negative","Average","Positive",rep("model fit",3))[legend_order],
+       title = "Feedback condition",pch=c(rep(16,3),rep(NA,3))[legend_order],
+       fill = c(rep(NA,3),c("brown3","cyan4","darkgoldenrod3"))[legend_order], 
+       cex = 1.5,col=rep(c("brown3","cyan4","darkgoldenrod3"),2)[legend_order],
+       bty = "n",inset=0,ncol=3,border="white")
 polygon(c(0:(n-1),(n-1):0),
         c(colMeans(x_sim,na.rm=T) + (colSds(as.matrix(x_sim))/sqrt(N1)),
           (colMeans(x_sim,na.rm=T) - colSds(as.matrix(x_sim))/sqrt(N1))[3:1]),
@@ -711,6 +721,8 @@ means <- sapply(xhigh, mean,na.rm=T)
 lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="darkgoldenrod3",lwd=lwddat)
 error.bar(0:(n-1),means,colSds(as.matrix(xhigh),na.rm=T)/sqrt(N1),lwd=lwdgr,col="darkgoldenrod3")
 
+#'save
+dev.off()
 
 ## Experiment 2
 #Aggregate conf for Data2
@@ -743,6 +755,13 @@ x_sim = cast(snrcorlowSim,sub~coh,value='cor');xmed_sim = cast(snrcormedSim,sub~
 x <- x[,c("hard","average","easy")];xmed <- xmed[,c("hard","average","easy")];x_sim <- x_sim[,c("hard","average","easy")];xmed_sim <- xmed_sim[,c("hard","average","easy")];
 xhigh_sim <- xhigh_sim[,c("hard","average","easy")];xhigh <- xhigh[,c("hard","average","easy")]
 
+jpeg(
+  filename="accuracy_overlay_2.jpeg",
+  width=6.5,
+  height=8,
+  units="in",
+  res=500)
+
 stripchart(x, ylim=c(0.6,1.1), xlim=c(-.05,n-1), vertical = TRUE, col="white",
            frame=F,xaxt='n',main=NULL,yaxt='n')
 axis(1,at=0:(n-1),labels=names(x), cex.axis=1.5);
@@ -750,9 +769,12 @@ axis(2,seq(0.6,1,.1),cex.axis=1.5)
 mtext("Accuracy",2,at=.8,line=2.5,cex=1.75);
 mtext("Trial difficulty",1,3,at=1,cex=1.75)
 for(i in seq(.6,1,.1)) abline(h=i,col="lightgrey",lty = "dashed")
-legend("top",legend=c("Difficult","Medium","Easy"),title = "Training condition",
-       pch=rep(16,3),bty = "n",inset=0, cex = 1.5,col=c("brown3","cyan4","darkgoldenrod3"),
-       horiz = T)
+legend_order <- matrix(1:6,ncol=3,byrow = T)
+legend("top",legend=c("Difficult","Medium","Easy",rep("model fit",3))[legend_order],
+       title = "Training condition",pch=c(rep(16,3),rep(NA,3))[legend_order],
+       fill = c(rep(NA,3),c("brown3","cyan4","darkgoldenrod3"))[legend_order], 
+       cex = 1.5,col=rep(c("brown3","cyan4","darkgoldenrod3"),2)[legend_order],
+       bty = "n",inset=0,ncol=3,border="white")
 polygon(c(0:(n-1),(n-1):0),
         c(colMeans(x_sim,na.rm=T) + (colSds(as.matrix(x_sim))/sqrt(N1)),
           (colMeans(x_sim,na.rm=T) - colSds(as.matrix(x_sim))/sqrt(N1))[3:1]),
@@ -775,7 +797,8 @@ means <- sapply(xhigh, mean,na.rm=T)
 lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="darkgoldenrod3",lwd=lwddat)
 error.bar(0:(n-1),means,colSds(as.matrix(xhigh),na.rm=T)/sqrt(N1),lwd=lwdgr,col="darkgoldenrod3")
 
-
+#'save
+dev.off()
 # Plot overlay RT ---------------------------------------------------------
 ## Experiment 1
 #Aggregate conf for data
@@ -814,6 +837,12 @@ x_sim = cast(snrrtlowSim,sub~coh,value='rt');xmed_sim = cast(snrrtmedSim,sub~coh
 x <- x[,c("hard","average","easy")];xmed <- xmed[,c("hard","average","easy")];x_sim <- x_sim[,c("hard","average","easy")];xmed_sim <- xmed_sim[,c("hard","average","easy")];
 xhigh_sim <- xhigh_sim[,c("hard","average","easy")];xhigh <- xhigh[,c("hard","average","easy")]
 
+jpeg(
+  filename="RT_overlay_1.jpeg",
+  width=6.5,
+  height=8,
+  units="in",
+  res=500)
 
 stripchart(x, ylim=c(0.6,1.2), xlim=c(-.05,n-1), vertical = TRUE, col="white",
            frame=F,xaxt='n',main=NULL,yaxt='n')
@@ -822,9 +851,12 @@ axis(2,seq(0.6,1.1,.1),cex.axis=1.5)
 mtext("RT (s)",2,at=.85,line=2.5,cex=1.75);
 mtext("Trial difficulty",1,3,at=1,cex=1.75)
 for(i in seq(.6,1.1,.1)) abline(h=i,col="lightgrey",lty = "dashed")
-legend("top",legend=c("Negative","Average","Positive"),title = "Feedback condition",
-       pch=rep(16,3),bty = "n",inset=0, cex = 1.5,col=c("brown3","cyan4","darkgoldenrod3"),
-       horiz = T)
+legend_order <- matrix(1:6,ncol=3,byrow = T)
+legend("top",legend=c("Negative","Average","Positive",rep("model fit",3))[legend_order],
+       title = "Feedback condition",pch=c(rep(16,3),rep(NA,3))[legend_order],
+       fill = c(rep(NA,3),c("brown3","cyan4","darkgoldenrod3"))[legend_order], 
+       cex = 1.5,col=rep(c("brown3","cyan4","darkgoldenrod3"),2)[legend_order],
+       bty = "n",inset=0,ncol=3,border="white")
 
 polygon(c(0:(n-1),(n-1):0),
         c(colMeans(x_sim,na.rm=T) + (colSds(as.matrix(x_sim))/sqrt(N1)),
@@ -847,6 +879,9 @@ error.bar(0:(n-1),means,colSds(as.matrix(xmed),na.rm=T)/sqrt(N1),lwd=lwdgr,col="
 means <- sapply(xhigh, mean,na.rm=T)
 lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="darkgoldenrod3",lwd=lwddat)
 error.bar(0:(n-1),means,colSds(as.matrix(xhigh),na.rm=T)/sqrt(N1),lwd=lwdgr,col="darkgoldenrod3")
+
+#'save
+dev.off()
 
 ## Experiment 2
 #Aggregate conf for Data2
@@ -879,6 +914,13 @@ x_sim = cast(snrrtlowSim,sub~coh,value='rt');xmed_sim = cast(snrrtmedSim,sub~coh
 x <- x[,c("hard","average","easy")];xmed <- xmed[,c("hard","average","easy")];x_sim <- x_sim[,c("hard","average","easy")];xmed_sim <- xmed_sim[,c("hard","average","easy")];
 xhigh_sim <- xhigh_sim[,c("hard","average","easy")];xhigh <- xhigh[,c("hard","average","easy")]
 
+jpeg(
+  filename="RT_overlay_2.jpeg",
+  width=6.5,
+  height=8,
+  units="in",
+  res=500)
+
 stripchart(x, ylim=c(0.6,1.2), xlim=c(-.05,n-1), vertical = TRUE, col="white",
            frame=F,xaxt='n',main=NULL,yaxt='n')
 axis(1,at=0:(n-1),labels=names(x), cex.axis=1.5);
@@ -886,9 +928,12 @@ axis(2,seq(0.6,1.1,.1),cex.axis=1.5)
 mtext("RT (s)",2,at=.85,line=2.5,cex=1.75);
 mtext("Trial difficulty",1,3,at=1,cex=1.75)
 for(i in seq(.6,1.1,.1)) abline(h=i,col="lightgrey",lty = "dashed")
-legend("top",legend=c("Difficult","Medium","Easy"),title = "Training condition",
-       pch=rep(16,3),bty = "n",inset=0, cex = 1.5,col=c("brown3","cyan4","darkgoldenrod3"),
-       horiz = T)
+legend_order <- matrix(1:6,ncol=3,byrow = T)
+legend("top",legend=c("Difficult","Medium","Easy",rep("model fit",3))[legend_order],
+       title = "Training condition",pch=c(rep(16,3),rep(NA,3))[legend_order],
+       fill = c(rep(NA,3),c("brown3","cyan4","darkgoldenrod3"))[legend_order], 
+       cex = 1.5,col=rep(c("brown3","cyan4","darkgoldenrod3"),2)[legend_order],
+       bty = "n",inset=0,ncol=3,border="white")
 polygon(c(0:(n-1),(n-1):0),
         c(colMeans(x_sim,na.rm=T) + (colSds(as.matrix(x_sim))/sqrt(N1)),
           (colMeans(x_sim,na.rm=T) - colSds(as.matrix(x_sim))/sqrt(N1))[3:1]),
@@ -911,6 +956,8 @@ means <- sapply(xhigh, mean,na.rm=T)
 lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="darkgoldenrod3",lwd=lwddat)
 error.bar(0:(n-1),means,colSds(as.matrix(xhigh),na.rm=T)/sqrt(N1),lwd=lwdgr,col="darkgoldenrod3")
 
+#'save
+dev.off()
 # OTHER PLOTS -------------------------------------------------------------,
 ## Correlation Objective/Subjective drift ====
 for (c in 1:Ncond) {
