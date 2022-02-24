@@ -417,9 +417,11 @@ write.csv(Simuls2,file = "model_prediction_exp2.csv")
 # Stat tests ------------------------------------------------------------
 # Exp1 ====
 #DDM train
+df$sub <- as.factor(df$sub)
 m <- lm(Vs ~ condition,data=df); Anova(m);
 m <- lmer(Vs ~ condition + (1|sub),data=df); Anova(m);
 m <- aov(Vs ~ condition+ Error(sub/condition), data = df); summary(m)
+m <- lmer(Vs ~condition + (1|sub), data = df); anova(m)
 m <- lm(Vo ~ condition,data=df); Anova(m);
 m <- lm(bound ~ condition,data=df); Anova(m);
 m <- lm(ter ~ condition,data=df); Anova(m);
@@ -435,7 +437,9 @@ m <- lm(v ~ phase*condition*difficulty,data = vs); Anova(m)
 m <- lm(ter ~ phase*condition,data = ters1); Anova(m)
 ## Exp2 ====
 #DDM train
-m <- lm(Vs ~ condition,data=df2); Anova(m);
+df2$sub <- as.factor(df2$sub)
+m <- aov(Vs ~ condition+ Error(sub/condition), data = df2); summary(m)
+m <- lmer(Vs ~condition + (1|sub), data = df2); anova(m)
 m <- lm(Vo ~ condition,data=df2); Anova(m);
 m <- lm(bound ~ condition,data=df2); Anova(m);
 m <- lm(ter ~ condition,data=df2); Anova(m)
@@ -448,6 +452,13 @@ m <- lm(drift ~ condition*difflevel,data=param2); Anova(m);
 #Train vs Test
 m <- lm(bound ~ phase*condition,data = bounds2); Anova(m)
 m <- lm(ter ~ phase*condition,data = ters2); Anova(m)
+
+Simuls$sub <- as.factor(Simuls$sub)
+Simuls2$sub <- as.factor(Simuls2$sub)
+m <- lmer(cj ~ condition*coh + (condition|sub), data = Simuls); anova(m)
+m <- lmer(cj ~ condition*coh + (coh|sub), data = Simuls); anova(m)
+m <- aov(cj ~ condition*coh+ Error(sub/condition), data = Simuls); summary(m)
+m <- aov(cj ~ condition+ Error(sub/condition), data = Simuls2); summary(m)
 # Plot Layout -------------------------------------------------------------
 go_to("plot")
 

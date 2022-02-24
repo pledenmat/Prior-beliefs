@@ -360,24 +360,24 @@ axis(1,at=1.1:3.1,labels=c("hard","average","easy"),cex.axis=cex_lab-1,family="A
 abline(h = seq(3,6,0.5), col = "lightgrey", lty = "dashed")
 
 # High SC
-for(i in 1:Nsub_2) points(jitter(1:3,0.1),CJ_SC_diff_data[i,c(4,2,3)],lty=i,type='p',pch=21,col='white',bg=transp('darkgoldenrod2'))
-lines(1:3,average_CJ_SC_diff_data[1,c(4,2,3)],lty=2,type='b',pch=21,
+for(i in 1:Nsub_2) points(jitter(1:3,0.1),CJ_SC_diff_data[i,c(7,5,6)],lty=i,type='p',pch=21,col='white',bg=transp('darkgoldenrod2'))
+lines(1:3,average_CJ_SC_diff_data[2,c(4,2,3)],lty=2,type='b',pch=21,
       col='darkgoldenrod3',bg='darkgoldenrod2',lwd=lwddat,cex=cexkl)
 # Medium SC
-for(i in 1:Nsub_2) points(jitter(1.1:3.1,0.1),CJ_SC_diff_data[i,c(10,8,9)],lty=i,type='p',pch=24,col='white',bg=transp('cyan3'))
-lines(1.1:3.1,average_CJ_SC_diff_data[3,c(4,2,3)],lty=2,type='b',pch=24,
+for(i in 1:Nsub_2) points(jitter(1.1:3.1,0.1),CJ_SC_diff_data[i,c(4,2,3)],lty=i,type='p',pch=24,col='white',bg=transp('cyan3'))
+lines(1.1:3.1,average_CJ_SC_diff_data[1,c(4,2,3)],lty=2,type='b',pch=24,
       col='cyan4',bg='cyan3',lwd=lwddat,cex=cexkl)
 # Low SC
-for(i in 1:Nsub_2) points(jitter(1.2:3.2,0.1),CJ_SC_diff_data[i,c(7,5,6)],lty=i,type='p',pch=22,col='white',bg=transp('brown2'))
-lines(1.2:3.2,average_CJ_SC_diff_data[2,c(4,2,3)],lty=2,type='b',pch=22,
+for(i in 1:Nsub_2) points(jitter(1.2:3.2,0.1),CJ_SC_diff_data[i,c(10,8,9)],lty=i,type='p',pch=22,col='white',bg=transp('brown2'))
+lines(1.2:3.2,average_CJ_SC_diff_data[3,c(4,2,3)],lty=2,type='b',pch=22,
       col='brown3',bg="brown2",lwd=lwddat,cex=cexkl)
 
 # plot error bars
-error.bar(1:3,colMeans(CJ_SC_diff_data[,c(4,2,3)]),colSds(as.matrix(CJ_SC_diff_data[,c(4,2,3)])/sqrt(Nsub_2)),
+error.bar(1:3,colMeans(CJ_SC_diff_data[,c(7,5,6)]),colSds(as.matrix(CJ_SC_diff_data[,c(7,5,6)])/sqrt(Nsub_2)),
           length=0,lwd=lwdgr, col='darkgoldenrod3')
-error.bar(1.1:3.1,colMeans(CJ_SC_diff_data[,c(10,8,9)]),colSds(as.matrix(CJ_SC_diff_data[,c(10,8,9)])/sqrt(Nsub_2)),
+error.bar(1.1:3.1,colMeans(CJ_SC_diff_data[,c(4,2,3)]),colSds(as.matrix(CJ_SC_diff_data[,c(4,2,3)])/sqrt(Nsub_2)),
           length=0,lwd=lwdgr, col='cyan4')
-error.bar(1.2:3.2,colMeans(CJ_SC_diff_data[,c(7,5,6)]),colSds(as.matrix(CJ_SC_diff_data[,c(7,5,6)])/sqrt(Nsub_2)),
+error.bar(1.2:3.2,colMeans(CJ_SC_diff_data[,c(10,8,9)]),colSds(as.matrix(CJ_SC_diff_data[,c(10,8,9)])/sqrt(Nsub_2)),
           length=0,lwd=lwdgr, col='brown3')
 
 
