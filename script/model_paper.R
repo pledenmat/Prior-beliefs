@@ -418,23 +418,27 @@ write.csv(Simuls2,file = "model_prediction_exp2.csv")
 # Exp1 ====
 #DDM train
 df$sub <- as.factor(df$sub)
-m <- lm(Vs ~ condition,data=df); Anova(m);
-m <- lmer(Vs ~ condition + (1|sub),data=df); Anova(m);
-m <- aov(Vs ~ condition+ Error(sub/condition), data = df); summary(m)
-m <- lmer(Vs ~condition + (1|sub), data = df); anova(m)
-m <- lm(Vo ~ condition,data=df); Anova(m);
-m <- lm(bound ~ condition,data=df); Anova(m);
-m <- lm(ter ~ condition,data=df); Anova(m);
+m <- lmer(Vs ~ condition + (1|sub),data=df); anova(m);
+m <- aov(Vs ~ condition+ Error(sub/condition), data = df); summary(m) #Equivalent
+m <- lmer(Vo ~condition + (1|sub), data = df); anova(m)
+m <- lmer(bound ~ condition + (1|sub),data=df); anova(m);
+m <- lmer(ter ~ condition + (1|sub),data=df); anova(m);
 
 #DDM test
-m <- lm(bound ~ condition,data=param_1); Anova(m);
-m <- lm(ter ~ condition,data=param_1); Anova(m);
-m <- lm(drift ~ condition*difflevel,data=param_1); Anova(m);
+param_1$sub <- as.factor(param_1$sub)
+test_bound1 <- with(param_1,aggregate(bound,by=list(condition=condition,sub=sub),mean))
+test_ter1 <- with(param_1,aggregate(ter,by=list(condition=condition,sub=sub),mean))
+m <- lmer(x ~ condition + (1|sub),data=test_bound1); anova(m);
+m <- lmer(x ~ condition + (1|sub),data=test_ter1); anova(m);
+m <- lmer(drift ~ condition*difflevel + (1|sub),data=param_1); anova(m);
 
 #Train vs Test
-m <- lm(bound ~ phase*condition,data = bounds1); Anova(m)
-m <- lm(v ~ phase*condition*difficulty,data = vs); Anova(m)
-m <- lm(ter ~ phase*condition,data = ters1); Anova(m)
+bounds1$sub <- as.factor(bounds1$sub)
+vs$sub <- as.factor(vs$sub)
+ters1$sub <- as.factor(ters1$sub)
+m <- lmer(bound ~ phase*condition + (condition|sub),data = bounds1); anova(m)
+m <- lmer(v ~ phase*condition*difficulty + (difficulty|sub),data = vs); anova(m)
+m <- lmer(ter ~ phase*condition + (condition|sub),data = ters1); anova(m)
 ## Exp2 ====
 #DDM train
 df2$sub <- as.factor(df2$sub)
@@ -445,20 +449,27 @@ m <- lm(bound ~ condition,data=df2); Anova(m);
 m <- lm(ter ~ condition,data=df2); Anova(m)
 
 #DDM test
-m <- lm(bound ~ condition,data=param2); Anova(m);
-m <- lm(ter ~ condition,data=param2); Anova(m);
-m <- lm(drift ~ condition*difflevel,data=param2); Anova(m);
+param2$sub <- as.factor(param2$sub)
+test_bound2 <- with(param2,aggregate(bound,by=list(condition=condition,sub=sub),mean))
+test_ter2 <- with(param2,aggregate(ter,by=list(condition=condition,sub=sub),mean))
+m <- lmer(x ~ condition + (1|sub),data=test_bound2); anova(m);
+m <- lmer(x ~ condition + (1|sub),data=test_ter2); anova(m);
+m <- lmer(drift ~ condition*difflevel + (condition|sub),data=param2); anova(m);
 
 #Train vs Test
-m <- lm(bound ~ phase*condition,data = bounds2); Anova(m)
-m <- lm(ter ~ phase*condition,data = ters2); Anova(m)
+bounds2$sub <- as.factor(bounds2$sub)
+ters2$sub <- as.factor(ters2$sub)
+m <- lmer(bound ~ phase*condition + (1|sub),data = bounds2); anova(m)
+m <- lmer(ter ~ phase*condition + (condition|sub),data = ters2); anova(m)
 
-Simuls$sub <- as.factor(Simuls$sub)
-Simuls2$sub <- as.factor(Simuls2$sub)
-m <- lmer(cj ~ condition*coh + (condition|sub), data = Simuls); anova(m)
-m <- lmer(cj ~ condition*coh + (coh|sub), data = Simuls); anova(m)
-m <- aov(cj ~ condition*coh+ Error(sub/condition), data = Simuls); summary(m)
-m <- aov(cj ~ condition+ Error(sub/condition), data = Simuls2); summary(m)
+sim_cj1 <- with(Simuls,aggregate(cj,by=list(condition=condition,coh=coh,sub=sub),mean))
+sim_cj2 <- with(Simuls2,aggregate(cj,by=list(condition=condition,coh=coh,sub=sub),mean))
+sim_cj1$sub <- as.factor(sim_cj1$sub)
+sim_cj2$sub <- as.factor(sim_cj2$sub)
+m <- lmer(x ~ condition*coh + (condition|sub), data = sim_cj1); anova(m)
+m <- lmer(x ~ condition*coh + (condition|sub), data = sim_cj2); anova(m)
+m <- aov(x ~ condition*coh+ Error(sub/condition), data = sim_cj1); summary(m)
+m <- aov(x ~ condition*coh+ Error(sub/condition), data = sim_cj2); summary(m)
 # Plot Layout -------------------------------------------------------------
 go_to("plot")
 
@@ -890,53 +901,42 @@ axis(2, seq(.5,1,.1), cex.axis=1.5)
 
 #'save
 dev.off()
-## Correlation Objective/Subjective drift ====
-for (c in 1:Ncond) {
-  obj_drift <- subset(df2,condition==cond_2[c])$Vo
-  subj_drift <- subset(df2,condition==cond_2[c])$Vs
-  drift_range <- c(min(min(subj_drift),min(obj_drift)),max(max(subj_drift),max(obj_drift)))
-  plot(obj_drift~subj_drift,cex.axis=1.75,cex.lab=1.75,frame=F,pch=19, xlim=drift_range, ylim =drift_range );
-  print(cor.test(obj_drift,subj_drift));
-  abline(lm(obj_drift~subj_drift),lty=2)
-  ;mtext(paste(cond_2[c],'r = ',round(cor(obj_drift,subj_drift),3)))
-}
+# EXP 1 Estimated parameters plot ----------------------------------------------
+# Layout ------------------------------------------------------------------
+jpeg(
+  filename="fit_results1.jpeg",
+  width=13,
+  height=11,
+  units="in",
+  res=500)
+layout(matrix(c(1,2,1,3,1,4),ncol=3),heights = c(1.5,1))
+par(mar=c(5,5,4,0)+0.1)
 # Plot Vs ~ Condition -----------------------------------------------------
 ##Exp1
 plot_drift <- with(df,aggregate(Vs,by=list(sub=sub,condition=condition),mean))
 plot_drift <- cast(plot_drift,sub~condition)
 plot_drift <- plot_drift[,c(3,4,2)] #Reorder columns to have hard -> easy
-plot(colMeans(plot_drift),frame=F,type='n',cex.lab=2,cex.axis=1.75,
-     xlim=c(.8,Ncond+.2),ylab='',ylim=c(min(plot_drift),max(plot_drift)),
-     xlab="Feedback",xaxt='n')
+plot(colMeans(plot_drift),frame=F,type='n',cex.lab=2.5,cex.axis=1.75,
+     xlim=c(.8,Ncond+.2),ylab='Subjective drift',ylim=c(0,.16),
+     xlab="Feedback condition",xaxt='n')
+mtext("A.", at = .62, line = -2, cex = cex_title, font = 2)
+title("Experiment 1: Fake feedback",cex.main=cex_title,font=2,line=1)
 axis(1,1:Ncond,c("Negative","Average","Positive"),cex.axis=1.75)
-mtext("Subjective drift",side = 2, line = 2.5, cex = 2)
+# mtext("Subjective drift",side = 2, line = 2.5, cex = 2)
 for(i in 1:N1) lines(1:Ncond,plot_drift[i,1:Ncond],type='b',lty=2,col="grey",pch=19)
 points(colMeans(plot_drift),type='b',lwd=5)
 error.bar(1:Ncond,colMeans(plot_drift),colSds(plot_drift,na.rm=T)/sqrt(N1),lwd=3)
 
-##Exp2
-plot_drift <- with(df2,aggregate(Vs,by=list(sub=sub,condition=condition),mean));
-plot_drift <- cast(plot_drift,sub~condition)
-plot_drift <- plot_drift[,c(4,2,3)] #Reorder columns to have hard -> easy
-plot(colMeans(plot_drift),frame=F,type='n',cex.lab=2,cex.axis=1.75,
-     xlim=c(.8,Ncond+.2),ylim=c(min(plot_drift),max(plot_drift)),
-     ylab="",xlab="Training",xaxt='n');
-axis(1,1:Ncond,c("Hard","Average","Easy"),cex.axis=1.75)
-mtext("Subjective drift",side = 2, line = 2.5, cex = 2)
-for(i in 1:Nsub_2) lines(1:Ncond,plot_drift[i,1:Ncond],type='b',lty=2,col="grey",pch=19)
-points(colMeans(plot_drift),type='b',lwd=5)
-error.bar(1:Ncond,colMeans(plot_drift),colSds(plot_drift,na.rm=T)/sqrt(Nsub_2),lwd=3)
-
-
 # Plot DDM parameters test phase EXP1 ------------------------------------------
+par(mar=c(5,5,2,0)+0.1)
 ##Non-decision time
-par(mfrow=c(1,2))
 plot_ter <- with(param_1,aggregate(ter,by=list(sub=sub,condition=condition),mean))
 plot_ter <- cast(plot_ter,sub~condition)
 plot_ter <- plot_ter[,c(3,4,2)] #Reorder columns to have easy -> hard
 plot(colMeans(plot_ter),frame=F,type='n',cex.lab=2.5,cex.axis=1.75,
-     xlim=c(.8,Ncond+.2),ylim=c(min(plot_ter),max(plot_ter)),ylab="",
-     xlab="Condition",xaxt='n',main="Non-decision time", cex.main = 2);
+     xlim=c(.8,Ncond+.2),ylim=c(.15,.8),ylab="Non-decision time",
+     xlab="Feedback condition",xaxt='n',main="", cex.main = 2);
+mtext("B.", at = .4, line = 1, cex = cex_title, font = 2)
 axis(1,1:Ncond,c("Negative","Average","Positive"),cex.axis=1.75)
 for(i in 1:N1) lines(1:Ncond,plot_ter[i,1:Ncond],type='b',lty=2,col="grey",pch=19)
 points(colMeans(plot_ter),type='b',lwd=5)
@@ -947,22 +947,22 @@ plot_bound <- with(param_1,aggregate(bound,by=list(sub=sub,condition=condition),
 plot_bound <- cast(plot_bound,sub~condition)
 plot_bound <- plot_bound[,c(3,4,2)] #Reorder columns to have easy -> hard
 plot(colMeans(plot_bound),frame=F,type='n',cex.lab=2.5,cex.axis=1.75,
-     xlim=c(.8,Ncond+.2),ylim=c(min(plot_bound),max(plot_bound)),ylab="",
-     xlab="Condition",xaxt='n',main="Bound", cex.main = 2);
+     xlim=c(.8,Ncond+.2),ylim=c(0,.2),ylab="Bound",
+     xlab="Feedback condition",xaxt='n',main="", cex.main = 2);
 axis(1,1:Ncond,c("Negative","Average","Positive"),cex.axis=1.75)
 for(i in 1:N1) lines(1:Ncond,plot_bound[i,1:Ncond],type='b',lty=2,col="grey",pch=19)
 points(colMeans(plot_bound),type='b',lwd=5)
 error.bar(1:Ncond,colMeans(plot_bound),colSds(plot_bound,na.rm=T)/sqrt(N1),lwd=3,length=0)
 
+
 ##Drift interaction
-par(mfrow=c(1,1))
 plot_drift_minus <- with(subset(param_1,condition=="lowSC"),
                          aggregate(drift,by=list(sub=sub,difflevel=difflevel),mean))
 plot_drift_minus <- cast(plot_drift_minus,sub~difflevel)
 plot_drift_minus <- plot_drift_minus[,c(4,2,3)] #Reorder columns to have easy -> hard
-plot(colMeans(plot_drift_minus),frame=F,type='n',cex.lab=2,cex.axis=1.75,xlim=c(.8,Ncond+.2),
+plot(colMeans(plot_drift_minus),frame=F,type='n',cex.lab=2.5,cex.axis=1.75,xlim=c(.8,Ncond+.2),
      ylim=c(min(plot_drift_minus),.25),ylab="Drift rate",xlab="Trial Difficulty",xaxt='n');
-axis(1,1:Ncond,c("Hard","Medium","Easy"),cex.axis=1.75)
+axis(1,1:Ncond,c("Hard","Average","Easy"),cex.axis=1.75)
 points(colMeans(plot_drift_minus),type='b',lwd=5,col="brown3")
 error.bar(1:Ncond,colMeans(plot_drift_minus),
           colSds(plot_drift_minus,na.rm=T)/sqrt(N1),lwd=3,length=0,col="brown3")
@@ -983,18 +983,47 @@ points(colMeans(plot_drift_plus),type='b',lwd=5,col="darkgoldenrod3")
 error.bar(1:Ncond,colMeans(plot_drift_plus),
           colSds(plot_drift_plus,na.rm=T)/sqrt(N1),lwd=3,length=0,col="darkgoldenrod3")
 legend("topleft",border=F,legend=c("Negative","Average","Positive"),lwd=2,
-       col=c("brown3","cyan4","darkgoldenrod3"),bty="n",cex=1.5,title = "Condition")
+       col=c("brown3","cyan4","darkgoldenrod3"),bty="n",cex=2,title = "Feedback condition")
+
+#'save
+dev.off()
 
 
+# EXP 2 Estimated parameters plot -----------------------------------------
+# Layout ------------------------------------------------------------------
+jpeg(
+  filename="fit_results2.jpeg",
+  width=13,
+  height=11,
+  units="in",
+  res=500)
+layout(matrix(c(1,2,1,3,1,4),ncol=3),heights = c(1.5,1))
+par(mar=c(5,5,4,0)+0.1)
+# Subjective drift --------------------------------------------------------
+
+##Exp2
+plot_drift <- with(df2,aggregate(Vs,by=list(sub=sub,condition=condition),mean));
+plot_drift <- cast(plot_drift,sub~condition)
+plot_drift <- plot_drift[,c(4,2,3)] #Reorder columns to have hard -> easy
+plot(colMeans(plot_drift),frame=F,type='n',cex.lab=2.5,cex.axis=1.75,
+     xlim=c(.8,Ncond+.2),ylim=c(0,.55),
+     ylab="Subjective drift",xlab="Training condition",xaxt='n');
+axis(1,1:Ncond,c("Difficult","Medium","Easy"),cex.axis=1.75)
+mtext("C.", at = .62, line = -3.5, cex = cex_title, font = 2)
+title("Experiment 2: Training difficulty",cex.main=cex_title,font=2,line=1)
+for(i in 1:Nsub_2) lines(1:Ncond,plot_drift[i,1:Ncond],type='b',lty=2,col="grey",pch=19)
+points(colMeans(plot_drift),type='b',lwd=5)
+error.bar(1:Ncond,colMeans(plot_drift),colSds(plot_drift,na.rm=T)/sqrt(Nsub_2),lwd=3)
 # Plot DDM parameters test phase EXP2 -------------------------------------
+par(mar=c(5,5,2,0)+0.1)
 ##Non-decision time
-par(mfrow=c(1,2))
 plot_ter <- with(param2,aggregate(ter,by=list(sub=sub,condition=condition),mean))
 plot_ter <- cast(plot_ter,sub~condition)
 plot_ter <- plot_ter[,c(4,2,3)] #Reorder columns to have easy -> hard
 plot(colMeans(plot_ter),frame=F,type='n',cex.lab=2.5,cex.axis=1.75,
-     xlim=c(.8,Ncond+.2),ylim=c(min(plot_ter),max(plot_ter)),ylab="",
-     xlab="Condition",xaxt='n',main="Non-decision time", cex.main = 2);
+     xlim=c(.8,Ncond+.2),ylim=c(.2,.8),ylab="Non-decision time",
+     xlab="Training condition",xaxt='n',main="", cex.main = 2);
+mtext("D.", at = .4, line = 1, cex = cex_title, font = 2)
 axis(1,1:Ncond,c("Hard","Medium","Easy"),cex.axis=1.75)
 for(i in 1:Nsub_2) lines(1:Ncond,plot_ter[i,1:Ncond],type='b',lty=2,col="grey",pch=19)
 points(colMeans(plot_ter),type='b',lwd=5)
@@ -1005,22 +1034,21 @@ plot_bound <- with(param2,aggregate(bound,by=list(sub=sub,condition=condition),m
 plot_bound <- cast(plot_bound,sub~condition)
 plot_bound <- plot_bound[,c(4,2,3)] #Reorder columns to have easy -> hard
 plot(colMeans(plot_bound),frame=F,type='n',cex.lab=2.5,cex.axis=1.75,
-     xlim=c(.8,Ncond+.2),ylim=c(min(plot_bound),max(plot_bound)),ylab="",
-     xlab="Condition",xaxt='n',main="Bound", cex.main = 2);
-axis(1,1:Ncond,c("Hard","Medium","Easy"),cex.axis=1.75)
+     xlim=c(.8,Ncond+.2),ylim=c(.04,.12),ylab="Bound",
+     xlab="Training condition",xaxt='n',main="", cex.main = 2);
+axis(1,1:Ncond,c("Difficult","Medium","Easy"),cex.axis=1.75)
 for(i in 1:Nsub_2) lines(1:Ncond,plot_bound[i,1:Ncond],type='b',lty=2,col="grey",pch=19)
 points(colMeans(plot_bound),type='b',lwd=5)
 error.bar(1:Ncond,colMeans(plot_bound),colSds(plot_bound,na.rm=T)/sqrt(Nsub_2),lwd=3,length=0)
 
 ##Drift interaction
-par(mfrow=c(1,1))
 plot_drift_minus <- with(subset(param2,condition=="hard"),
                          aggregate(drift,by=list(sub=sub,difflevel=difflevel),mean))
 plot_drift_minus <- cast(plot_drift_minus,sub~difflevel)
 plot_drift_minus <- plot_drift_minus[,c(4,2,3)] #Reorder columns to have easy -> hard
-plot(colMeans(plot_drift_minus),frame=F,type='n',cex.lab=2,cex.axis=1.75,xlim=c(.8,Ncond+.2),
+plot(colMeans(plot_drift_minus),frame=F,type='n',cex.lab=2.5,cex.axis=1.75,xlim=c(.8,Ncond+.2),
      ylim=c(min(plot_drift_minus),.25),ylab="Drift rate",xlab="Trial Difficulty",xaxt='n');
-axis(1,1:Ncond,c("Hard","Medium","Easy"),cex.axis=1.75)
+axis(1,1:Ncond,c("Difficult","Medium","Easy"),cex.axis=1.75)
 points(colMeans(plot_drift_minus),type='b',lwd=5,col="brown3")
 error.bar(1:Ncond,colMeans(plot_drift_minus),
           colSds(plot_drift_minus,na.rm=T)/sqrt(Nsub_2),lwd=3,length=0,col="brown3")
@@ -1040,146 +1068,22 @@ plot_drift_plus <- plot_drift_plus[,c(4,2,3)] #Reorder columns to have easy -> h
 points(colMeans(plot_drift_plus),type='b',lwd=5,col="darkgoldenrod3")
 error.bar(1:Ncond,colMeans(plot_drift_plus),
           colSds(plot_drift_plus,na.rm=T)/sqrt(Nsub_2),lwd=3,length=0,col="darkgoldenrod3")
-legend("topleft",border=F,legend=c("Hard","Medium","Easy"),lwd=2,
-       col=c("brown3","cyan4","darkgoldenrod3"),bty="n",cex=1.5,title = "Condition")
+legend("topleft",border=F,legend=c("Hard","Average","Easy"),lwd=2,
+       col=c("brown3","cyan4","darkgoldenrod3"),bty="n",cex=2,title = "Training condition")
+
+#'save
+dev.off()
 
 
 
-# Standardizing -- DEAD END -----------------------------------------------
 
-cj2_pred <- with(Simuls2,aggregate(cj,by=list(sub=sub,condition=condition,coh=coh),mean))
-cj2_pred$x <- scale(cj2_pred$x)
-
-cj1_pred <- with(Simuls,aggregate(cj,by=list(sub=sub,condition=condition,coh=coh),mean))
-cj1_pred$x <- scale(cj1_pred$x)
-
-cj1_obs <- with(Data1,aggregate(cj,by=list(sub=sub,condition=selfconf,coh=coh),mean))
-cj1_obs$x <- scale(cj1_obs$x)
-
-cj2_obs <- with(Data2,aggregate(cj,by=list(sub=sub,condition=traindiffcond,coh=coh),mean))
-cj2_obs$x <- scale(cj2_obs$x)
-
-# Plot confidence prediction ----------------------------------------------
-Simuls$cj <- Simuls$cj_cont
-## Experiment 1
-#Aggregate conf for data
-CJlow <- subset(cj1_obs, condition =="lowSC");
-CJlow <- CJlow[,c("sub","coh","x")];names(CJlow) <- c('sub','coh','cj')
-CJlow <- cast(CJlow,sub~coh,)
-CJmed <- subset(cj1_obs, condition =="mediumSC");
-CJmed <- CJmed[,c("sub","coh","x")];names(CJmed) <- c('sub','coh','cj')
-CJmed <- cast(CJmed,sub~coh,)
-CJhigh <- subset(cj1_obs, condition =="highSC");
-CJhigh <- CJhigh[,c("sub","coh","x")];names(CJhigh) <- c('sub','coh','cj')
-CJhigh <- cast(CJhigh,sub~coh,)
-
-#aggregate CJ for model
-x <- CJlow[,c(2:4)];xmed <- CJmed[,c(2:4)];xhigh <- CJhigh[,c(2:4)]
-n <- length(x)
-
-x <- x[,c("hard","average","easy")];
-xmed <- xmed[,c("hard","average","easy")];
-xhigh <- xhigh[,c("hard","average","easy")]
-
-xlow_sim = subset(cj1_pred, condition =="lowSC");
-xlow_sim <- xlow_sim[,c("sub","coh","x")];names(xlow_sim) <- c('sub','coh','cj')
-xlow_sim <- cast(xlow_sim,sub~coh,)
-xmed_sim = subset(cj1_pred, condition =="mediumSC");
-xmed_sim <- xmed_sim[,c("sub","coh","x")];names(xmed_sim) <- c('sub','coh','cj')
-xmed_sim <- cast(xmed_sim,sub~coh,)
-xhigh_sim = subset(cj1_pred, condition =="highSC");
-xhigh_sim <- xhigh_sim[,c("sub","coh","x")];names(xhigh_sim) <- c('sub','coh','cj')
-xhigh_sim <- cast(xhigh_sim,sub~coh,)
-xlow_sim <- xlow_sim[,c("hard","average","easy")];
-xmed_sim <- xmed_sim[,c("hard","average","easy")];
-xhigh_sim <- xhigh_sim[,c("hard","average","easy")];
-
-par(mfrow=c(1,1))
-stripchart(x, ylim=c(-1.5,1.5), xlim=c(-.05,n-1), vertical = TRUE, col="white",frame=F,xaxt='n',
-           main="",cex.axis=1.25)
-mtext("Z Confidence",2,at=0,line=2,cex=1.75);axis(1,at=0:(n-1),labels=names(x), cex.axis=1.5);mtext("Trial difficulty",1,3,at=1,cex=1.75)
-means <- sapply(x, mean);n<- length(x)
-# lines(0:(n-1),colMeans(xlow_sim,na.rm=T),type='b',lty=2,cex=cexkl,lwd=lwdgr,pch=16,col=rgb(1,0,0,.5))
-polygon(c(0:(n-1),(n-1):0),c(colMeans(xlow_sim,na.rm=T) + (colSds(as.matrix(xlow_sim))/sqrt(N1)),
-                             (colMeans(xlow_sim,na.rm=T) - colSds(as.matrix(xlow_sim))/sqrt(N1))[3:1]),
-        border=F,col=rgb(1,0,0,.2))
-# lines(0:(n-1),colMeans(xmed_sim,na.rm=T),type='b',lty=2,cex=cexkl,lwd=lwdgr,pch=16,col=rgb(1,.5,0,.5))
-polygon(c(0:(n-1),(n-1):0),c(colMeans(xmed_sim,na.rm=T) + (colSds(as.matrix(xmed_sim),na.rm=T)/sqrt(N1)),
-                             (colMeans(xmed_sim,na.rm=T) - colSds(as.matrix(xmed_sim),na.rm=T)/sqrt(N1))[3:1]),
-        border=F,col=rgb(1,.5,0,.2))
-# lines(0:(n-1),colMeans(xhigh_sim,na.rm=T),type='b',lty=2,cex=cexkl,lwd=lwdgr,pch=16,col=rgb(0,0,1,.5))
-polygon(c(0:(n-1),(n-1):0),c(colMeans(xhigh_sim,na.rm=T) + (colSds(as.matrix(xhigh_sim),na.rm=T)/sqrt(N1)),
-                             (colMeans(xhigh_sim,na.rm=T) - colSds(as.matrix(xhigh_sim),na.rm=T)/sqrt(N1))[3:1]),
-        border=F,col=rgb(0,0,1,.2))
-legend(0,1.75,legend=c("Negative","Average","Positive"),
-       title = "Feedback condition",pch=rep(16,3),bty = "n",inset=.1, 
-       cex = 1.25,col=c("brown3","cyan4","darkgoldenrod3"))
-lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="brown3",lwd=lwddat)
-error.bar(0:(n-1),means,colSds(as.matrix(x),na.rm=T)/sqrt(N1),lwd=lwdgr,col="brown3")
-means <- sapply(xmed, mean,na.rm=T)
-lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="cyan4",lwd=lwddat)
-error.bar(0:(n-1),means,colSds(as.matrix(xmed),na.rm=T)/sqrt(N1),lwd=lwdgr,col="cyan4")
-means <- sapply(xhigh, mean,na.rm=T)
-lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="darkgoldenrod3",lwd=lwddat)
-error.bar(0:(n-1),means,colSds(as.matrix(xhigh),na.rm=T)/sqrt(N1),lwd=lwdgr,col="darkgoldenrod3")
-
-## Experiment 2
-#Aggregate conf for Data2
-#Aggregate conf for data
-CJlow <- subset(cj2_obs, condition =="hard");
-CJlow <- CJlow[,c("sub","coh","x")];names(CJlow) <- c('sub','coh','cj')
-CJlow <- cast(CJlow,sub~coh,)
-CJmed <- subset(cj2_obs, condition =="average");
-CJmed <- CJmed[,c("sub","coh","x")];names(CJmed) <- c('sub','coh','cj')
-CJmed <- cast(CJmed,sub~coh,)
-CJhigh <- subset(cj2_obs, condition =="easy");
-CJhigh <- CJhigh[,c("sub","coh","x")];names(CJhigh) <- c('sub','coh','cj')
-CJhigh <- cast(CJhigh,sub~coh,)
-
-#aggregate CJ for model
-x <- CJlow[,c(2:4)];xmed <- CJmed[,c(2:4)];xhigh <- CJhigh[,c(2:4)]
-n <- length(x)
-
-x <- x[,c("hard","average","easy")];
-xmed <- xmed[,c("hard","average","easy")];
-xhigh <- xhigh[,c("hard","average","easy")]
-
-xlow_sim = subset(cj2_pred, condition =="hard");
-xlow_sim <- xlow_sim[,c("sub","coh","x")];names(xlow_sim) <- c('sub','coh','cj')
-xlow_sim <- cast(xlow_sim,sub~coh,)
-xmed_sim = subset(cj2_pred, condition =="average");
-xmed_sim <- xmed_sim[,c("sub","coh","x")];names(xmed_sim) <- c('sub','coh','cj')
-xmed_sim <- cast(xmed_sim,sub~coh,)
-xhigh_sim = subset(cj2_pred, condition =="easy");
-xhigh_sim <- xhigh_sim[,c("sub","coh","x")];names(xhigh_sim) <- c('sub','coh','cj')
-xhigh_sim <- cast(xhigh_sim,sub~coh,)
-xlow_sim <- xlow_sim[,c("hard","average","easy")];
-xmed_sim <- xmed_sim[,c("hard","average","easy")];
-xhigh_sim <- xhigh_sim[,c("hard","average","easy")];
-
-stripchart(x, ylim=c(-1.5,1.5), xlim=c(-.05,n-1), vertical = TRUE, col="white",frame=F,xaxt='n',
-           main="",cex.axis=1.25)
-mtext("Z Confidence",2,at=0,line=2,cex=1.75);axis(1,at=0:(n-1),labels=names(x), cex.axis=1.5);mtext("Trial difficulty",1,3,at=1,cex=1.75)
-means <- sapply(x, mean);n<- length(x)
-# lines(0:(n-1),colMeans(xlow_sim,na.rm=T),type='b',lty=2,cex=cexkl,lwd=lwdgr,pch=16,col=rgb(1,0,0,.5))
-polygon(c(0:(n-1),(n-1):0),c(colMeans(xlow_sim,na.rm=T) + (colSds(as.matrix(xlow_sim))/sqrt(Nsub_2)),(colMeans(xlow_sim,na.rm=T) - colSds(as.matrix(xlow_sim))/sqrt(Nsub_2))[3:1]),
-        border=F,col=rgb(1,0,0,.2))
-# lines(0:(n-1),colMeans(xmed_sim,na.rm=T),type='b',lty=2,cex=cexkl,lwd=lwdgr,pch=16,col=rgb(1,.5,0,.5))
-polygon(c(0:(n-1),(n-1):0),c(colMeans(xmed_sim,na.rm=T) + (colSds(as.matrix(xmed_sim),na.rm=T)/sqrt(Nsub_2)),
-                             (colMeans(xmed_sim,na.rm=T) - colSds(as.matrix(xmed_sim),na.rm=T)/sqrt(Nsub_2))[3:1]),
-        border=F,col=rgb(1,.5,0,.2))
-# lines(0:(n-1),colMeans(xhigh_sim,na.rm=T),type='b',lty=2,cex=cexkl,lwd=lwdgr,pch=16,col=rgb(0,0,1,.5))
-polygon(c(0:(n-1),(n-1):0),c(colMeans(xhigh_sim,na.rm=T) + (colSds(as.matrix(xhigh_sim),na.rm=T)/sqrt(Nsub_2)),(colMeans(xhigh_sim,na.rm=T) - colSds(as.matrix(xhigh_sim),na.rm=T)/sqrt(Nsub_2))[3:1]),
-        border=F,col=rgb(0,0,1,.2))
-legend(0,1.75,legend=c("Hard","Average","Easy"),
-       title = "Training condition",pch=rep(16,3),bty = "n",inset=.1,
-       cex = 1.25,col=c("brown3","cyan4","darkgoldenrod3"))
-lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="brown3",lwd=lwddat)
-error.bar(0:(n-1),means,colSds(as.matrix(x),na.rm=T)/sqrt(Nsub_2),lwd=lwdgr,col="brown3")
-means <- sapply(xmed, mean,na.rm=T)
-lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="cyan4",lwd=lwddat)
-error.bar(0:(n-1),means,colSds(as.matrix(xmed),na.rm=T)/sqrt(Nsub_2),lwd=lwdgr,col="cyan4")
-means <- sapply(xhigh, mean,na.rm=T)
-lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="darkgoldenrod3",lwd=lwddat)
-error.bar(0:(n-1),means,colSds(as.matrix(xhigh),na.rm=T)/sqrt(Nsub_2),lwd=lwdgr,col="darkgoldenrod3")
-
+## Correlation Objective/Subjective drift ====
+for (c in 1:Ncond) {
+  obj_drift <- subset(df2,condition==cond_2[c])$Vo
+  subj_drift <- subset(df2,condition==cond_2[c])$Vs
+  drift_range <- c(min(min(subj_drift),min(obj_drift)),max(max(subj_drift),max(obj_drift)))
+  plot(obj_drift~subj_drift,cex.axis=1.75,cex.lab=1.75,frame=F,pch=19, xlim=drift_range, ylim =drift_range );
+  print(cor.test(obj_drift,subj_drift));
+  abline(lm(obj_drift~subj_drift),lty=2)
+  ;mtext(paste(cond_2[c],'r = ',round(cor(obj_drift,subj_drift),3)))
+}

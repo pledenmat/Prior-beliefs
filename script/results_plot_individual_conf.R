@@ -1,10 +1,10 @@
 # Plot Layout -------------------------------------------------------------
 go_to("plot")
 
-windowsFonts(A = windowsFont("Calibri")) 
-par(family="A")
 
-cex_lab <- 3; cex_legend <- 3 
+cex_lab <- 3; cex_legend <- 3; cex_title <- 2.5 
+windowsFonts(A = windowsFont("Calibri")) 
+par(family="A",font.main = 2, cex.main = cex_title)
 jpeg(
   filename="results.jpeg",
   width=13,
@@ -17,14 +17,14 @@ layout(matrix(c(1,3,7,9,10,1,5,7,9,10,2,4,8,9,11,2,6,8,9,11),ncol=4),heights = c
 par(mar=c(0,0,0,0))
 plot.new()
 legend("top",legend=c("Negative","Average","Positive"),
-       title = "Feedback condition",pch=rep(16,3),bty = "n",inset=0, 
+       title = "Experiment 1: Feedback condition",pch=rep(16,3),bty = "n",inset=0,
        cex = cex_legend,col=c("brown3","cyan4","darkgoldenrod3"), horiz = T)
 
 plot.new()
 legend("top",legend=c("Difficult","Medium","Easy"),
-       title = "Training condition",pch=rep(16,3),bty = "n",inset=0, 
+       title = "Experiment 2: Training condition",pch=rep(16,3),bty = "n",inset=0, 
        cex = cex_legend,col=c("brown3","cyan4","darkgoldenrod3"), horiz = T)
-par(mar=c(5,5,0,2)+0.1)
+par(mar=c(5,5,2,2)+0.1)
 # Plot overlay accuracy ---------------------------------------------------
 
 ## Experiment 1
@@ -60,7 +60,9 @@ xhigh_sim <- xhigh_sim[,c("hard","average","easy")];xhigh <- xhigh[,c("hard","av
 
 
 stripchart(x, ylim=c(0.6,1), xlim=c(-.05,n-1), vertical = TRUE, col="white",
-           frame=F,xaxt='n',main=NULL,yaxt='n',xlab="Trial difficulty",ylab="Accuracy",cex.lab=cex_lab/2)
+           frame=F,xaxt='n',yaxt='n',xlab="Trial difficulty",ylab="Accuracy",
+           cex.lab=cex_lab/2)
+mtext("A.", at = -.55, line = 1, cex = cex_title, font = 2)
 axis(1,at=0:(n-1),labels=names(x), cex.axis=1.5);
 axis(2,seq(0.6,1,.1),cex.axis=1.5)
 # mtext("Accuracy",2,at=.8,line=2.5,cex=cex_lab);
@@ -122,6 +124,7 @@ xhigh_sim <- xhigh_sim[,c("hard","average","easy")];xhigh <- xhigh[,c("hard","av
 
 stripchart(x, ylim=c(0.6,1), xlim=c(-.05,n-1), vertical = TRUE, col="white",
            frame=F,xaxt='n',main=NULL,yaxt='n',xlab="Trial difficulty",ylab="Accuracy",cex.lab=cex_lab/2)
+mtext("B.", at = -.55, line = 1, cex = cex_title, font = 2)
 axis(1,at=0:(n-1),labels=names(x), cex.axis=1.5);
 axis(2,seq(0.6,1,.1),cex.axis=1.5)
 # mtext("Accuracy",2,at=.8,line=2.5,cex=cex_lab);
@@ -315,6 +318,7 @@ CJ_SC_diff_plot = plot(as.numeric(average_CJ_SC_diff_data[1,]),type='n',frame=F,
                        cex.axis = cex_lab-1, 
                        cex.lab = cex_lab,
                        family="A")
+mtext("C.", at=.7, line = 1, cex = cex_title, font = 2)
 axis(1,at=1.1:3.1,labels=c("hard","average","easy"),cex.axis=cex_lab-1,family="A")
 abline(h = seq(3,6,0.5), col = "lightgrey", lty = "dashed")
 
@@ -356,6 +360,7 @@ CJ_SC_diff_plot = plot(as.numeric(average_CJ_SC_diff_data[1,]),type='n',frame=F,
                        cex.axis = cex_lab-1, 
                        cex.lab = cex_lab,
                        family="A")
+mtext("D.", at = .7, line = 1, cex = cex_title, font = 2)
 axis(1,at=1.1:3.1,labels=c("hard","average","easy"),cex.axis=cex_lab-1,family="A")
 abline(h = seq(3,6,0.5), col = "lightgrey", lty = "dashed")
 
@@ -384,7 +389,7 @@ error.bar(1.2:3.2,colMeans(CJ_SC_diff_data[,c(10,8,9)]),colSds(as.matrix(CJ_SC_d
 # Plot confidence prediction ----------------------------------------------
 par(mar=c(0,0,0,0))
 plot.new()
-text(.5,.75, labels="Model Prediction",cex = cex_legend+.5)
+text(.5,.75, labels="E. Model Predictions",cex = cex_legend+.5,font=2)
 par(mar=c(5,5,0,2)+0.1)
 
 Simuls$cj <- Simuls$cj_cont
