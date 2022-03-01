@@ -1,5 +1,10 @@
-##' 
-##' 
+##' This script 
+##' - loads the pre-processed behavioral data 
+##' - loads the DDM fits of both the training and the testing phase
+##' - Fits the prior belief parameter (Vs) to the feedback received in the training
+##' - Generates model predictions of RT/accuracy and confidence in the testing phase
+##' - Computes stat tests on the predictions and fitted parameters
+##' - Plots the results
 
 rm(list=ls())
 curdir <- dirname(rstudioapi::getSourceEditorContext()$path)
@@ -13,6 +18,7 @@ library(prob)
 library(car)
 library(myPackage)
 library(MALDIquant)
+source("1_preprocessing.R")
 
 error.bar <- function(x, y, upper, lower=upper, length=0,...){
   if(length(x) != length(y) | length(y) !=length(lower) | length(lower) != length(upper))
@@ -473,12 +479,12 @@ m <- aov(x ~ condition*coh+ Error(sub/condition), data = sim_cj2); summary(m)
 # Plot Layout -------------------------------------------------------------
 go_to("plot")
 
-windowsFonts(A = windowsFont("Calibri")) 
-par(family="A")
 
-cex_axis <- 1.5; cex_legend <- 3 
+cex_lab <- 3; cex_legend <- 3; cex_title <- 2.5 
+windowsFonts(A = windowsFont("Calibri")) 
+par(family="A",font.main = 2, cex.main = cex_title)
 jpeg(
-  filename="results4.jpeg",
+  filename="results.jpeg",
   width=13,
   height=18,
   units="in",
@@ -489,14 +495,14 @@ layout(matrix(c(1,3,7,9,10,1,5,7,9,10,2,4,8,9,11,2,6,8,9,11),ncol=4),heights = c
 par(mar=c(0,0,0,0))
 plot.new()
 legend("top",legend=c("Negative","Average","Positive"),
-       title = "Feedback condition",pch=rep(16,3),bty = "n",inset=0, 
+       title = "Experiment 1: Feedback condition",pch=rep(16,3),bty = "n",inset=0,
        cex = cex_legend,col=c("brown3","cyan4","darkgoldenrod3"), horiz = T)
 
 plot.new()
 legend("top",legend=c("Difficult","Medium","Easy"),
-       title = "Training condition",pch=rep(16,3),bty = "n",inset=0, 
+       title = "Experiment 2: Training condition",pch=rep(16,3),bty = "n",inset=0, 
        cex = cex_legend,col=c("brown3","cyan4","darkgoldenrod3"), horiz = T)
-par(mar=c(5,5,0,2)+0.1)
+par(mar=c(5,5,2,2)+0.1)
 # Plot overlay accuracy ---------------------------------------------------
 
 ## Experiment 1
@@ -532,11 +538,13 @@ xhigh_sim <- xhigh_sim[,c("hard","average","easy")];xhigh <- xhigh[,c("hard","av
 
 
 stripchart(x, ylim=c(0.6,1), xlim=c(-.05,n-1), vertical = TRUE, col="white",
-           frame=F,xaxt='n',main=NULL,yaxt='n')
+           frame=F,xaxt='n',yaxt='n',xlab="Trial difficulty",ylab="Accuracy",
+           cex.lab=cex_lab/2)
+mtext("A.", at = -.55, line = 1, cex = cex_title, font = 2)
 axis(1,at=0:(n-1),labels=names(x), cex.axis=1.5);
 axis(2,seq(0.6,1,.1),cex.axis=1.5)
-mtext("Accuracy",2,at=.8,line=2.5,cex=cex_axis);
-mtext("Trial difficulty",1,3,at=1,cex=cex_axis)
+# mtext("Accuracy",2,at=.8,line=2.5,cex=cex_lab);
+# mtext("Trial difficulty",1,3,at=1,cex=cex_lab)
 for(i in seq(.6,1,.1)) abline(h=i,col="lightgrey",lty = "dashed")
 polygon(c(0:(n-1),(n-1):0),
         c(colMeans(x_sim,na.rm=T) + (colSds(as.matrix(x_sim))/sqrt(N1)),
@@ -593,11 +601,12 @@ xhigh_sim <- xhigh_sim[,c("hard","average","easy")];xhigh <- xhigh[,c("hard","av
 
 
 stripchart(x, ylim=c(0.6,1), xlim=c(-.05,n-1), vertical = TRUE, col="white",
-           frame=F,xaxt='n',main=NULL,yaxt='n')
+           frame=F,xaxt='n',main=NULL,yaxt='n',xlab="Trial difficulty",ylab="Accuracy",cex.lab=cex_lab/2)
+mtext("B.", at = -.55, line = 1, cex = cex_title, font = 2)
 axis(1,at=0:(n-1),labels=names(x), cex.axis=1.5);
 axis(2,seq(0.6,1,.1),cex.axis=1.5)
-mtext("Accuracy",2,at=.8,line=2.5,cex=cex_axis);
-mtext("Trial difficulty",1,3,at=1,cex=cex_axis)
+# mtext("Accuracy",2,at=.8,line=2.5,cex=cex_lab);
+# mtext("Trial difficulty",1,3,at=1,cex=cex_lab)
 for(i in seq(.6,1,.1)) abline(h=i,col="lightgrey",lty = "dashed")
 polygon(c(0:(n-1),(n-1):0),
         c(colMeans(x_sim,na.rm=T) + (colSds(as.matrix(x_sim))/sqrt(N1)),
@@ -661,11 +670,11 @@ xhigh_sim <- xhigh_sim[,c("hard","average","easy")];xhigh <- xhigh[,c("hard","av
 
 
 stripchart(x, ylim=c(0.6,1.1), xlim=c(-.05,n-1), vertical = TRUE, col="white",
-           frame=F,xaxt='n',main=NULL,yaxt='n')
+           frame=F,xaxt='n',main=NULL,yaxt='n',xlab="Trial difficulty",ylab="RT (s)",cex.lab=cex_lab/2)
 axis(1,at=0:(n-1),labels=names(x), cex.axis=1.5);
 axis(2,seq(0.6,1.1,.1),cex.axis=1.5)
-mtext("RT (s)",2,at=.85,line=2.5,cex=cex_axis);
-mtext("Trial difficulty",1,3,at=1,cex=cex_axis)
+# mtext("RT (s)",2,at=.85,line=2.5,cex=cex_lab);
+# mtext("Trial difficulty",1,3,at=1,cex=cex_lab)
 for(i in seq(.6,1.1,.1)) abline(h=i,col="lightgrey",lty = "dashed")
 
 polygon(c(0:(n-1),(n-1):0),
@@ -723,11 +732,11 @@ xhigh_sim <- xhigh_sim[,c("hard","average","easy")];xhigh <- xhigh[,c("hard","av
 
 
 stripchart(x, ylim=c(0.6,1.1), xlim=c(-.05,n-1), vertical = TRUE, col="white",
-           frame=F,xaxt='n',main=NULL,yaxt='n')
+           frame=F,xaxt='n',main=NULL,yaxt='n',xlab="Trial difficulty",ylab="RT (s)",cex.lab=cex_lab/2)
 axis(1,at=0:(n-1),labels=names(x), cex.axis=1.5);
 axis(2,seq(0.6,1.1,.1),cex.axis=1.5)
-mtext("RT (s)",2,at=.85,line=2.5,cex=cex_axis);
-mtext("Trial difficulty",1,3,at=1,cex=cex_axis)
+# mtext("RT (s)",2,at=.85,line=2.5,cex=cex_lab);
+# mtext("Trial difficulty",1,3,at=1,cex=cex_lab)
 for(i in seq(.6,1.1,.1)) abline(h=i,col="lightgrey",lty = "dashed")
 polygon(c(0:(n-1),(n-1):0),
         c(colMeans(x_sim,na.rm=T) + (colSds(as.matrix(x_sim))/sqrt(N1)),
@@ -752,78 +761,113 @@ lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="darkgoldenrod3",lwd=lwddat)
 error.bar(0:(n-1),means,colSds(as.matrix(xhigh),na.rm=T)/sqrt(N1),lwd=lwdgr,col="darkgoldenrod3")
 
 # Plot Confidence - Empirical Data ----------------------------------------
-##Experiment 1
-#Aggregate conf for data
-CJlow <- with(subset(Data1,selfconf=="lowSC"),aggregate(cj,by=list(sub,coh),mean));names(CJlow) <- c('sub','coh','cj')
-CJlow <- cast(CJlow,sub~coh,)
-CJmed <- with(subset(Data1,selfconf=="mediumSC"),aggregate(cj,by=list(sub,coh),mean));names(CJmed) <- c('sub','coh','cj')
-CJmed <- cast(CJmed,sub~coh)
-CJhigh <- with(subset(Data1,selfconf=="highSC"),aggregate(cj,by=list(sub,coh),mean));names(CJhigh) <- c('sub','coh','cj')
-CJhigh <- cast(CJhigh,sub~coh)
+## Transparent colors, Mark Gardener 2015, www.dataanalytics.org.uk
+transp <- function(color, percent = 50, name = NULL) {
+  #   color = color name
+  #   percent = % transparency
+  #   name = an optional name for the color
+  
+  ## Get RGB values for named color
+  rgb.val <- col2rgb(color)
+  
+  ## Make new color using input color as base and alpha set by transparency
+  transp <- rgb(rgb.val[1], rgb.val[2], rgb.val[3],
+                max = 255,
+                alpha = (100 - percent) * 255 / 100,
+                names = name)
+  
+  ## Save the color
+  invisible(transp)
+}
 
+##' Experiment 1
+CJ_SC_diff_data <- with(Data1,aggregate(cj,by=list(sub=sub,selfconf=selfconf, coh=coh),mean));
+CJ_SC_diff_data <- cast(CJ_SC_diff_data,sub~selfconf+coh)
+average_CJ_SC_diff_data <- with(Data1,aggregate(cj,by=list(selfconf=selfconf,coh=coh),mean));
+average_CJ_SC_diff_data <- cast(average_CJ_SC_diff_data,selfconf~coh)
 
-#aggregate cj for model
-x <- CJlow[,c(2:4)];xmed <- CJmed[,c(2:4)];xhigh <- CJhigh[,c(2:4)]
-n <- length(x)
+# use family to adjust the font and cex. to adjust font size
+CJ_SC_diff_plot = plot(as.numeric(average_CJ_SC_diff_data[1,]),type='n',frame=F,
+                       main=NULL,
+                       ylab="Confidence",
+                       xlab="",
+                       xaxt='n',
+                       xlim=c(1,3.3),ylim=c(3,6),
+                       cex.axis = cex_lab-1, 
+                       cex.lab = cex_lab,
+                       family="A")
+mtext("C.", at=.7, line = 1, cex = cex_title, font = 2)
+axis(1,at=1.1:3.1,labels=c("hard","average","easy"),cex.axis=cex_lab-1,family="A")
+abline(h = seq(3,6,0.5), col = "lightgrey", lty = "dashed")
 
-x <- x[,c("hard","average","easy")];
-xmed <- xmed[,c("hard","average","easy")];
-xhigh <- xhigh[,c("hard","average","easy")]
+# High SC
+for(i in 1:N1) points(jitter(1:3,0.1),CJ_SC_diff_data[i,c(4,2,3)],lty=i,type='p',pch=21,col='white',bg=transp('darkgoldenrod2'))
+lines(1:3,average_CJ_SC_diff_data[1,c(4,2,3)],lty=2,type='b',pch=21,
+      col='darkgoldenrod3',bg='darkgoldenrod2',lwd=lwddat,cex=cexkl)
+# Medium SC
+for(i in 1:N1) points(jitter(1.1:3.1,0.1),CJ_SC_diff_data[i,c(10,8,9)],lty=i,type='p',pch=24,col='white',bg=transp('cyan3'))
+lines(1.1:3.1,average_CJ_SC_diff_data[3,c(4,2,3)],lty=2,type='b',pch=24,
+      col='cyan4',bg='cyan3',lwd=lwddat,cex=cexkl)
+# Low SC
+for(i in 1:N1) points(jitter(1.2:3.2,0.1),CJ_SC_diff_data[i,c(7,5,6)],lty=i,type='p',pch=22,col='white',bg=transp('brown2'))
+lines(1.2:3.2,average_CJ_SC_diff_data[2,c(4,2,3)],lty=2,type='b',pch=22,
+      col='brown3',bg="brown2",lwd=lwddat,cex=cexkl)
 
-stripchart(x,ylim=c(3.75,5.5), xlim=c(-.05,n-1), vertical = TRUE, col="white",frame=F,xaxt='n',
-           main=NULL, yaxt = 'n',family="A")
-axis(1,at=0:(n-1),labels=names(x), cex.axis=1.5);
-axis(2, seq(4,5.5,.5), cex.axis=1.5)
-mtext("Confidence",2,at=4.75,line=2.5,cex=cex_axis);
-means <- sapply(x, mean);n<- length(x)
-for(i in seq(4,5.5,.5)) abline(h=i,col="lightgrey",lty = "dashed")
-lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="brown3",lwd=lwddat,lty = "dashed")
-error.bar(0:(n-1),means,colSds(as.matrix(x),na.rm=T)/sqrt(N1),lwd=lwdgr,col="brown3")
-means <- sapply(xmed, mean,na.rm=T)
-lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="cyan4",lwd=lwddat,lty = "dashed")
-error.bar(0:(n-1),means,colSds(as.matrix(xmed),na.rm=T)/sqrt(N1),lwd=lwdgr,col="cyan4")
-means <- sapply(xhigh, mean,na.rm=T)
-lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="darkgoldenrod3",lwd=lwddat,lty = "dashed")
-error.bar(0:(n-1),means,colSds(as.matrix(xhigh),na.rm=T)/sqrt(N1),lwd=lwdgr,col="darkgoldenrod3")
+# plot error bars
+error.bar(1:3,colMeans(CJ_SC_diff_data[,c(4,2,3)]),colSds(as.matrix(CJ_SC_diff_data[,c(4,2,3)])/sqrt(N1)),
+          length=0,lwd=lwdgr, col='darkgoldenrod3')
+error.bar(1.1:3.1,colMeans(CJ_SC_diff_data[,c(10,8,9)]),colSds(as.matrix(CJ_SC_diff_data[,c(10,8,9)])/sqrt(N1)),
+          length=0,lwd=lwdgr, col='cyan4')
+error.bar(1.2:3.2,colMeans(CJ_SC_diff_data[,c(7,5,6)]),colSds(as.matrix(CJ_SC_diff_data[,c(7,5,6)])/sqrt(N1)),
+          length=0,lwd=lwdgr, col='brown3')
+
 
 ## Experiment 2
-#Aggregate conf for data
-CJlow <- with(subset(Data2,traindiffcond=="hard"),aggregate(cj,by=list(sub,coh),mean));names(CJlow) <- c('sub','coh','cj')
-CJlow <- cast(CJlow,sub~coh,)
-CJmed <- with(subset(Data2,traindiffcond=="average"),aggregate(cj,by=list(sub,coh),mean));names(CJmed) <- c('sub','coh','cj')
-CJmed <- cast(CJmed,sub~coh)
-CJhigh <- with(subset(Data2,traindiffcond=="easy"),aggregate(cj,by=list(sub,coh),mean));names(CJhigh) <- c('sub','coh','cj')
-CJhigh <- cast(CJhigh,sub~coh)
+CJ_SC_diff_data <- with(Data2,aggregate(cj,by=list(sub=sub,traindiffcond=traindiffcond, coh=coh),mean));
+CJ_SC_diff_data <- cast(CJ_SC_diff_data,sub~traindiffcond+coh)
+average_CJ_SC_diff_data <- with(Data2,aggregate(cj,by=list(traindiffcond=traindiffcond,coh=coh),mean));
+average_CJ_SC_diff_data <- cast(average_CJ_SC_diff_data,traindiffcond~coh)
 
+# use family to adjust the font and cex. to adjust font size
+CJ_SC_diff_plot = plot(as.numeric(average_CJ_SC_diff_data[1,]),type='n',frame=F,
+                       main=NULL,
+                       ylab="Confidence",
+                       xlab="",
+                       xaxt='n',
+                       xlim=c(1,3.3),ylim=c(3,6),
+                       cex.axis = cex_lab-1, 
+                       cex.lab = cex_lab,
+                       family="A")
+mtext("D.", at = .7, line = 1, cex = cex_title, font = 2)
+axis(1,at=1.1:3.1,labels=c("hard","average","easy"),cex.axis=cex_lab-1,family="A")
+abline(h = seq(3,6,0.5), col = "lightgrey", lty = "dashed")
 
-#aggregate cj for model
-x <- CJlow[,c(2:4)];xmed <- CJmed[,c(2:4)];xhigh <- CJhigh[,c(2:4)]
-n <- length(x)
+# High SC
+for(i in 1:Nsub_2) points(jitter(1:3,0.1),CJ_SC_diff_data[i,c(7,5,6)],lty=i,type='p',pch=21,col='white',bg=transp('darkgoldenrod2'))
+lines(1:3,average_CJ_SC_diff_data[2,c(4,2,3)],lty=2,type='b',pch=21,
+      col='darkgoldenrod3',bg='darkgoldenrod2',lwd=lwddat,cex=cexkl)
+# Medium SC
+for(i in 1:Nsub_2) points(jitter(1.1:3.1,0.1),CJ_SC_diff_data[i,c(4,2,3)],lty=i,type='p',pch=24,col='white',bg=transp('cyan3'))
+lines(1.1:3.1,average_CJ_SC_diff_data[1,c(4,2,3)],lty=2,type='b',pch=24,
+      col='cyan4',bg='cyan3',lwd=lwddat,cex=cexkl)
+# Low SC
+for(i in 1:Nsub_2) points(jitter(1.2:3.2,0.1),CJ_SC_diff_data[i,c(10,8,9)],lty=i,type='p',pch=22,col='white',bg=transp('brown2'))
+lines(1.2:3.2,average_CJ_SC_diff_data[3,c(4,2,3)],lty=2,type='b',pch=22,
+      col='brown3',bg="brown2",lwd=lwddat,cex=cexkl)
 
-x <- x[,c("hard","average","easy")];
-xmed <- xmed[,c("hard","average","easy")];
-xhigh <- xhigh[,c("hard","average","easy")]
+# plot error bars
+error.bar(1:3,colMeans(CJ_SC_diff_data[,c(7,5,6)]),colSds(as.matrix(CJ_SC_diff_data[,c(7,5,6)])/sqrt(Nsub_2)),
+          length=0,lwd=lwdgr, col='darkgoldenrod3')
+error.bar(1.1:3.1,colMeans(CJ_SC_diff_data[,c(4,2,3)]),colSds(as.matrix(CJ_SC_diff_data[,c(4,2,3)])/sqrt(Nsub_2)),
+          length=0,lwd=lwdgr, col='cyan4')
+error.bar(1.2:3.2,colMeans(CJ_SC_diff_data[,c(10,8,9)]),colSds(as.matrix(CJ_SC_diff_data[,c(10,8,9)])/sqrt(Nsub_2)),
+          length=0,lwd=lwdgr, col='brown3')
 
-stripchart(x,ylim=c(3.75,5.5), xlim=c(-.05,n-1), vertical = TRUE, col="white",frame=F,xaxt='n',
-           main=NULL, yaxt = 'n',family="A")
-axis(1,at=0:(n-1),labels=names(x), cex.axis=1.5);
-axis(2, seq(4,5.5,.5), cex.axis=1.5)
-mtext("Confidence",2,at=4.75,line=2.5,cex=cex_axis);
-means <- sapply(x, mean);n<- length(x)
-for(i in seq(4,5.5,.5)) abline(h=i,col="lightgrey",lty = "dashed")
-lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="brown3",lwd=lwddat,lty = "dashed")
-error.bar(0:(n-1),means,colSds(as.matrix(x),na.rm=T)/sqrt(N1),lwd=lwdgr,col="brown3")
-means <- sapply(xmed, mean,na.rm=T)
-lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="cyan4",lwd=lwddat,lty = "dashed")
-error.bar(0:(n-1),means,colSds(as.matrix(xmed),na.rm=T)/sqrt(N1),lwd=lwdgr,col="cyan4")
-means <- sapply(xhigh, mean,na.rm=T)
-lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="darkgoldenrod3",lwd=lwddat,lty = "dashed")
-error.bar(0:(n-1),means,colSds(as.matrix(xhigh),na.rm=T)/sqrt(N1),lwd=lwdgr,col="darkgoldenrod3")
 
 # Plot confidence prediction ----------------------------------------------
 par(mar=c(0,0,0,0))
 plot.new()
-text(.5,.75, labels="Model Prediction",cex = cex_legend+.5)
+text(.5,.75, labels="E. Model Predictions",cex = cex_legend+.5,font=2)
 par(mar=c(5,5,0,2)+0.1)
 
 Simuls$cj <- Simuls$cj_cont
@@ -846,11 +890,11 @@ xmed <- xmed[,c("hard","average","easy")];
 xhigh <- xhigh[,c("hard","average","easy")]
 
 stripchart(x,ylim=c(.45,1), xlim=c(-.05,n-1), vertical = TRUE, col="white",frame=F,xaxt='n',
-           main=NULL, yaxt = 'n',family="A")
-mtext("Confidence",2,at=.75,line=2.5,cex=cex_axis);
-mtext("Trial difficulty",1,3,at=1,cex=cex_axis)
-axis(1,at=0:(n-1),labels=names(x), cex.axis=1.5);
-axis(2, seq(.5,1,.1), cex.axis=1.5)
+           main=NULL, yaxt = 'n',family="A",xlab="Trial difficulty",ylab = "Confidence",cex.lab=cex_lab )
+# mtext("Confidence",2,at=.75,line=2.5,cex=cex_lab);
+# mtext("Trial difficulty",1,3,at=1,cex=cex_lab)
+axis(1,at=0:(n-1),labels=names(x), cex.axis=cex_lab-1);
+axis(2, seq(.5,1,.1), cex.axis=cex_lab-1)
 means <- sapply(x, mean);n<- length(x)
 for(i in seq(.5,1,length.out = 5)) abline(h=i,col="lightgrey",lty = "dashed")
 lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="brown3",lwd=lwddat,lty = "dashed")
@@ -883,10 +927,11 @@ xmed <- xmed[,c("hard","average","easy")];
 xhigh <- xhigh[,c("hard","average","easy")]
 
 stripchart(x,ylim=c(.45,1), xlim=c(-.05,n-1), vertical = TRUE, col="white",frame=F,xaxt='n',
-           main=NULL, yaxt = 'n',family="A")
-mtext("Confidence",2,at=.75,line=2.5,cex=cex_axis);
-axis(1,at=0:(n-1),labels=names(x), cex.axis=1.5);
-mtext("Trial difficulty",1,3,at=1,cex=cex_axis)
+           main=NULL, yaxt = 'n',family="A",ylab="Confidence",xlab="Trial difficulty",cex.lab=cex_lab)
+# mtext("Confidence",2,at=.75,line=2.5,cex=cex_lab);
+# mtext("Trial difficulty",1,3,at=1,cex=cex_lab)
+axis(1,at=0:(n-1),labels=names(x), cex.axis=cex_lab-1);
+axis(2, seq(.5,1,.1), cex.axis=cex_lab-1)
 means <- sapply(x, mean);n<- length(x)
 for(i in seq(.5,1,.1)) abline(h=i,col="lightgrey",lty = "dashed")
 lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="brown3",lwd=lwddat,lty = "dashed")
@@ -897,7 +942,6 @@ error.bar(0:(n-1),means,colSds(as.matrix(xmed),na.rm=T)/sqrt(N1),lwd=lwdgr,col="
 means <- sapply(xhigh, mean,na.rm=T)
 lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="darkgoldenrod3",lwd=lwddat,lty = "dashed")
 error.bar(0:(n-1),means,colSds(as.matrix(xhigh),na.rm=T)/sqrt(N1),lwd=lwdgr,col="darkgoldenrod3")
-axis(2, seq(.5,1,.1), cex.axis=1.5)
 
 #'save
 dev.off()
