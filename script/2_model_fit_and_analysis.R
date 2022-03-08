@@ -18,7 +18,7 @@ library(prob)
 library(car)
 library(myPackage)
 library(MALDIquant)
-source("1_preprocessing.R")
+# source("1_preprocessing.R")
 
 error.bar <- function(x, y, upper, lower=upper, length=0,...){
   if(length(x) != length(y) | length(y) !=length(lower) | length(lower) != length(upper))
@@ -26,6 +26,10 @@ error.bar <- function(x, y, upper, lower=upper, length=0,...){
   arrows(x,y+upper, x, y-lower, angle=90, code=3, length=length, ...)
 }
 cexkl <- 1.5;cexgr <- 2;lwdgr <- 3; lwddat <- 2
+cex_lab <- 3; cex_legend <- 3; cex_title <- 2.5 
+windowsFonts(A = windowsFont("Calibri")) 
+par(family="A",font.main = 2, cex.main = cex_title)
+
 # Global parameters --------------------------------------------------------------
 ## Heat map resolution
 dt <- .001; ev_bound <- .5; ev_window <- dt*10; upperRT <- 5
@@ -479,17 +483,13 @@ m <- aov(x ~ condition*coh+ Error(sub/condition), data = sim_cj2); summary(m)
 # Plot Layout -------------------------------------------------------------
 go_to("plot")
 
-
-cex_lab <- 3; cex_legend <- 3; cex_title <- 2.5 
-windowsFonts(A = windowsFont("Calibri")) 
-par(family="A",font.main = 2, cex.main = cex_title)
 jpeg(
   filename="results.jpeg",
   width=13,
   height=18,
   units="in",
   res=500)
-layout(matrix(c(1,3,7,9,10,1,5,7,9,10,2,4,8,9,11,2,6,8,9,11),ncol=4),heights = c(.4,1,2,.2,2))
+layout(matrix(c(1,3,7,9,11,12,1,5,7,9,11,12,2,4,8,10,11,13,2,6,8,10,11,13),ncol=4),heights = c(.4,1,1.5,1.5,.2,1.5))
 
 #' Add legend for both experiments on top
 par(mar=c(0,0,0,0))
@@ -790,7 +790,7 @@ average_CJ_SC_diff_data <- cast(average_CJ_SC_diff_data,selfconf~coh)
 CJ_SC_diff_plot = plot(as.numeric(average_CJ_SC_diff_data[1,]),type='n',frame=F,
                        main=NULL,
                        ylab="Confidence",
-                       xlab="",
+                       xlab="Trial difficulty",
                        xaxt='n',
                        xlim=c(1,3.3),ylim=c(3,6),
                        cex.axis = cex_lab-1, 
@@ -832,7 +832,7 @@ average_CJ_SC_diff_data <- cast(average_CJ_SC_diff_data,traindiffcond~coh)
 CJ_SC_diff_plot = plot(as.numeric(average_CJ_SC_diff_data[1,]),type='n',frame=F,
                        main=NULL,
                        ylab="Confidence",
-                       xlab="",
+                       xlab="Trial difficulty",
                        xaxt='n',
                        xlim=c(1,3.3),ylim=c(3,6),
                        cex.axis = cex_lab-1, 
@@ -864,10 +864,115 @@ error.bar(1.2:3.2,colMeans(CJ_SC_diff_data[,c(10,8,9)]),colSds(as.matrix(CJ_SC_d
           length=0,lwd=lwdgr, col='brown3')
 
 
+# Plot Confidence per block ----------------------------------------
+## Transparent colors, Mark Gardener 2015, www.dataanalytics.org.uk
+transp <- function(color, percent = 50, name = NULL) {
+  #   color = color name
+  #   percent = % transparency
+  #   name = an optional name for the color
+  
+  ## Get RGB values for named color
+  rgb.val <- col2rgb(color)
+  
+  ## Make new color using input color as base and alpha set by transparency
+  transp <- rgb(rgb.val[1], rgb.val[2], rgb.val[3],
+                max = 255,
+                alpha = (100 - percent) * 255 / 100,
+                names = name)
+  
+  ## Save the color
+  invisible(transp)
+}
+
+##' Experiment 1
+CJ_SC_diff_data <- with(Data1,aggregate(cj,by=list(sub=sub,selfconf=selfconf, block=block),mean));
+CJ_SC_diff_data <- cast(CJ_SC_diff_data,sub~selfconf+block)
+average_CJ_SC_diff_data <- with(Data1,aggregate(cj,by=list(selfconf=selfconf,block=block),mean));
+average_CJ_SC_diff_data <- cast(average_CJ_SC_diff_data,selfconf~block)
+
+# use family to adjust the font and cex. to adjust font size
+CJ_SC_diff_plot = plot(as.numeric(average_CJ_SC_diff_data[1,]),type='n',frame=F,
+                       main=NULL,
+                       ylab="Confidence",
+                       xlab="Block",
+                       xaxt='n',
+                       xlim=c(1,3.3),ylim=c(3,6),
+                       cex.axis = cex_lab-1, 
+                       cex.lab = cex_lab,
+                       family="A")
+mtext("E.", at=.7, line = 1, cex = cex_title, font = 2)
+axis(1,at=1.1:3.1,labels=c("block 1","block 2","block 3"),cex.axis=cex_lab-1,family="A")
+abline(h = seq(3,6,0.5), col = "lightgrey", lty = "dashed")
+
+# High SC
+for(i in 1:N1) points(jitter(1:3,0.1),CJ_SC_diff_data[i,c(2,3,4)],lty=i,type='p',pch=21,col='white',bg=transp('darkgoldenrod2'))
+lines(1:3,average_CJ_SC_diff_data[1,c(2,3,4)],lty=2,type='b',pch=21,
+      col='darkgoldenrod3',bg='darkgoldenrod2',lwd=lwddat,cex=cexkl)
+# Medium SC
+for(i in 1:N1) points(jitter(1.1:3.1,0.1),CJ_SC_diff_data[i,c(8,9,10)],lty=i,type='p',pch=24,col='white',bg=transp('cyan3'))
+lines(1.1:3.1,average_CJ_SC_diff_data[3,c(2,3,4)],lty=2,type='b',pch=24,
+      col='cyan4',bg='cyan3',lwd=lwddat,cex=cexkl)
+# Low SC
+for(i in 1:N1) points(jitter(1.2:3.2,0.1),CJ_SC_diff_data[i,c(5,6,7)],lty=i,type='p',pch=22,col='white',bg=transp('brown2'))
+lines(1.2:3.2,average_CJ_SC_diff_data[2,c(2,3,4)],lty=2,type='b',pch=22,
+      col='brown3',bg="brown2",lwd=lwddat,cex=cexkl)
+
+# plot error bars
+error.bar(1:3,colMeans(CJ_SC_diff_data[,c(2,3,4)]),colSds(as.matrix(CJ_SC_diff_data[,c(2,3,4)])/sqrt(N1)),
+          length=0,lwd=lwdgr, col='darkgoldenrod3')
+error.bar(1.1:3.1,colMeans(CJ_SC_diff_data[,c(8,9,10)]),colSds(as.matrix(CJ_SC_diff_data[,c(8,9,10)])/sqrt(N1)),
+          length=0,lwd=lwdgr, col='cyan4')
+error.bar(1.2:3.2,colMeans(CJ_SC_diff_data[,c(5,6,7)]),colSds(as.matrix(CJ_SC_diff_data[,c(5,6,7)])/sqrt(N1)),
+          length=0,lwd=lwdgr, col='brown3')
+
+
+## Experiment 2
+CJ_SC_diff_data <- with(Data2,aggregate(cj,by=list(sub=sub,traindiffcond=traindiffcond, block=block),mean));
+CJ_SC_diff_data <- cast(CJ_SC_diff_data,sub~traindiffcond+block)
+average_CJ_SC_diff_data <- with(Data2,aggregate(cj,by=list(traindiffcond=traindiffcond,block=block),mean));
+average_CJ_SC_diff_data <- cast(average_CJ_SC_diff_data,traindiffcond~block)
+
+# use family to adjust the font and cex. to adjust font size
+CJ_SC_diff_plot = plot(as.numeric(average_CJ_SC_diff_data[1,]),type='n',frame=F,
+                       main=NULL,
+                       ylab="Confidence",
+                       xlab="Block",
+                       xaxt='n',
+                       xlim=c(1,3.3),ylim=c(3,6),
+                       cex.axis = cex_lab-1, 
+                       cex.lab = cex_lab,
+                       family="A")
+mtext("F.", at = .7, line = 1, cex = cex_title, font = 2)
+axis(1,at=1.1:3.1,labels=c("block 1","block 2","block 3"),cex.axis=cex_lab-1,family="A")
+abline(h = seq(3,6,0.5), col = "lightgrey", lty = "dashed")
+
+# High SC
+for(i in 1:Nsub_2) points(jitter(1:3,0.1),CJ_SC_diff_data[i,c(5,6,7)],lty=i,type='p',pch=21,col='white',bg=transp('darkgoldenrod2'))
+lines(1:3,average_CJ_SC_diff_data[2,c(2,3,4)],lty=2,type='b',pch=21,
+      col='darkgoldenrod3',bg='darkgoldenrod2',lwd=lwddat,cex=cexkl)
+# Medium SC
+for(i in 1:Nsub_2) points(jitter(1.1:3.1,0.1),CJ_SC_diff_data[i,c(2,3,4)],lty=i,type='p',pch=24,col='white',bg=transp('cyan3'))
+lines(1.1:3.1,average_CJ_SC_diff_data[1,c(2,3,4)],lty=2,type='b',pch=24,
+      col='cyan4',bg='cyan3',lwd=lwddat,cex=cexkl)
+# Low SC
+for(i in 1:Nsub_2) points(jitter(1.2:3.2,0.1),CJ_SC_diff_data[i,c(8,9,10)],lty=i,type='p',pch=22,col='white',bg=transp('brown2'))
+lines(1.2:3.2,average_CJ_SC_diff_data[3,c(2,3,4)],lty=2,type='b',pch=22,
+      col='brown3',bg="brown2",lwd=lwddat,cex=cexkl)
+
+# plot error bars
+error.bar(1:3,colMeans(CJ_SC_diff_data[,c(5,6,7)]),colSds(as.matrix(CJ_SC_diff_data[,c(5,6,7)])/sqrt(Nsub_2)),
+          length=0,lwd=lwdgr, col='darkgoldenrod3')
+error.bar(1.1:3.1,colMeans(CJ_SC_diff_data[,c(2,3,4)]),colSds(as.matrix(CJ_SC_diff_data[,c(2,3,4)])/sqrt(Nsub_2)),
+          length=0,lwd=lwdgr, col='cyan4')
+error.bar(1.2:3.2,colMeans(CJ_SC_diff_data[,c(8,9,10)]),colSds(as.matrix(CJ_SC_diff_data[,c(8,9,10)])/sqrt(Nsub_2)),
+          length=0,lwd=lwdgr, col='brown3')
+
+
+
 # Plot confidence prediction ----------------------------------------------
 par(mar=c(0,0,0,0))
 plot.new()
-text(.5,.75, labels="E. Model Predictions",cex = cex_legend+.5,font=2)
+text(.5,.75, labels="G. Model Predictions",cex = cex_legend+.5,font=2)
 par(mar=c(5,5,0,2)+0.1)
 
 Simuls$cj <- Simuls$cj_cont
