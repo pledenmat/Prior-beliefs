@@ -19,6 +19,24 @@ library(car)
 library(myPackage)
 library(MALDIquant)
 # source("1_preprocessing.R")
+## Transparent colors, Mark Gardener 2015, www.dataanalytics.org.uk
+transp <- function(color, percent = 50, name = NULL) {
+  #   color = color name
+  #   percent = % transparency
+  #   name = an optional name for the color
+  
+  ## Get RGB values for named color
+  rgb.val <- col2rgb(color)
+  
+  ## Make new color using input color as base and alpha set by transparency
+  transp <- rgb(rgb.val[1], rgb.val[2], rgb.val[3],
+                max = 255,
+                alpha = (100 - percent) * 255 / 100,
+                names = name)
+  
+  ## Save the color
+  invisible(transp)
+}
 
 error.bar <- function(x, y, upper, lower=upper, length=0,...){
   if(length(x) != length(y) | length(y) !=length(lower) | length(lower) != length(upper))
@@ -209,38 +227,44 @@ df <- data.frame(Vs=Vs1,bound = c(bound_train), ter = c(ter_train),Vo=c(v_train)
 
 ## Generate model prediction ====
 go_to("results")
-rm(Simuls)
-for(i in 1:N1){
-  print(paste('simulating',i,'from',N1))
-  for(c in 1:Ncond){
-    load(paste0("heatmaps/hm_",Vs1_matrix[i,c],"_filled.Rdata"))
-    hm_low <- output$lower; hm_up <- output$upper
-    hmvec_low <- as.vector(hm_low); hmvec_up <- as.vector(hm_up)
-    temp <- chi_square_optim_DDM(c(bound[i,c],ter[i,c],0,nsim,.1,.001,conf_rt[i,c],1,v[i,c],v2[i,c],v3[i,c]),NULL,0)
-    
-    #match to the heatmap
-    temp$closest_evdnc2 <- match.closest(temp$evidence2,ev_mapping)
-    temp$temprt2 <- temp$rt2;
-    temp$temprt2[temp$temprt2>5] <- 5 #heatmap doesn't go higher
-    temp$temprt2 <- temp$temprt2*timesteps/5 #scale with the heatmap, between 0 and 2000
-    
-    temp[temp$resp==1,]$cj <- hmvec_up[(temp[temp$resp==1,]$closest_evdnc2-1)*timesteps+round(temp[temp$resp==1,]$temprt2)]
-    temp[temp$resp==-1,]$cj <- hmvec_low[(temp[temp$resp==-1,]$closest_evdnc2-1)*timesteps+round(temp[temp$resp==-1,]$temprt2)]
-    
-    temp$cj_cont <- temp$cj
-    
-    
-    if(!exists('Simuls')){ Simuls <- cbind(temp,rep(cond_1[c],nsim),rep(subs1[i],nsim))
-    }else{ Simuls <- rbind(Simuls,cbind(temp,rep(cond_1[c],nsim),rep(subs1[i],nsim)))
+
+if (file.exists("model_prediction_exp1.csv")) {
+  Simuls <- read.table("model_prediction_exp1.csv")
+}else{
+  rm(Simuls)
+  for(i in 1:N1){
+    print(paste('simulating',i,'from',N1))
+    for(c in 1:Ncond){
+      load(paste0("heatmaps/hm_",Vs1_matrix[i,c],"_filled.Rdata"))
+      hm_low <- output$lower; hm_up <- output$upper
+      hmvec_low <- as.vector(hm_low); hmvec_up <- as.vector(hm_up)
+      temp <- chi_square_optim_DDM(c(bound[i,c],ter[i,c],0,nsim,.1,.001,conf_rt[i,c],1,v[i,c],v2[i,c],v3[i,c]),NULL,0)
+      
+      #match to the heatmap
+      temp$closest_evdnc2 <- match.closest(temp$evidence2,ev_mapping)
+      temp$temprt2 <- temp$rt2;
+      temp$temprt2[temp$temprt2>5] <- 5 #heatmap doesn't go higher
+      temp$temprt2 <- temp$temprt2*timesteps/5 #scale with the heatmap, between 0 and 2000
+      
+      temp[temp$resp==1,]$cj <- hmvec_up[(temp[temp$resp==1,]$closest_evdnc2-1)*timesteps+round(temp[temp$resp==1,]$temprt2)]
+      temp[temp$resp==-1,]$cj <- hmvec_low[(temp[temp$resp==-1,]$closest_evdnc2-1)*timesteps+round(temp[temp$resp==-1,]$temprt2)]
+      
+      temp$cj_cont <- temp$cj
+      
+      
+      if(!exists('Simuls')){ Simuls <- cbind(temp,rep(cond_1[c],nsim),rep(subs1[i],nsim))
+      }else{ Simuls <- rbind(Simuls,cbind(temp,rep(cond_1[c],nsim),rep(subs1[i],nsim)))
+      }
     }
   }
-}
-Simuls <- data.frame(Simuls);names(Simuls) <- c('rt','resp','cor','evidence2','rt2', 'cj','drift','closest_evdnc2',"temprt2",'cj_cont','condition','sub')
-
-coherences <- sort(unique(Data1$coh))
-Simuls$coh <- 0
-for (i in 1:N1) {
-  for(d in 1:length(coherences)) Simuls$coh[Simuls$sub==subs1[i] & Simuls$drift %in% c(unique(subset(Simuls,sub==subs1[i])$drift)[d],unique(subset(Simuls,sub==subs1[i])$drift)[d+3],unique(subset(Simuls,sub==subs1[i])$drift)[d+6])] <- coherences[d] #recode drift to coherence
+  Simuls <- data.frame(Simuls);names(Simuls) <- c('rt','resp','cor','evidence2','rt2', 'cj','drift','closest_evdnc2',"temprt2",'cj_cont','condition','sub')
+  
+  coherences <- sort(unique(Data1$coh))
+  Simuls$coh <- 0
+  for (i in 1:N1) {
+    for(d in 1:length(coherences)) Simuls$coh[Simuls$sub==subs1[i] & Simuls$drift %in% c(unique(subset(Simuls,sub==subs1[i])$drift)[d],unique(subset(Simuls,sub==subs1[i])$drift)[d+3],unique(subset(Simuls,sub==subs1[i])$drift)[d+6])] <- coherences[d] #recode drift to coherence
+  }
+  write.csv(Simuls,file = "model_prediction_exp1.csv")
 }
 # EXP 2 -------------------------------------------------------------------
 ## Data Load ====
@@ -385,45 +409,45 @@ df2 <- data.frame(Vs=Vs2,bound = c(bound_train), ter = c(ter_train),Vo=c(v_train
                   sub=rep(subs_2,Ndiff),condition=rep(cond_2,each=Nsub_2))
 ## Generate model prediction ====
 go_to("results")
-rm(Simuls2)
-for(i in 1:Nsub_2){
-  print(paste('simulating',i,'from',Nsub_2))
-  for(c in 1:Ncond_2){
-    tempdat <- subset(Data2, sub==subs_2[i] & traindiffcond==cond_2[c])
-    load(paste0("heatmaps/hm_",Vs2_matrix[i,c],"_filled.Rdata"))
-    hm_low <- output$lower; hm_up <- output$upper
-    hmvec_low <- as.vector(hm_low); hmvec_up <- as.vector(hm_up)
-    temp <- chi_square_optim_DDM(c(bound[i,c],ter[i,c],0,nsim,.1,.001,conf_rt[i,c],1,v[i,c],v2[i,c],v3[i,c]),NULL,0)
-    
-    #match to the heatmap
-    temp$closest_evdnc2 <- match.closest(temp$evidence2,ev_mapping)
-    temp$temprt2 <- temp$rt2;
-    temp$temprt2[temp$temprt2>5] <- 5 #heatmap doesn't go higher
-    temp$temprt2 <- temp$temprt2*timesteps/5 #scale with the heatmap, between 0 and 2000
-    
-    temp[temp$resp==1,]$cj <- hmvec_up[(temp[temp$resp==1,]$closest_evdnc2-1)*timesteps+round(temp[temp$resp==1,]$temprt2)]
-    temp[temp$resp==-1,]$cj <- hmvec_low[(temp[temp$resp==-1,]$closest_evdnc2-1)*timesteps+round(temp[temp$resp==-1,]$temprt2)]
-    
-    temp$cj_cont <- temp$cj
-    
-    
-    if(!exists('Simuls2')){ Simuls2 <- cbind(temp,rep(cond_2[c],nsim),rep(subs_2[i],nsim))
-    }else{ Simuls2 <- rbind(Simuls2,cbind(temp,rep(cond_2[c],nsim),rep(subs_2[i],nsim)))
+if (file.exists("model_prediction_exp2.csv")) {
+  Simuls2 <- read.table("model_prediction_exp2.csv")
+}else{
+  rm(Simuls2)
+  for(i in 1:Nsub_2){
+    print(paste('simulating',i,'from',Nsub_2))
+    for(c in 1:Ncond_2){
+      tempdat <- subset(Data2, sub==subs_2[i] & traindiffcond==cond_2[c])
+      load(paste0("heatmaps/hm_",Vs2_matrix[i,c],"_filled.Rdata"))
+      hm_low <- output$lower; hm_up <- output$upper
+      hmvec_low <- as.vector(hm_low); hmvec_up <- as.vector(hm_up)
+      temp <- chi_square_optim_DDM(c(bound[i,c],ter[i,c],0,nsim,.1,.001,conf_rt[i,c],1,v[i,c],v2[i,c],v3[i,c]),NULL,0)
+      
+      #match to the heatmap
+      temp$closest_evdnc2 <- match.closest(temp$evidence2,ev_mapping)
+      temp$temprt2 <- temp$rt2;
+      temp$temprt2[temp$temprt2>5] <- 5 #heatmap doesn't go higher
+      temp$temprt2 <- temp$temprt2*timesteps/5 #scale with the heatmap, between 0 and 2000
+      
+      temp[temp$resp==1,]$cj <- hmvec_up[(temp[temp$resp==1,]$closest_evdnc2-1)*timesteps+round(temp[temp$resp==1,]$temprt2)]
+      temp[temp$resp==-1,]$cj <- hmvec_low[(temp[temp$resp==-1,]$closest_evdnc2-1)*timesteps+round(temp[temp$resp==-1,]$temprt2)]
+      
+      temp$cj_cont <- temp$cj
+      
+      
+      if(!exists('Simuls2')){ Simuls2 <- cbind(temp,rep(cond_2[c],nsim),rep(subs_2[i],nsim))
+      }else{ Simuls2 <- rbind(Simuls2,cbind(temp,rep(cond_2[c],nsim),rep(subs_2[i],nsim)))
+      }
     }
   }
+  Simuls2 <- data.frame(Simuls2);names(Simuls2) <- c('rt','resp','cor','evidence2','rt2', 'cj','drift','closest_evdnc2',"temprt2",'cj_cont','condition','sub')
+  
+  coherences <- sort(unique(Data2$coh))
+  Simuls2$coh <- 0
+  for (i in 1:Nsub_2) {
+    for(d in 1:length(coherences)) Simuls2$coh[Simuls2$sub==subs_2[i] & Simuls2$drift %in% c(unique(subset(Simuls2,sub==subs_2[i])$drift)[d],unique(subset(Simuls2,sub==subs_2[i])$drift)[d+3],unique(subset(Simuls2,sub==subs_2[i])$drift)[d+6])] <- coherences[d] #recode drift to coherence
+  }
+  write.csv(Simuls2,file = "model_prediction_exp2.csv")
 }
-Simuls2 <- data.frame(Simuls2);names(Simuls2) <- c('rt','resp','cor','evidence2','rt2', 'cj','drift','closest_evdnc2',"temprt2",'cj_cont','condition','sub')
-
-coherences <- sort(unique(Data2$coh))
-Simuls2$coh <- 0
-for (i in 1:Nsub_2) {
-  for(d in 1:length(coherences)) Simuls2$coh[Simuls2$sub==subs_2[i] & Simuls2$drift %in% c(unique(subset(Simuls2,sub==subs_2[i])$drift)[d],unique(subset(Simuls2,sub==subs_2[i])$drift)[d+3],unique(subset(Simuls2,sub==subs_2[i])$drift)[d+6])] <- coherences[d] #recode drift to coherence
-}
-
-# Export ------------------------------------------------------------------
-go_to("results")
-write.csv(Simuls,file = "model_prediction_exp1.csv")
-write.csv(Simuls2,file = "model_prediction_exp2.csv")
 # Stat tests ------------------------------------------------------------
 # Exp1 ====
 #DDM train
@@ -489,7 +513,8 @@ jpeg(
   height=18,
   units="in",
   res=500)
-layout(matrix(c(1,3,7,9,11,12,1,5,7,9,11,12,2,4,8,10,11,13,2,6,8,10,11,13),ncol=4),heights = c(.4,1,1.5,1.5,.2,1.5))
+# layout(matrix(c(1,3,7,9,11,12,1,5,7,9,11,12,2,4,8,10,11,13,2,6,8,10,11,13),ncol=4),heights = c(.4,1,1.5,1.5,.2,1.5))
+layout(matrix(c(1,3,7,9,10,1,5,7,9,10,2,4,8,9,11,2,6,8,9,11),ncol=4),heights = c(.4,1,2,.2,2))
 
 #' Add legend for both experiments on top
 par(mar=c(0,0,0,0))
@@ -761,25 +786,6 @@ lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="darkgoldenrod3",lwd=lwddat)
 error.bar(0:(n-1),means,colSds(as.matrix(xhigh),na.rm=T)/sqrt(N1),lwd=lwdgr,col="darkgoldenrod3")
 
 # Plot Confidence - Empirical Data ----------------------------------------
-## Transparent colors, Mark Gardener 2015, www.dataanalytics.org.uk
-transp <- function(color, percent = 50, name = NULL) {
-  #   color = color name
-  #   percent = % transparency
-  #   name = an optional name for the color
-  
-  ## Get RGB values for named color
-  rgb.val <- col2rgb(color)
-  
-  ## Make new color using input color as base and alpha set by transparency
-  transp <- rgb(rgb.val[1], rgb.val[2], rgb.val[3],
-                max = 255,
-                alpha = (100 - percent) * 255 / 100,
-                names = name)
-  
-  ## Save the color
-  invisible(transp)
-}
-
 ##' Experiment 1
 CJ_SC_diff_data <- with(Data1,aggregate(cj,by=list(sub=sub,selfconf=selfconf, coh=coh),mean));
 CJ_SC_diff_data <- cast(CJ_SC_diff_data,sub~selfconf+coh)
@@ -864,111 +870,92 @@ error.bar(1.2:3.2,colMeans(CJ_SC_diff_data[,c(10,8,9)]),colSds(as.matrix(CJ_SC_d
           length=0,lwd=lwdgr, col='brown3')
 
 
-# Plot Confidence per block ----------------------------------------
-## Transparent colors, Mark Gardener 2015, www.dataanalytics.org.uk
-transp <- function(color, percent = 50, name = NULL) {
-  #   color = color name
-  #   percent = % transparency
-  #   name = an optional name for the color
-  
-  ## Get RGB values for named color
-  rgb.val <- col2rgb(color)
-  
-  ## Make new color using input color as base and alpha set by transparency
-  transp <- rgb(rgb.val[1], rgb.val[2], rgb.val[3],
-                max = 255,
-                alpha = (100 - percent) * 255 / 100,
-                names = name)
-  
-  ## Save the color
-  invisible(transp)
-}
-
-##' Experiment 1
-CJ_SC_diff_data <- with(Data1,aggregate(cj,by=list(sub=sub,selfconf=selfconf, block=block),mean));
-CJ_SC_diff_data <- cast(CJ_SC_diff_data,sub~selfconf+block)
-average_CJ_SC_diff_data <- with(Data1,aggregate(cj,by=list(selfconf=selfconf,block=block),mean));
-average_CJ_SC_diff_data <- cast(average_CJ_SC_diff_data,selfconf~block)
-
-# use family to adjust the font and cex. to adjust font size
-CJ_SC_diff_plot = plot(as.numeric(average_CJ_SC_diff_data[1,]),type='n',frame=F,
-                       main=NULL,
-                       ylab="Confidence",
-                       xlab="Block",
-                       xaxt='n',
-                       xlim=c(1,3.3),ylim=c(3,6),
-                       cex.axis = cex_lab-1, 
-                       cex.lab = cex_lab,
-                       family="A")
-mtext("E.", at=.7, line = 1, cex = cex_title, font = 2)
-axis(1,at=1.1:3.1,labels=c("block 1","block 2","block 3"),cex.axis=cex_lab-1,family="A")
-abline(h = seq(3,6,0.5), col = "lightgrey", lty = "dashed")
-
-# High SC
-for(i in 1:N1) points(jitter(1:3,0.1),CJ_SC_diff_data[i,c(2,3,4)],lty=i,type='p',pch=21,col='white',bg=transp('darkgoldenrod2'))
-lines(1:3,average_CJ_SC_diff_data[1,c(2,3,4)],lty=2,type='b',pch=21,
-      col='darkgoldenrod3',bg='darkgoldenrod2',lwd=lwddat,cex=cexkl)
-# Medium SC
-for(i in 1:N1) points(jitter(1.1:3.1,0.1),CJ_SC_diff_data[i,c(8,9,10)],lty=i,type='p',pch=24,col='white',bg=transp('cyan3'))
-lines(1.1:3.1,average_CJ_SC_diff_data[3,c(2,3,4)],lty=2,type='b',pch=24,
-      col='cyan4',bg='cyan3',lwd=lwddat,cex=cexkl)
-# Low SC
-for(i in 1:N1) points(jitter(1.2:3.2,0.1),CJ_SC_diff_data[i,c(5,6,7)],lty=i,type='p',pch=22,col='white',bg=transp('brown2'))
-lines(1.2:3.2,average_CJ_SC_diff_data[2,c(2,3,4)],lty=2,type='b',pch=22,
-      col='brown3',bg="brown2",lwd=lwddat,cex=cexkl)
-
-# plot error bars
-error.bar(1:3,colMeans(CJ_SC_diff_data[,c(2,3,4)]),colSds(as.matrix(CJ_SC_diff_data[,c(2,3,4)])/sqrt(N1)),
-          length=0,lwd=lwdgr, col='darkgoldenrod3')
-error.bar(1.1:3.1,colMeans(CJ_SC_diff_data[,c(8,9,10)]),colSds(as.matrix(CJ_SC_diff_data[,c(8,9,10)])/sqrt(N1)),
-          length=0,lwd=lwdgr, col='cyan4')
-error.bar(1.2:3.2,colMeans(CJ_SC_diff_data[,c(5,6,7)]),colSds(as.matrix(CJ_SC_diff_data[,c(5,6,7)])/sqrt(N1)),
-          length=0,lwd=lwdgr, col='brown3')
-
-
-## Experiment 2
-CJ_SC_diff_data <- with(Data2,aggregate(cj,by=list(sub=sub,traindiffcond=traindiffcond, block=block),mean));
-CJ_SC_diff_data <- cast(CJ_SC_diff_data,sub~traindiffcond+block)
-average_CJ_SC_diff_data <- with(Data2,aggregate(cj,by=list(traindiffcond=traindiffcond,block=block),mean));
-average_CJ_SC_diff_data <- cast(average_CJ_SC_diff_data,traindiffcond~block)
-
-# use family to adjust the font and cex. to adjust font size
-CJ_SC_diff_plot = plot(as.numeric(average_CJ_SC_diff_data[1,]),type='n',frame=F,
-                       main=NULL,
-                       ylab="Confidence",
-                       xlab="Block",
-                       xaxt='n',
-                       xlim=c(1,3.3),ylim=c(3,6),
-                       cex.axis = cex_lab-1, 
-                       cex.lab = cex_lab,
-                       family="A")
-mtext("F.", at = .7, line = 1, cex = cex_title, font = 2)
-axis(1,at=1.1:3.1,labels=c("block 1","block 2","block 3"),cex.axis=cex_lab-1,family="A")
-abline(h = seq(3,6,0.5), col = "lightgrey", lty = "dashed")
-
-# High SC
-for(i in 1:Nsub_2) points(jitter(1:3,0.1),CJ_SC_diff_data[i,c(5,6,7)],lty=i,type='p',pch=21,col='white',bg=transp('darkgoldenrod2'))
-lines(1:3,average_CJ_SC_diff_data[2,c(2,3,4)],lty=2,type='b',pch=21,
-      col='darkgoldenrod3',bg='darkgoldenrod2',lwd=lwddat,cex=cexkl)
-# Medium SC
-for(i in 1:Nsub_2) points(jitter(1.1:3.1,0.1),CJ_SC_diff_data[i,c(2,3,4)],lty=i,type='p',pch=24,col='white',bg=transp('cyan3'))
-lines(1.1:3.1,average_CJ_SC_diff_data[1,c(2,3,4)],lty=2,type='b',pch=24,
-      col='cyan4',bg='cyan3',lwd=lwddat,cex=cexkl)
-# Low SC
-for(i in 1:Nsub_2) points(jitter(1.2:3.2,0.1),CJ_SC_diff_data[i,c(8,9,10)],lty=i,type='p',pch=22,col='white',bg=transp('brown2'))
-lines(1.2:3.2,average_CJ_SC_diff_data[3,c(2,3,4)],lty=2,type='b',pch=22,
-      col='brown3',bg="brown2",lwd=lwddat,cex=cexkl)
-
-# plot error bars
-error.bar(1:3,colMeans(CJ_SC_diff_data[,c(5,6,7)]),colSds(as.matrix(CJ_SC_diff_data[,c(5,6,7)])/sqrt(Nsub_2)),
-          length=0,lwd=lwdgr, col='darkgoldenrod3')
-error.bar(1.1:3.1,colMeans(CJ_SC_diff_data[,c(2,3,4)]),colSds(as.matrix(CJ_SC_diff_data[,c(2,3,4)])/sqrt(Nsub_2)),
-          length=0,lwd=lwdgr, col='cyan4')
-error.bar(1.2:3.2,colMeans(CJ_SC_diff_data[,c(8,9,10)]),colSds(as.matrix(CJ_SC_diff_data[,c(8,9,10)])/sqrt(Nsub_2)),
-          length=0,lwd=lwdgr, col='brown3')
-
-
-
+# # Plot Confidence per block ----------------------------------------
+# ##' Experiment 1
+# CJ_SC_diff_data <- with(Data1,aggregate(cj,by=list(sub=sub,selfconf=selfconf, block=block),mean));
+# CJ_SC_diff_data <- cast(CJ_SC_diff_data,sub~selfconf+block)
+# average_CJ_SC_diff_data <- with(Data1,aggregate(cj,by=list(selfconf=selfconf,block=block),mean));
+# average_CJ_SC_diff_data <- cast(average_CJ_SC_diff_data,selfconf~block)
+# 
+# # use family to adjust the font and cex. to adjust font size
+# CJ_SC_diff_plot = plot(as.numeric(average_CJ_SC_diff_data[1,]),type='n',frame=F,
+#                        main=NULL,
+#                        ylab="Confidence",
+#                        xlab="Block",
+#                        xaxt='n',
+#                        xlim=c(1,3.3),ylim=c(3,6),
+#                        cex.axis = cex_lab-1, 
+#                        cex.lab = cex_lab,
+#                        family="A")
+# mtext("E.", at=.7, line = 1, cex = cex_title, font = 2)
+# axis(1,at=1.1:3.1,labels=c("block 1","block 2","block 3"),cex.axis=cex_lab-1,family="A")
+# abline(h = seq(3,6,0.5), col = "lightgrey", lty = "dashed")
+# 
+# # High SC
+# for(i in 1:N1) points(jitter(1:3,0.1),CJ_SC_diff_data[i,c(2,3,4)],lty=i,type='p',pch=21,col='white',bg=transp('darkgoldenrod2'))
+# lines(1:3,average_CJ_SC_diff_data[1,c(2,3,4)],lty=2,type='b',pch=21,
+#       col='darkgoldenrod3',bg='darkgoldenrod2',lwd=lwddat,cex=cexkl)
+# # Medium SC
+# for(i in 1:N1) points(jitter(1.1:3.1,0.1),CJ_SC_diff_data[i,c(8,9,10)],lty=i,type='p',pch=24,col='white',bg=transp('cyan3'))
+# lines(1.1:3.1,average_CJ_SC_diff_data[3,c(2,3,4)],lty=2,type='b',pch=24,
+#       col='cyan4',bg='cyan3',lwd=lwddat,cex=cexkl)
+# # Low SC
+# for(i in 1:N1) points(jitter(1.2:3.2,0.1),CJ_SC_diff_data[i,c(5,6,7)],lty=i,type='p',pch=22,col='white',bg=transp('brown2'))
+# lines(1.2:3.2,average_CJ_SC_diff_data[2,c(2,3,4)],lty=2,type='b',pch=22,
+#       col='brown3',bg="brown2",lwd=lwddat,cex=cexkl)
+# 
+# # plot error bars
+# error.bar(1:3,colMeans(CJ_SC_diff_data[,c(2,3,4)]),colSds(as.matrix(CJ_SC_diff_data[,c(2,3,4)])/sqrt(N1)),
+#           length=0,lwd=lwdgr, col='darkgoldenrod3')
+# error.bar(1.1:3.1,colMeans(CJ_SC_diff_data[,c(8,9,10)]),colSds(as.matrix(CJ_SC_diff_data[,c(8,9,10)])/sqrt(N1)),
+#           length=0,lwd=lwdgr, col='cyan4')
+# error.bar(1.2:3.2,colMeans(CJ_SC_diff_data[,c(5,6,7)]),colSds(as.matrix(CJ_SC_diff_data[,c(5,6,7)])/sqrt(N1)),
+#           length=0,lwd=lwdgr, col='brown3')
+# 
+# 
+# ## Experiment 2
+# CJ_SC_diff_data <- with(Data2,aggregate(cj,by=list(sub=sub,traindiffcond=traindiffcond, block=block),mean));
+# CJ_SC_diff_data <- cast(CJ_SC_diff_data,sub~traindiffcond+block)
+# average_CJ_SC_diff_data <- with(Data2,aggregate(cj,by=list(traindiffcond=traindiffcond,block=block),mean));
+# average_CJ_SC_diff_data <- cast(average_CJ_SC_diff_data,traindiffcond~block)
+# 
+# # use family to adjust the font and cex. to adjust font size
+# CJ_SC_diff_plot = plot(as.numeric(average_CJ_SC_diff_data[1,]),type='n',frame=F,
+#                        main=NULL,
+#                        ylab="Confidence",
+#                        xlab="Block",
+#                        xaxt='n',
+#                        xlim=c(1,3.3),ylim=c(3,6),
+#                        cex.axis = cex_lab-1, 
+#                        cex.lab = cex_lab,
+#                        family="A")
+# mtext("F.", at = .7, line = 1, cex = cex_title, font = 2)
+# axis(1,at=1.1:3.1,labels=c("block 1","block 2","block 3"),cex.axis=cex_lab-1,family="A")
+# abline(h = seq(3,6,0.5), col = "lightgrey", lty = "dashed")
+# 
+# # High SC
+# for(i in 1:Nsub_2) points(jitter(1:3,0.1),CJ_SC_diff_data[i,c(5,6,7)],lty=i,type='p',pch=21,col='white',bg=transp('darkgoldenrod2'))
+# lines(1:3,average_CJ_SC_diff_data[2,c(2,3,4)],lty=2,type='b',pch=21,
+#       col='darkgoldenrod3',bg='darkgoldenrod2',lwd=lwddat,cex=cexkl)
+# # Medium SC
+# for(i in 1:Nsub_2) points(jitter(1.1:3.1,0.1),CJ_SC_diff_data[i,c(2,3,4)],lty=i,type='p',pch=24,col='white',bg=transp('cyan3'))
+# lines(1.1:3.1,average_CJ_SC_diff_data[1,c(2,3,4)],lty=2,type='b',pch=24,
+#       col='cyan4',bg='cyan3',lwd=lwddat,cex=cexkl)
+# # Low SC
+# for(i in 1:Nsub_2) points(jitter(1.2:3.2,0.1),CJ_SC_diff_data[i,c(8,9,10)],lty=i,type='p',pch=22,col='white',bg=transp('brown2'))
+# lines(1.2:3.2,average_CJ_SC_diff_data[3,c(2,3,4)],lty=2,type='b',pch=22,
+#       col='brown3',bg="brown2",lwd=lwddat,cex=cexkl)
+# 
+# # plot error bars
+# error.bar(1:3,colMeans(CJ_SC_diff_data[,c(5,6,7)]),colSds(as.matrix(CJ_SC_diff_data[,c(5,6,7)])/sqrt(Nsub_2)),
+#           length=0,lwd=lwdgr, col='darkgoldenrod3')
+# error.bar(1.1:3.1,colMeans(CJ_SC_diff_data[,c(2,3,4)]),colSds(as.matrix(CJ_SC_diff_data[,c(2,3,4)])/sqrt(Nsub_2)),
+#           length=0,lwd=lwdgr, col='cyan4')
+# error.bar(1.2:3.2,colMeans(CJ_SC_diff_data[,c(8,9,10)]),colSds(as.matrix(CJ_SC_diff_data[,c(8,9,10)])/sqrt(Nsub_2)),
+#           length=0,lwd=lwdgr, col='brown3')
+# 
+# 
+# 
 # Plot confidence prediction ----------------------------------------------
 par(mar=c(0,0,0,0))
 plot.new()
@@ -1058,21 +1045,29 @@ jpeg(
   height=11,
   units="in",
   res=500)
-layout(matrix(c(1,2,1,3,1,4),ncol=3),heights = c(1.5,1))
+# layout(matrix(c(1,2,1,3,1,4),ncol=3),heights = c(1.5,1))
+layout(matrix(c(1,2,3,1,5,4),ncol=2),heights = c(.2,1,1))
+par(mar=c(0,0,0,0))
+plot.new()
+text(.5,.75, labels="Experiment 1: fake feedback",cex = cex_legend+.5,font=2)
 par(mar=c(5,5,4,0)+0.1)
-# Plot Vs ~ Condition -----------------------------------------------------
+# Plot Subjective drift -----------------------------------------------------
 ##Exp1
 plot_drift <- with(df,aggregate(Vs,by=list(sub=sub,condition=condition),mean))
 plot_drift <- cast(plot_drift,sub~condition)
 plot_drift <- plot_drift[,c(3,4,2)] #Reorder columns to have hard -> easy
 plot(colMeans(plot_drift),frame=F,type='n',cex.lab=2.5,cex.axis=1.75,
      xlim=c(.8,Ncond+.2),ylab='Subjective drift',ylim=c(0,.16),
-     xlab="Feedback condition",xaxt='n')
-mtext("A.", at = .62, line = -2, cex = cex_title, font = 2)
-title("Experiment 1: Fake feedback",cex.main=cex_title,font=2,line=1)
+     xlab="Feedback condition",xaxt='n', yaxt='n')
+mtext("A.", at = .55, line = 3, cex = cex_title, font = 2)
+segments(y0 = seq(0,.16,.04),y1 = seq(0,.16,.04),x0 = 0, x1 = Ncond, col = "lightgrey", lty = "dotted")
 axis(1,1:Ncond,c("Negative","Average","Positive"),cex.axis=1.75)
-# mtext("Subjective drift",side = 2, line = 2.5, cex = 2)
-for(i in 1:N1) lines(1:Ncond,plot_drift[i,1:Ncond],type='b',lty=2,col="grey",pch=19)
+axis(2,at=seq(0,.16,.04),cex.axis=1.75)
+for(i in 1:Nsub_2){
+  x <- jitter(1:Ncond,.2)
+  lines(x,plot_drift[i,1:Ncond],lty=2,col=transp('grey'))
+  points(x,plot_drift[i,1:Ncond],col="white", bg = transp('grey'),pch=21, cex = 2)
+} 
 points(colMeans(plot_drift),type='b',lwd=5)
 error.bar(1:Ncond,colMeans(plot_drift),colSds(plot_drift,na.rm=T)/sqrt(N1),lwd=3)
 
@@ -1085,9 +1080,14 @@ plot_ter <- plot_ter[,c(3,4,2)] #Reorder columns to have easy -> hard
 plot(colMeans(plot_ter),frame=F,type='n',cex.lab=2.5,cex.axis=1.75,
      xlim=c(.8,Ncond+.2),ylim=c(.15,.8),ylab="Non-decision time",
      xlab="Feedback condition",xaxt='n',main="", cex.main = 2);
-mtext("B.", at = .4, line = 1, cex = cex_title, font = 2)
+mtext("C.", at = .55, line = 1, cex = cex_title, font = 2)
 axis(1,1:Ncond,c("Negative","Average","Positive"),cex.axis=1.75)
-for(i in 1:N1) lines(1:Ncond,plot_ter[i,1:Ncond],type='b',lty=2,col="grey",pch=19)
+segments(y0 = seq(.2,.8,.1),y1 = seq(.2,.8,.1),x0 = 0, x1 = Ncond, col = "lightgrey", lty = "dotted")
+for(i in 1:Nsub_2){
+  x <- jitter(1:Ncond,.2)
+  lines(x,plot_ter[i,1:Ncond],lty=2,col=transp('grey'))
+  points(x,plot_ter[i,1:Ncond],col="white", bg = transp('grey'),pch=21, cex = 2)
+} 
 points(colMeans(plot_ter),type='b',lwd=5)
 error.bar(1:Ncond,colMeans(plot_ter),colSds(plot_ter,na.rm=T)/sqrt(N1),lwd=3,length=0)
 
@@ -1098,46 +1098,54 @@ plot_bound <- plot_bound[,c(3,4,2)] #Reorder columns to have easy -> hard
 plot(colMeans(plot_bound),frame=F,type='n',cex.lab=2.5,cex.axis=1.75,
      xlim=c(.8,Ncond+.2),ylim=c(0,.2),ylab="Bound",
      xlab="Feedback condition",xaxt='n',main="", cex.main = 2);
+mtext("D.", at = .55, line = 1, cex = cex_title, font = 2)
+segments(y0 = seq(0,.2,.05),y1 = seq(0,.2,.05),x0 = 0, x1 = Ncond, col = "lightgrey", lty = "dotted")
 axis(1,1:Ncond,c("Negative","Average","Positive"),cex.axis=1.75)
-for(i in 1:N1) lines(1:Ncond,plot_bound[i,1:Ncond],type='b',lty=2,col="grey",pch=19)
+for(i in 1:Nsub_2){
+  x <- jitter(1:Ncond,.2)
+  lines(x,plot_bound[i,1:Ncond],lty=2,col=transp('grey'))
+  points(x,plot_bound[i,1:Ncond],col="white", bg = transp('grey'),pch=21, cex = 2)
+} 
 points(colMeans(plot_bound),type='b',lwd=5)
 error.bar(1:Ncond,colMeans(plot_bound),colSds(plot_bound,na.rm=T)/sqrt(N1),lwd=3,length=0)
 
-
 ##Drift interaction
-plot_drift_minus <- with(subset(param_1,condition=="lowSC"),
-                         aggregate(drift,by=list(sub=sub,difflevel=difflevel),mean))
-plot_drift_minus <- cast(plot_drift_minus,sub~difflevel)
-plot_drift_minus <- plot_drift_minus[,c(4,2,3)] #Reorder columns to have easy -> hard
+plot_drift_minus <- with(subset(param_1,difflevel=="hard"),
+                         aggregate(drift,by=list(sub=sub,condition=condition),mean))
+plot_drift_minus <- cast(plot_drift_minus,sub~condition)
+plot_drift_minus <- plot_drift_minus[,c(3,4,2)] #Reorder columns to have easy -> hard
 plot(colMeans(plot_drift_minus),frame=F,type='n',cex.lab=2.5,cex.axis=1.75,xlim=c(.8,Ncond+.2),
-     ylim=c(min(plot_drift_minus),.25),ylab="Drift rate",xlab="Trial Difficulty",xaxt='n');
-axis(1,1:Ncond,c("Hard","Average","Easy"),cex.axis=1.75)
-points(colMeans(plot_drift_minus),type='b',lwd=5,col="brown3")
+     ylim=c(min(plot_drift_minus),.27),ylab="Drift rate",xlab="Feedback condition",xaxt='n');
+axis(1,1:Ncond,c("Negative","Average","Positive"),cex.axis=1.75)
+mtext("B.", at = .55, line = 1, cex = cex_title, font = 2)
+segments(y0 = seq(0,.25,.05),y1 = seq(0,.25,.05),x0 = 0, x1 = Ncond, col = "lightgrey", lty = "dotted")
+points(colMeans(plot_drift_minus),type='b',lwd=5,col="darkolivegreen",lty="dashed")
 error.bar(1:Ncond,colMeans(plot_drift_minus),
-          colSds(plot_drift_minus,na.rm=T)/sqrt(N1),lwd=3,length=0,col="brown3")
+          colSds(plot_drift_minus,na.rm=T)/sqrt(N1),lwd=3,length=0,col="darkolivegreen")
 
-plot_drift_control <- with(subset(param_1,condition=="mediumSC"),
-                           aggregate(drift,by=list(sub=sub,difflevel=difflevel),mean))
-plot_drift_control <- cast(plot_drift_control,sub~difflevel)
-plot_drift_control <- plot_drift_control[,c(4,2,3)] #Reorder columns to have easy -> hard
-points(colMeans(plot_drift_control),type='b',lwd=5,col="cyan4")
+plot_drift_control <- with(subset(param_1,difflevel=="average"),
+                           aggregate(drift,by=list(sub=sub,condition=condition),mean))
+plot_drift_control <- cast(plot_drift_control,sub~condition)
+plot_drift_control <- plot_drift_control[,c(3,4,2)] #Reorder columns to have easy -> hard
+points(colMeans(plot_drift_control),type='b',lwd=5,col="darkolivegreen3",lty="dotdash")
 error.bar(1:Ncond,colMeans(plot_drift_control),
-          colSds(plot_drift_control,na.rm=T)/sqrt(N1),lwd=3,length=0,col="cyan4")
+          colSds(plot_drift_control,na.rm=T)/sqrt(N1),lwd=3,length=0,col="darkolivegreen3")
 
-plot_drift_plus <- with(subset(param_1,condition=="highSC"),
-                        aggregate(drift,by=list(sub=sub,difflevel=difflevel),mean))
-plot_drift_plus <- cast(plot_drift_plus,sub~difflevel)
-plot_drift_plus <- plot_drift_plus[,c(4,2,3)] #Reorder columns to have easy -> hard
-points(colMeans(plot_drift_plus),type='b',lwd=5,col="darkgoldenrod3")
+plot_drift_plus <- with(subset(param_1,difflevel=="easy"),
+                        aggregate(drift,by=list(sub=sub,condition=condition),mean))
+plot_drift_plus <- cast(plot_drift_plus,sub~condition)
+plot_drift_plus <- plot_drift_plus[,c(3,4,2)] #Reorder columns to have easy -> hard
+points(colMeans(plot_drift_plus),type='b',lwd=5,col="darkolivegreen1",)
 error.bar(1:Ncond,colMeans(plot_drift_plus),
-          colSds(plot_drift_plus,na.rm=T)/sqrt(N1),lwd=3,length=0,col="darkgoldenrod3")
-legend("topleft",border=F,legend=c("Negative","Average","Positive"),lwd=2,
-       col=c("brown3","cyan4","darkgoldenrod3"),bty="n",cex=2,title = "Feedback condition")
+          colSds(plot_drift_plus,na.rm=T)/sqrt(N1),lwd=3,length=0,col="darkolivegreen1")
+par(xpd=T)
+legend("top",border=F,legend=c("Hard","Average","Easy"),lwd=3, horiz = T, inset = c(0,-.065),
+       col=c("darkolivegreen","darkolivegreen3","darkolivegreen1"),bty="n",cex=2,
+       title = "Trial difficulty", lty = c("dashed","dotdash","solid"))
+par(xpd=F)
 
 #'save
 dev.off()
-
-
 # EXP 2 Estimated parameters plot -----------------------------------------
 # Layout ------------------------------------------------------------------
 jpeg(
@@ -1146,35 +1154,48 @@ jpeg(
   height=11,
   units="in",
   res=500)
-layout(matrix(c(1,2,1,3,1,4),ncol=3),heights = c(1.5,1))
+layout(matrix(c(1,2,3,1,5,4),ncol=2),heights = c(.2,1,1))
+par(mar=c(0,0,0,0))
+plot.new()
+text(.5,.75, labels="Experiment 2: training condition",cex = cex_legend+.5,font=2)
 par(mar=c(5,5,4,0)+0.1)
-# Subjective drift --------------------------------------------------------
-
-##Exp2
-plot_drift <- with(df2,aggregate(Vs,by=list(sub=sub,condition=condition),mean));
+# Plot Subjective drift -----------------------------------------------------
+##Exp1
+plot_drift <- with(df2,aggregate(Vs,by=list(sub=sub,condition=condition),mean))
 plot_drift <- cast(plot_drift,sub~condition)
 plot_drift <- plot_drift[,c(4,2,3)] #Reorder columns to have hard -> easy
 plot(colMeans(plot_drift),frame=F,type='n',cex.lab=2.5,cex.axis=1.75,
-     xlim=c(.8,Ncond+.2),ylim=c(0,.55),
-     ylab="Subjective drift",xlab="Training condition",xaxt='n');
+     xlim=c(.8,Ncond+.2),ylab='Subjective drift',ylim=c(0,.5),
+     xlab="Training condition",xaxt='n', yaxt='n')
+mtext("A.", at = .55, line = 3, cex = cex_title, font = 2)
+segments(y0 = seq(0,.5,.1),y1 = seq(0,.5,.1),x0 = 0, x1 = Ncond, col = "lightgrey", lty = "dotted")
 axis(1,1:Ncond,c("Difficult","Medium","Easy"),cex.axis=1.75)
-mtext("C.", at = .62, line = -3.5, cex = cex_title, font = 2)
-title("Experiment 2: Training difficulty",cex.main=cex_title,font=2,line=1)
-for(i in 1:Nsub_2) lines(1:Ncond,plot_drift[i,1:Ncond],type='b',lty=2,col="grey",pch=19)
+axis(2,at=seq(0,.5,.1),cex.axis=1.75)
+for(i in 1:Nsub_2){
+  x <- jitter(1:Ncond,.2)
+  lines(x,plot_drift[i,1:Ncond],lty=2,col=transp('grey'))
+  points(x,plot_drift[i,1:Ncond],col="white", bg = transp('grey'),pch=21, cex = 2)
+} 
 points(colMeans(plot_drift),type='b',lwd=5)
 error.bar(1:Ncond,colMeans(plot_drift),colSds(plot_drift,na.rm=T)/sqrt(Nsub_2),lwd=3)
-# Plot DDM parameters test phase EXP2 -------------------------------------
+
+# Plot DDM parameters test phase EXP2 ------------------------------------------
 par(mar=c(5,5,2,0)+0.1)
 ##Non-decision time
 plot_ter <- with(param2,aggregate(ter,by=list(sub=sub,condition=condition),mean))
 plot_ter <- cast(plot_ter,sub~condition)
 plot_ter <- plot_ter[,c(4,2,3)] #Reorder columns to have easy -> hard
 plot(colMeans(plot_ter),frame=F,type='n',cex.lab=2.5,cex.axis=1.75,
-     xlim=c(.8,Ncond+.2),ylim=c(.2,.8),ylab="Non-decision time",
+     xlim=c(.8,Ncond+.2),ylim=c(.15,.8),ylab="Non-decision time",
      xlab="Training condition",xaxt='n',main="", cex.main = 2);
-mtext("D.", at = .4, line = 1, cex = cex_title, font = 2)
-axis(1,1:Ncond,c("Hard","Medium","Easy"),cex.axis=1.75)
-for(i in 1:Nsub_2) lines(1:Ncond,plot_ter[i,1:Ncond],type='b',lty=2,col="grey",pch=19)
+mtext("C.", at = .55, line = 1, cex = cex_title, font = 2)
+axis(1,1:Ncond,c("Difficult","Medium","Easy"),cex.axis=1.75)
+segments(y0 = seq(.2,.8,.1),y1 = seq(.2,.8,.1),x0 = 0, x1 = Ncond, col = "lightgrey", lty = "dotted")
+for(i in 1:Nsub_2){
+  x <- jitter(1:Ncond,.2)
+  lines(x,plot_ter[i,1:Ncond],lty=2,col=transp('grey'))
+  points(x,plot_ter[i,1:Ncond],col="white", bg = transp('grey'),pch=21, cex = 2)
+} 
 points(colMeans(plot_ter),type='b',lwd=5)
 error.bar(1:Ncond,colMeans(plot_ter),colSds(plot_ter,na.rm=T)/sqrt(Nsub_2),lwd=3,length=0)
 
@@ -1185,47 +1206,55 @@ plot_bound <- plot_bound[,c(4,2,3)] #Reorder columns to have easy -> hard
 plot(colMeans(plot_bound),frame=F,type='n',cex.lab=2.5,cex.axis=1.75,
      xlim=c(.8,Ncond+.2),ylim=c(.04,.12),ylab="Bound",
      xlab="Training condition",xaxt='n',main="", cex.main = 2);
+mtext("D.", at = .55, line = 1, cex = cex_title, font = 2)
+segments(y0 = seq(.04,.12,.02),y1 = seq(.04,.12,.02),x0 = 0, x1 = Ncond, col = "lightgrey", lty = "dotted")
 axis(1,1:Ncond,c("Difficult","Medium","Easy"),cex.axis=1.75)
-for(i in 1:Nsub_2) lines(1:Ncond,plot_bound[i,1:Ncond],type='b',lty=2,col="grey",pch=19)
+for(i in 1:Nsub_2){
+  x <- jitter(1:Ncond,.2)
+  lines(x,plot_bound[i,1:Ncond],lty=2,col=transp('grey'))
+  points(x,plot_bound[i,1:Ncond],col="white", bg = transp('grey'),pch=21, cex = 2)
+} 
 points(colMeans(plot_bound),type='b',lwd=5)
 error.bar(1:Ncond,colMeans(plot_bound),colSds(plot_bound,na.rm=T)/sqrt(Nsub_2),lwd=3,length=0)
 
 ##Drift interaction
-plot_drift_minus <- with(subset(param2,condition=="hard"),
-                         aggregate(drift,by=list(sub=sub,difflevel=difflevel),mean))
-plot_drift_minus <- cast(plot_drift_minus,sub~difflevel)
+plot_drift_minus <- with(subset(param2,difflevel=="hard"),
+                         aggregate(drift,by=list(sub=sub,condition=condition),mean))
+plot_drift_minus <- cast(plot_drift_minus,sub~condition)
 plot_drift_minus <- plot_drift_minus[,c(4,2,3)] #Reorder columns to have easy -> hard
 plot(colMeans(plot_drift_minus),frame=F,type='n',cex.lab=2.5,cex.axis=1.75,xlim=c(.8,Ncond+.2),
-     ylim=c(min(plot_drift_minus),.25),ylab="Drift rate",xlab="Trial Difficulty",xaxt='n');
+     ylim=c(min(plot_drift_minus),.27),ylab="Drift rate",xlab="Training condition",xaxt='n',yaxt='n');
 axis(1,1:Ncond,c("Difficult","Medium","Easy"),cex.axis=1.75)
-points(colMeans(plot_drift_minus),type='b',lwd=5,col="brown3")
+axis(2,seq(0,.25,.05),cex.axis=1.75)
+mtext("B.", at = .55, line = 1, cex = cex_title, font = 2)
+segments(y0 = seq(0,.25,.05),y1 = seq(0,.25,.05),x0 = 0, x1 = Ncond, col = "lightgrey", lty = "dotted")
+points(colMeans(plot_drift_minus),type='b',lwd=5,col="darkolivegreen",lty="dashed")
 error.bar(1:Ncond,colMeans(plot_drift_minus),
-          colSds(plot_drift_minus,na.rm=T)/sqrt(Nsub_2),lwd=3,length=0,col="brown3")
+          colSds(plot_drift_minus,na.rm=T)/sqrt(Nsub_2),lwd=3,length=0,col="darkolivegreen")
 
-plot_drift_control <- with(subset(param2,condition=="average"),
-                           aggregate(drift,by=list(sub=sub,difflevel=difflevel),mean))
-plot_drift_control <- cast(plot_drift_control,sub~difflevel)
+plot_drift_control <- with(subset(param2,difflevel=="average"),
+                           aggregate(drift,by=list(sub=sub,condition=condition),mean))
+plot_drift_control <- cast(plot_drift_control,sub~condition)
 plot_drift_control <- plot_drift_control[,c(4,2,3)] #Reorder columns to have easy -> hard
-points(colMeans(plot_drift_control),type='b',lwd=5,col="cyan4")
+points(colMeans(plot_drift_control),type='b',lwd=5,col="darkolivegreen3",lty="dotdash")
 error.bar(1:Ncond,colMeans(plot_drift_control),
-          colSds(plot_drift_control,na.rm=T)/sqrt(Nsub_2),lwd=3,length=0,col="cyan4")
+          colSds(plot_drift_control,na.rm=T)/sqrt(Nsub_2),lwd=3,length=0,col="darkolivegreen3")
 
-plot_drift_plus <- with(subset(param2,condition=="easy"),
-                        aggregate(drift,by=list(sub=sub,difflevel=difflevel),mean))
-plot_drift_plus <- cast(plot_drift_plus,sub~difflevel)
+plot_drift_plus <- with(subset(param2,difflevel=="easy"),
+                        aggregate(drift,by=list(sub=sub,condition=condition),mean))
+plot_drift_plus <- cast(plot_drift_plus,sub~condition)
 plot_drift_plus <- plot_drift_plus[,c(4,2,3)] #Reorder columns to have easy -> hard
-points(colMeans(plot_drift_plus),type='b',lwd=5,col="darkgoldenrod3")
+points(colMeans(plot_drift_plus),type='b',lwd=5,col="darkolivegreen1",)
 error.bar(1:Ncond,colMeans(plot_drift_plus),
-          colSds(plot_drift_plus,na.rm=T)/sqrt(Nsub_2),lwd=3,length=0,col="darkgoldenrod3")
-legend("topleft",border=F,legend=c("Hard","Average","Easy"),lwd=2,
-       col=c("brown3","cyan4","darkgoldenrod3"),bty="n",cex=2,title = "Training condition")
+          colSds(plot_drift_plus,na.rm=T)/sqrt(Nsub_2),lwd=3,length=0,col="darkolivegreen1")
+par(xpd=T)
+legend("top",border=F,legend=c("Hard","Average","Easy"),lwd=3, horiz = T, inset = c(0,-.07),
+       col=c("darkolivegreen","darkolivegreen3","darkolivegreen1"),bty="n",cex=2,
+       title = "Trial difficulty", lty = c("dashed","dotdash","solid"))
+par(xpd=F)
 
 #'save
 dev.off()
-
-
-
-
 ## Correlation Objective/Subjective drift ====
 for (c in 1:Ncond) {
   obj_drift <- subset(df2,condition==cond_2[c])$Vo
