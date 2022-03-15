@@ -18,6 +18,8 @@ library(prob)
 library(car)
 library(myPackage)
 library(MALDIquant)
+library(emmeans)
+library(multcomp) # cld for post hoc test
 # source("1_preprocessing.R")
 ## Transparent colors, Mark Gardener 2015, www.dataanalytics.org.uk
 transp <- function(color, percent = 50, name = NULL) {
@@ -236,7 +238,7 @@ if (!(file.exists("cost_vs_exp1.csv"))) {
 }else{
   load("means_exp1_full.Rdata")
   load("stds_exp1_full.Rdata")
-  cost_df <- read.table("cost_vs_exp1.csv")
+  cost_df <- read.csv("cost_vs_exp1.csv")
 }
 
 
@@ -244,21 +246,11 @@ result <- sapply(seq(nrow(means)),function(i) {
   j <- which.min(means[i,])
   c(j)
 })
-
-medians <- with(cost_df,aggregate(cost,by=list(Vs=Vs,sub=sub,selfconf=selfconf),median))
-medians <- cast(medians,selfconf+sub~Vs)
-result_median <- medians[,3:dim(medians)[2]]
-result_median <- as.matrix(result_median)
-result_median <- sapply(seq(nrow(result_median)),function(i) {
-  j <- which.min(result_median[i,])
-  c(j)
-})
-Vs_median <- drifts[result_median]
 Vs1 <- drifts[result]
 Vs1_matrix <- matrix(Vs1,nrow=N1,ncol=Ncond)
+
 df <- data.frame(Vs=Vs1,bound = c(bound_train), ter = c(ter_train),Vo=c(v_train),
                  sub=rep(subs1,Ncond),condition=rep(cond_1,each=N1))
-
 ## Generate model prediction ====
 go_to("results")
 
@@ -380,13 +372,14 @@ ters2 <- data.frame(ter = c(ter_train,ter),
 ## Fit subjective drift ====
 go_to("results")
 Ndiff <- 1 #Only one difficulty level in the training phase
-if (!(file.exists("cost_vs_exp2.csv"))) {
+if (!(file.exists("cost_vs_exp2_cor.csv"))) {
   means <- matrix(NA,nrow=Ncond_2*Nsub_2,ncol=length(drifts)) 
   stds <- matrix(NA,nrow=Ncond_2*Nsub_2,ncol=length(drifts))
   s <- 1; cond <- 1
   while (s <= Nsub_2) {
     while (cond <= Ncond_2) {
-      cost_conf <- matrix(NA,nrow=nrepeat,ncol=length(drifts))
+      cost_conf_cor <- matrix(NA,nrow=nrepeat,ncol=length(drifts))
+      cost_conf_fb <- matrix(NA,nrow=nrepeat,ncol=length(drifts))
       print(paste("Running participant",s,"of",Nsub_2,"condition",cond))
       tempDat <- subset(Data2_train,sub==subs_2[s]&traindiffcond==cond_2[cond])
       tempDat_test <- subset(Data2,sub==subs_2[s]&traindiffcond==cond_2[cond])
@@ -424,20 +417,27 @@ if (!(file.exists("cost_vs_exp2.csv"))) {
           pred_sample <- do.call(rbind,
                                  lapply(split(pred_sample, pred_sample$drift),
                                         function(x) x[sample(nrow(x), ntrial_train/Ndiff),]))
-          # diff <- sum((tempDat$fb - pred_sample$cj)^2)
           diff <- sum((tempDat$cor - pred_sample$cj)^2)
-          cost_conf[i,d] <- diff
+          cost_conf_cor[i,d] <- diff
+          diff <- sum((tempDat$fb - pred_sample$cj)^2)
+          cost_conf_fb[i,d] <- diff
         }
         setTxtProgressBar(bar,d)
       }
-      temp_df <- data.frame(cost = as.vector(cost_conf),
+      temp_df_cor <- data.frame(cost = as.vector(cost_conf_cor),
+                            Nrep = rep(1:nrepeat,length(drifts)),
+                            Vs = rep(drifts,each=nrepeat),
+                            sub = subs_2[s], traindiffcond = cond_2[cond])
+      temp_df_fb <- data.frame(cost = as.vector(cost_conf_fb),
                             Nrep = rep(1:nrepeat,length(drifts)),
                             Vs = rep(drifts,each=nrepeat),
                             sub = subs_2[s], traindiffcond = cond_2[cond])
       if (s==1 & cond==1) {
-        cost_df <- temp_df
+        cost_df_cor <- temp_df_cor
+        cost_df_fb <- temp_df_fb
       }else{
-        cost_df <- rbind(cost_df,temp_df)
+        cost_df_cor <- rbind(cost_df_cor,temp_df_cor)
+        cost_df_fb <- rbind(cost_df_fb,temp_df_fb)
       }
       means[s+Nsub_2*(cond-1),] <- colMeans(cost_conf)
       stds[s+Nsub_2*(cond-1),] <- colSds(cost_conf)
@@ -448,11 +448,13 @@ if (!(file.exists("cost_vs_exp2.csv"))) {
   }
   # save(means,file="means_exp2_full.Rdata")
   # save(stds,file="stds_exp2_full.Rdata")
-  write.csv(cost_df,file="cost_vs_exp2.csv")
+  write.csv(cost_df_cor,file="cost_vs_exp2_cor.csv")
+  write.csv(cost_df_fb,file="cost_vs_exp2_fb.csv")
 }else{
-  load("means_exp2_full.Rdata")
-  load("stds_exp2_full.Rdata")
-  cost_df <- read.table("cost_vs_exp2.csv")
+  load("means_exp2.Rdata")
+  load("stds_exp2.Rdata")
+  cost_df_cor <- read.csv("cost_vs_exp2_cor.csv")
+  cost_df_fb <- read.csv("cost_vs_exp2_fb.csv")
 }
 
 
@@ -460,19 +462,10 @@ result <- sapply(seq(nrow(means)),function(i) {
   j <- which.min(means[i,])
   c(j)
 })
+Vs2 <- drifts[result]
+Vs2_matrix <- matrix(Vs2,nrow=Nsub_2,ncol=Ncond_2)
 
-medians <- with(cost_df,aggregate(cost,by=list(Vs=Vs,sub=sub,traindiffcond=traindiffcond),median))
-medians <- cast(medians,traindiffcond+sub~Vs)
-result_median <- medians[,3:dim(medians)[2]]
-result_median <- as.matrix(result_median)
-result_median <- sapply(seq(nrow(result_median)),function(i) {
-  j <- which.min(result_median[i,])
-  c(j)
-})
-Vs_median <- drifts[result_median]
-Vs1 <- drifts[result]
-Vs1_matrix <- matrix(Vs1,nrow=Nsub_2,ncol=Ncond_2)
-df <- data.frame(Vs=Vs1,bound = c(bound_train), ter = c(ter_train),Vo=c(v_train),
+df <- data.frame(Vs=Vs2,bound = c(bound_train), ter = c(ter_train),Vo=c(v_train),
                  sub=rep(subs_2,Ncond_2),condition=rep(cond_2,each=Nsub_2))
 
 ## Generate model prediction ====
@@ -515,6 +508,169 @@ if (file.exists("model_prediction_exp2.csv")) {
     for(d in 1:length(coherences)) Simuls2$coh[Simuls2$sub==subs_2[i] & Simuls2$drift %in% c(unique(subset(Simuls2,sub==subs_2[i])$drift)[d],unique(subset(Simuls2,sub==subs_2[i])$drift)[d+3],unique(subset(Simuls2,sub==subs_2[i])$drift)[d+6])] <- coherences[d] #recode drift to coherence
   }
   write.csv(Simuls2,file = "model_prediction_exp2.csv")
+}
+# Vs fitting procedures comparison ----------------------------------------
+#' Originally, the median confidence RT was considered for fitting Vs, with
+#' the final value of Vs determined by the mean of 10 repetitions of the fitting
+#' We proceeded to go instead with the full confidence RT distribution to preserve
+#' more information.
+#' We also explore different approaches to estimate Vs
+
+means_fullconfRT <- with(cost_df,aggregate(cost,by=list(Vs=Vs,sub=sub,selfconf=selfconf),mean))
+means_fullconfRT <- cast(means_fullconfRT,selfconf+sub~Vs)
+result_mean <- means_fullconfRT[,3:dim(means_fullconfRT)[2]]
+result_mean <- as.matrix(result_mean)
+result_mean <- sapply(seq(nrow(result_mean)),function(i) {
+  j <- which.min(result_mean[i,])
+  c(j)
+})
+Vs_mean <- drifts[result_mean]
+
+medians <- with(cost_df,aggregate(cost,by=list(Vs=Vs,sub=sub,selfconf=selfconf),median))
+medians <- cast(medians,selfconf+sub~Vs)
+result_median <- medians[,3:dim(medians)[2]]
+result_median <- as.matrix(result_median)
+result_median <- sapply(seq(nrow(result_median)),function(i) {
+  j <- which.min(result_median[i,])
+  c(j)
+})
+Vs_median <- drifts[result_median]
+
+mins <- with(cost_df,aggregate(cost,by=list(Vs=Vs,sub=sub,selfconf=selfconf),min))
+mins <- cast(mins,selfconf+sub~Vs)
+result_min <- mins[,3:dim(mins)[2]]
+result_min <- as.matrix(result_min)
+result_min <- sapply(seq(nrow(result_min)),function(i) {
+  j <- which.min(result_min[i,])
+  c(j)
+})
+Vs_min <- drifts[result_min]
+
+N_vs <- 4
+type <- c("mean","mean_fullconfRT","median","min")
+Vs_compare1 <- data.frame(Vs=c(Vs1,Vs_mean,Vs_median,Vs_min),sub=rep(subs1,Ncond*N_vs),
+                         condition=rep(cond_1,each=N1,length.out=Ncond*N1*N_vs),
+                         type=rep(type,each=Ncond*N1))
+
+means_fullconfRT <- with(cost_df_cor,aggregate(cost,by=list(Vs=Vs,sub=sub,traindiffcond=traindiffcond),mean))
+means_fullconfRT <- cast(means_fullconfRT,traindiffcond+sub~Vs)
+result_mean <- means_fullconfRT[,3:dim(means_fullconfRT)[2]]
+result_mean <- as.matrix(result_mean)
+result_mean <- sapply(seq(nrow(result_mean)),function(i) {
+  j <- which.min(result_mean[i,])
+  c(j)
+})
+Vs_mean <- drifts[result_mean]
+
+medians <- with(cost_df_cor,aggregate(cost,by=list(Vs=Vs,sub=sub,traindiffcond=traindiffcond),median))
+medians <- cast(medians,traindiffcond+sub~Vs)
+result_median <- medians[,3:dim(medians)[2]]
+result_median <- as.matrix(result_median)
+result_median <- sapply(seq(nrow(result_median)),function(i) {
+  j <- which.min(result_median[i,])
+  c(j)
+})
+Vs_median <- drifts[result_median]
+
+mins <- with(cost_df_cor,aggregate(cost,by=list(Vs=Vs,sub=sub,traindiffcond=traindiffcond),min))
+mins <- cast(mins,traindiffcond+sub~Vs)
+result_min <- mins[,3:dim(mins)[2]]
+result_min <- as.matrix(result_min)
+result_min <- sapply(seq(nrow(result_min)),function(i) {
+  j <- which.min(result_min[i,])
+  c(j)
+})
+Vs_min <- drifts[result_min]
+
+means_fullconfRT <- with(cost_df_fb,aggregate(cost,by=list(Vs=Vs,sub=sub,traindiffcond=traindiffcond),mean))
+means_fullconfRT <- cast(means_fullconfRT,traindiffcond+sub~Vs)
+result_mean <- means_fullconfRT[,3:dim(means_fullconfRT)[2]]
+result_mean <- as.matrix(result_mean)
+result_mean <- sapply(seq(nrow(result_mean)),function(i) {
+  j <- which.min(result_mean[i,])
+  c(j)
+})
+Vs_mean_fb <- drifts[result_mean]
+
+medians <- with(cost_df_fb,aggregate(cost,by=list(Vs=Vs,sub=sub,traindiffcond=traindiffcond),median))
+medians <- cast(medians,traindiffcond+sub~Vs)
+result_median <- medians[,3:dim(medians)[2]]
+result_median <- as.matrix(result_median)
+result_median <- sapply(seq(nrow(result_median)),function(i) {
+  j <- which.min(result_median[i,])
+  c(j)
+})
+Vs_median_fb <- drifts[result_median]
+
+mins <- with(cost_df_fb,aggregate(cost,by=list(Vs=Vs,sub=sub,traindiffcond=traindiffcond),min))
+mins <- cast(mins,traindiffcond+sub~Vs)
+result_min <- mins[,3:dim(mins)[2]]
+result_min <- as.matrix(result_min)
+result_min <- sapply(seq(nrow(result_min)),function(i) {
+  j <- which.min(result_min[i,])
+  c(j)
+})
+Vs_min_fb <- drifts[result_min]
+
+N_vs <- 7
+type <- c("mean","mean_fullconfRT_fb","median_fb","min_fb","mean_fullconfRT","median","min")
+confRT <- c("median",rep("dist",N_vs-1))
+estimate_func <- c("mean","mean","median","min","mean","median","min")
+feedback <- c(rep("block",4),rep("trial",3))
+Vs_compare2 <- data.frame(Vs=c(Vs2,Vs_mean_fb,Vs_median_fb,Vs_min_fb,Vs_mean,Vs_median,Vs_min),
+                          sub=rep(subs_2,Ncond*N_vs),
+                         condition=rep(cond_2,each=Nsub_2,length.out=Ncond*Nsub_2*N_vs),
+                         type=rep(type,each=Ncond*Nsub_2), confRT=rep(confRT,each=Ncond*Nsub_2),
+                         feedback=rep(feedback,each=Ncond*Nsub_2), estimate_func=rep(estimate_func,each=Ncond*Nsub_2))
+
+#' Questions : 
+#' - Is there a difference in fitted Vs between median confRT and full distribution ?
+#' - Which of the mean/median/min provide the most accurate estimate for Vs ?
+#' - Exp2 : Does the trial-by-trial feedback give different results than the blockwise feedback ? 
+
+## Exp 1: fake feedback
+m <- lmer(Vs~type*condition + (1|sub),data=Vs_compare1)
+m <- lmer(Vs~type*condition + (1|sub),data=subset(Vs_compare1,type!="min"))
+anova(m)
+# Post-hoc test within each condition
+emm <- emmeans(m, ~ type|condition)
+pairs(emm) # The min method is different to the others in the positive FB condition
+with(Vs_compare1,aggregate(Vs,by=list(type,condition),mean)) # Show mean estimates
+
+## Exp 2: Training difficulty
+# Median confRT vs full distribution
+m <- lmer(data = subset(Vs_compare2,feedback=="block"&estimate_func=="mean"),
+          Vs~confRT*condition + (1|sub))
+anova(m)
+# Post-hoc test within each condition
+emm <- emmeans(m, ~ confRT|condition)
+pairs(emm) # Median confRT has lower Vs estimates in the easy condition
+
+# Trial-by-trial FB vs block FB + aggregation function of the repetitions
+m <- lmer(Vs~estimate_func*condition*feedback + (1|sub),data=subset(Vs_compare2,confRT=="dist"))
+m <- lmer(Vs~estimate_func*condition*feedback + (1|sub),data=subset(Vs_compare2,confRT=="dist"&estimate_func!="min"))
+anova(m)
+# Post-hoc test within each condition
+emm <- emmeans(m, ~ estimate_func|condition) 
+pairs(emm) # Higher Vs estimate using the mean in the easy condition 
+with(Vs_compare2,aggregate(Vs,by=list(estimate_func,condition),mean)) # Show mean estimates
+
+par(mfrow=c(1,3))
+for (i in 1:Nsub_2) {
+  for (c in 1:Ncond_2) {
+    tempmin <- as.numeric(mins[i*(c-1)+i,])
+    tempmin <- tempmin[complete.cases(tempmin)]
+    plot(as.numeric(tempmin),main=paste(subs_2[i],cond_2[c],"min"))
+    abline(v=which.min(tempmin))
+    tempmedian <- as.numeric(medians[i*(c-1)+i,])
+    tempmedian <- tempmedian[complete.cases(tempmedian)]
+    plot(as.numeric(tempmedian),main=paste(subs_2[i],cond_2[c],"median"))
+    abline(v=which.min(tempmedian))
+    tempmean <- as.numeric(means_fullconfRT[i*(c-1)+i,])
+    tempmean <- tempmean[complete.cases(tempmean)]
+    plot(as.numeric(tempmean),main=paste(subs_2[i],cond_2[c],"mean"))
+    abline(v=which.min(tempmean))
+  }
 }
 # Stat tests ------------------------------------------------------------
 # Exp1 ====
