@@ -547,10 +547,13 @@ result_min <- sapply(seq(nrow(result_min)),function(i) {
 Vs_min <- drifts[result_min]
 
 N_vs <- 4
+confRT <- c("median",rep("dist",N_vs-1))
+estimate_func <- c("mean","mean","median","min")
 type <- c("mean","mean_fullconfRT","median","min")
 Vs_compare1 <- data.frame(Vs=c(Vs1,Vs_mean,Vs_median,Vs_min),sub=rep(subs1,Ncond*N_vs),
                          condition=rep(cond_1,each=N1,length.out=Ncond*N1*N_vs),
-                         type=rep(type,each=Ncond*N1))
+                         type=rep(type,each=Ncond*N1),estimate_func=rep(estimate_func,each=Ncond*N1),
+                         confRT=rep(confRT,each=Ncond*N1))
 
 means_fullconfRT <- with(cost_df_cor,aggregate(cost,by=list(Vs=Vs,sub=sub,traindiffcond=traindiffcond),mean))
 means_fullconfRT <- cast(means_fullconfRT,traindiffcond+sub~Vs)
@@ -629,13 +632,17 @@ Vs_compare2 <- data.frame(Vs=c(Vs2,Vs_mean_fb,Vs_median_fb,Vs_min_fb,Vs_mean,Vs_
 #' - Exp2 : Does the trial-by-trial feedback give different results than the blockwise feedback ? 
 
 ## Exp 1: fake feedback
-m <- lmer(Vs~type*condition + (1|sub),data=Vs_compare1)
-m <- lmer(Vs~type*condition + (1|sub),data=subset(Vs_compare1,type!="min"))
+# Median confRT vs full distribution
+m <- lmer(Vs~confRT*condition + (1|sub),data=subset(Vs_compare1,estimate_func=="mean"))
 anova(m)
 # Post-hoc test within each condition
-emm <- emmeans(m, ~ type|condition)
-pairs(emm) # The min method is different to the others in the positive FB condition
-with(Vs_compare1,aggregate(Vs,by=list(type,condition),mean)) # Show mean estimates
+emm <- emmeans(m, ~ confRT|condition) 
+pairs(emm) # Slightly higher Vs with the full distribution in the positive FB condition 
+with(subset(Vs_compare1,estimate_func=="mean"),aggregate(Vs,by=list(confRT,condition),mean)) # Show mean estimates
+
+# Mean vs Median vs Min
+m <- lmer(Vs~estimate_func*condition + (1|sub),data=subset(Vs_compare1,confRT=="dist"&type!="min"))
+anova(m) # No difference between mean and median
 
 ## Exp 2: Training difficulty
 # Median confRT vs full distribution
@@ -649,6 +656,7 @@ pairs(emm) # Median confRT has lower Vs estimates in the easy condition
 # Trial-by-trial FB vs block FB + aggregation function of the repetitions
 m <- lmer(Vs~estimate_func*condition*feedback + (1|sub),data=subset(Vs_compare2,confRT=="dist"))
 m <- lmer(Vs~estimate_func*condition*feedback + (1|sub),data=subset(Vs_compare2,confRT=="dist"&estimate_func!="min"))
+m <- lmer(Vs~condition*feedback + (1|sub),data=subset(Vs_compare2,confRT=="dist"&estimate_func=="mean"))
 anova(m)
 # Post-hoc test within each condition
 emm <- emmeans(m, ~ estimate_func|condition) 
@@ -658,18 +666,15 @@ with(Vs_compare2,aggregate(Vs,by=list(estimate_func,condition),mean)) # Show mea
 par(mfrow=c(1,3))
 for (i in 1:Nsub_2) {
   for (c in 1:Ncond_2) {
-    tempmin <- as.numeric(mins[i*(c-1)+i,])
-    tempmin <- tempmin[complete.cases(tempmin)]
-    plot(as.numeric(tempmin),main=paste(subs_2[i],cond_2[c],"min"))
-    abline(v=which.min(tempmin))
-    tempmedian <- as.numeric(medians[i*(c-1)+i,])
-    tempmedian <- tempmedian[complete.cases(tempmedian)]
-    plot(as.numeric(tempmedian),main=paste(subs_2[i],cond_2[c],"median"))
-    abline(v=which.min(tempmedian))
-    tempmean <- as.numeric(means_fullconfRT[i*(c-1)+i,])
+    tempmean <- as.numeric(means_fullconfRT[Nsub_2*(c-1)+i,])
     tempmean <- tempmean[complete.cases(tempmean)]
-    plot(as.numeric(tempmean),main=paste(subs_2[i],cond_2[c],"mean"))
-    abline(v=which.min(tempmean))
+    smoothed <- lowess(tempmean[2:501],f=.05)
+    plot(tempmean[2:501],main=paste(subs_2[i],cond_2[c],"mean"),
+         xlab="Vs",ylab="Mean over repetitions",xaxt='n')
+    lines(smoothed,col="green",lwd=2)
+    axis(1,at=seq(0,500,100),labels = seq(0,.5,.1))
+    abline(v=which.min(tempmean[2:501]),col="red")
+    abline(v=which.min(smoothed$y),col="green")
   }
 }
 # Stat tests ------------------------------------------------------------
