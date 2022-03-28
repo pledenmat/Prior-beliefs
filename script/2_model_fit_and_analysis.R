@@ -241,6 +241,15 @@ if (!(file.exists("cost_vs_exp1.csv"))) {
   cost_df <- read.csv("cost_vs_exp1.csv")
 }
 
+means_fullconfRT <- with(cost_df,aggregate(cost,by=list(Vs=Vs,sub=sub,selfconf=selfconf),mean))
+means_fullconfRT <- cast(means_fullconfRT,selfconf+sub~Vs)
+
+vs_smooth1 <- sapply(seq(nrow(means_fullconfRT)), function(i) {
+  j <- as.numeric(means_fullconfRT[i,3:dim(means_fullconfRT)[2]])
+  j <- lowess(j,f=.05)
+  j <- which.min(j$y)
+  c(drifts[j])
+})
 
 result <- sapply(seq(nrow(means)),function(i) {
   j <- which.min(means[i,])
@@ -249,8 +258,8 @@ result <- sapply(seq(nrow(means)),function(i) {
 Vs1 <- drifts[result]
 Vs1_matrix <- matrix(Vs1,nrow=N1,ncol=Ncond)
 
-df <- data.frame(Vs=Vs1,bound = c(bound_train), ter = c(ter_train),Vo=c(v_train),
-                 sub=rep(subs1,Ncond),condition=rep(cond_1,each=N1))
+df <- data.frame(Vs=vs_smooth1,bound = c(bound_train), ter = c(ter_train),Vo=c(v_train),
+                 sub=rep(subs1,Ncond),condition=rep(cond_1,each=N1),Vs=Vs1)
 ## Generate model prediction ====
 go_to("results")
 
@@ -457,6 +466,15 @@ if (!(file.exists("cost_vs_exp2_cor.csv"))) {
   cost_df_fb <- read.csv("cost_vs_exp2_fb.csv")
 }
 
+means_fullconfRT <- with(cost_df_cor,aggregate(cost,by=list(Vs=Vs,sub=sub,traindiffcond=traindiffcond),mean))
+means_fullconfRT <- cast(means_fullconfRT,traindiffcond+sub~Vs)
+
+vs_smooth2 <- sapply(seq(nrow(means_fullconfRT)), function(i) {
+  j <- as.numeric(means_fullconfRT[i,3:dim(means_fullconfRT)[2]])
+  j <- lowess(j,f=.05)
+  j <- which.min(j$y)
+  c(drifts[j])
+})
 
 result <- sapply(seq(nrow(means)),function(i) {
   j <- which.min(means[i,])
@@ -465,8 +483,9 @@ result <- sapply(seq(nrow(means)),function(i) {
 Vs2 <- drifts[result]
 Vs2_matrix <- matrix(Vs2,nrow=Nsub_2,ncol=Ncond_2)
 
-df <- data.frame(Vs=Vs2,bound = c(bound_train), ter = c(ter_train),Vo=c(v_train),
-                 sub=rep(subs_2,Ncond_2),condition=rep(cond_2,each=Nsub_2))
+df2 <- data.frame(Vs=vs_smooth2,bound = c(bound_train), ter = c(ter_train),
+                  Vo=c(v_train),sub=rep(subs_2,Ncond_2),condition=rep(cond_2,each=Nsub_2),
+                  Vs_raw=Vs2)
 
 ## Generate model prediction ====
 go_to("results")
@@ -536,21 +555,11 @@ result_median <- sapply(seq(nrow(result_median)),function(i) {
 })
 Vs_median <- drifts[result_median]
 
-mins <- with(cost_df,aggregate(cost,by=list(Vs=Vs,sub=sub,selfconf=selfconf),min))
-mins <- cast(mins,selfconf+sub~Vs)
-result_min <- mins[,3:dim(mins)[2]]
-result_min <- as.matrix(result_min)
-result_min <- sapply(seq(nrow(result_min)),function(i) {
-  j <- which.min(result_min[i,])
-  c(j)
-})
-Vs_min <- drifts[result_min]
-
 N_vs <- 4
 confRT <- c("median",rep("dist",N_vs-1))
-estimate_func <- c("mean","mean","median","min")
-type <- c("mean","mean_fullconfRT","median","min")
-Vs_compare1 <- data.frame(Vs=c(Vs1,Vs_mean,Vs_median,Vs_min),sub=rep(subs1,Ncond*N_vs),
+estimate_func <- c("mean","mean","median","mean")
+type <- c("mean","mean_fullconfRT","median","smooth")
+Vs_compare1 <- data.frame(Vs=c(Vs1,Vs_mean,Vs_median,vs_smooth1),sub=rep(subs1,Ncond*N_vs),
                          condition=rep(cond_1,each=N1,length.out=Ncond*N1*N_vs),
                          type=rep(type,each=Ncond*N1),estimate_func=rep(estimate_func,each=Ncond*N1),
                          confRT=rep(confRT,each=Ncond*N1))
@@ -575,16 +584,6 @@ result_median <- sapply(seq(nrow(result_median)),function(i) {
 })
 Vs_median <- drifts[result_median]
 
-mins <- with(cost_df_cor,aggregate(cost,by=list(Vs=Vs,sub=sub,traindiffcond=traindiffcond),min))
-mins <- cast(mins,traindiffcond+sub~Vs)
-result_min <- mins[,3:dim(mins)[2]]
-result_min <- as.matrix(result_min)
-result_min <- sapply(seq(nrow(result_min)),function(i) {
-  j <- which.min(result_min[i,])
-  c(j)
-})
-Vs_min <- drifts[result_min]
-
 means_fullconfRT <- with(cost_df_fb,aggregate(cost,by=list(Vs=Vs,sub=sub,traindiffcond=traindiffcond),mean))
 means_fullconfRT <- cast(means_fullconfRT,traindiffcond+sub~Vs)
 result_mean <- means_fullconfRT[,3:dim(means_fullconfRT)[2]]
@@ -605,22 +604,12 @@ result_median <- sapply(seq(nrow(result_median)),function(i) {
 })
 Vs_median_fb <- drifts[result_median]
 
-mins <- with(cost_df_fb,aggregate(cost,by=list(Vs=Vs,sub=sub,traindiffcond=traindiffcond),min))
-mins <- cast(mins,traindiffcond+sub~Vs)
-result_min <- mins[,3:dim(mins)[2]]
-result_min <- as.matrix(result_min)
-result_min <- sapply(seq(nrow(result_min)),function(i) {
-  j <- which.min(result_min[i,])
-  c(j)
-})
-Vs_min_fb <- drifts[result_min]
-
-N_vs <- 7
-type <- c("mean","mean_fullconfRT_fb","median_fb","min_fb","mean_fullconfRT","median","min")
+N_vs <- 6
+type <- c("mean","mean_fullconfRT_fb","median_fb","mean_fullconfRT","median","smooth")
 confRT <- c("median",rep("dist",N_vs-1))
-estimate_func <- c("mean","mean","median","min","mean","median","min")
-feedback <- c(rep("block",4),rep("trial",3))
-Vs_compare2 <- data.frame(Vs=c(Vs2,Vs_mean_fb,Vs_median_fb,Vs_min_fb,Vs_mean,Vs_median,Vs_min),
+estimate_func <- c("mean","mean","median","mean","median","mean")
+feedback <- c(rep("block",3),rep("trial",3))
+Vs_compare2 <- data.frame(Vs=c(Vs2,Vs_mean_fb,Vs_median_fb,Vs_mean,Vs_median,vs_smooth2),
                           sub=rep(subs_2,Ncond*N_vs),
                          condition=rep(cond_2,each=Nsub_2,length.out=Ncond*Nsub_2*N_vs),
                          type=rep(type,each=Ncond*Nsub_2), confRT=rep(confRT,each=Ncond*Nsub_2),
@@ -641,8 +630,12 @@ pairs(emm) # Slightly higher Vs with the full distribution in the positive FB co
 with(subset(Vs_compare1,estimate_func=="mean"),aggregate(Vs,by=list(confRT,condition),mean)) # Show mean estimates
 
 # Mean vs Median vs Min
-m <- lmer(Vs~estimate_func*condition + (1|sub),data=subset(Vs_compare1,confRT=="dist"&type!="min"))
+m <- lmer(Vs~estimate_func*condition + (1|sub),data=subset(Vs_compare1,confRT=="dist"))
 anova(m) # No difference between mean and median
+
+# Smooth vs no Smooth
+m <- lmer(Vs~type*condition + (1|sub),data=subset(Vs_compare1,type %in% c("mean_fullconfRT","smooth")))
+anova(m) 
 
 ## Exp 2: Training difficulty
 # Median confRT vs full distribution
@@ -655,13 +648,17 @@ pairs(emm) # Median confRT has lower Vs estimates in the easy condition
 
 # Trial-by-trial FB vs block FB + aggregation function of the repetitions
 m <- lmer(Vs~estimate_func*condition*feedback + (1|sub),data=subset(Vs_compare2,confRT=="dist"))
-m <- lmer(Vs~estimate_func*condition*feedback + (1|sub),data=subset(Vs_compare2,confRT=="dist"&estimate_func!="min"))
+anova(m)
 m <- lmer(Vs~condition*feedback + (1|sub),data=subset(Vs_compare2,confRT=="dist"&estimate_func=="mean"))
 anova(m)
 # Post-hoc test within each condition
 emm <- emmeans(m, ~ estimate_func|condition) 
 pairs(emm) # Higher Vs estimate using the mean in the easy condition 
 with(Vs_compare2,aggregate(Vs,by=list(estimate_func,condition),mean)) # Show mean estimates
+
+# Smooth vs no Smooth
+m <- lmer(Vs~type*condition + (1|sub),data=subset(Vs_compare2,type %in% c("mean_fullconfRT","smooth")))
+anova(m) 
 
 par(mfrow=c(1,3))
 for (i in 1:Nsub_2) {
@@ -677,6 +674,7 @@ for (i in 1:Nsub_2) {
     abline(v=which.min(smoothed$y),col="green")
   }
 }
+
 # Stat tests ------------------------------------------------------------
 # Exp1 ====
 #DDM train
@@ -707,9 +705,9 @@ m <- lmer(ter ~ phase*condition + (condition|sub),data = ters1); anova(m)
 df2$sub <- as.factor(df2$sub)
 m <- aov(Vs ~ condition+ Error(sub/condition), data = df2); summary(m)
 m <- lmer(Vs ~condition + (1|sub), data = df2); anova(m)
-m <- lm(Vo ~ condition,data=df2); Anova(m);
-m <- lm(bound ~ condition,data=df2); Anova(m);
-m <- lm(ter ~ condition,data=df2); Anova(m)
+m <- lmer(Vo ~ condition + (1|sub),data=df2); anova(m);
+m <- lmer(bound ~ condition + (1|sub),data=df2); anova(m);
+m <- lmer(ter ~ condition + (1|sub),data=df2); anova(m)
 
 #DDM test
 param2$sub <- as.factor(param2$sub)
@@ -1485,12 +1483,44 @@ par(xpd=F)
 #'save
 dev.off()
 ## Correlation Objective/Subjective drift ====
+par(mfrow=c(1,3))
+cond_ordered_1 <- c("lowSC","mediumSC","highSC")
+cond_ordered_2 <- c("hard","average","easy")
+#' Exp 1
 for (c in 1:Ncond) {
-  obj_drift <- subset(df2,condition==cond_2[c])$Vo
-  subj_drift <- subset(df2,condition==cond_2[c])$Vs
+obj_drift <- subset(df,condition==cond_ordered_1[c])$Vo
+subj_drift <- subset(df,condition==cond_ordered_1[c])$Vs
+drift_range <- c(min(min(subj_drift),min(obj_drift)),max(max(subj_drift),max(obj_drift)))
+plot(obj_drift~subj_drift,cex.axis=1.75,cex.lab=1.75,frame=F,pch=19, main= "Experiment 1",
+     xlim=drift_range, ylim =drift_range );
+print(cor.test(obj_drift,subj_drift));
+abline(lm(obj_drift~subj_drift),lty=2)
+mtext(paste(cond_ordered_1[c],'r = ',round(cor(obj_drift,subj_drift),3)))
+}
+#' Exp 2
+for (c in 1:Ncond) {
+  obj_drift <- subset(df2,condition==cond_ordered_2[c])$Vo
+  subj_drift <- subset(df2,condition==cond_ordered_2[c])$Vs
   drift_range <- c(min(min(subj_drift),min(obj_drift)),max(max(subj_drift),max(obj_drift)))
-  plot(obj_drift~subj_drift,cex.axis=1.75,cex.lab=1.75,frame=F,pch=19, xlim=drift_range, ylim =drift_range );
+  plot(obj_drift~subj_drift,cex.axis=1.75,cex.lab=1.75,frame=F,pch=19, main = "Experiment 2", 
+       xlim=drift_range, ylim =drift_range );
   print(cor.test(obj_drift,subj_drift));
   abline(lm(obj_drift~subj_drift),lty=2)
-  ;mtext(paste(cond_2[c],'r = ',round(cor(obj_drift,subj_drift),3)))
+  mtext(paste(cond_ordered_2[c],'r = ',round(cor(obj_drift,subj_drift),3)))
 }
+#Comparing both experiments
+par(mfrow=c(1,2))
+obj_drift <- df$Vo
+subj_drift <- df$Vs
+drift_range <- c(min(min(subj_drift),min(obj_drift)),max(max(subj_drift),max(obj_drift)))
+plot(obj_drift~subj_drift,cex.axis=1.75,cex.lab=1.75,frame=F,pch=19, xlim=drift_range, ylim =drift_range );
+print(cor.test(obj_drift,subj_drift));
+abline(lm(obj_drift~subj_drift),lty=2)
+mtext(paste('Experiment 1: r = ',round(cor(obj_drift,subj_drift),3)))
+obj_drift <- df2$Vo
+subj_drift <- df2$Vs
+drift_range <- c(min(min(subj_drift),min(obj_drift)),max(max(subj_drift),max(obj_drift)))
+plot(obj_drift~subj_drift,cex.axis=1.75,cex.lab=1.75,frame=F,pch=19, xlim=drift_range, ylim =drift_range );
+print(cor.test(obj_drift,subj_drift));
+abline(lm(obj_drift~subj_drift),lty=2)
+mtext(paste('Experiment 2: r = ',round(cor(obj_drift,subj_drift),3)))
