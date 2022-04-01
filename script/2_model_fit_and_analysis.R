@@ -60,7 +60,7 @@ timesteps <- upperRT/dt
 v_min <- .001; v_max <- .5; step <- .001
 drifts <- seq(v_min,v_max,step)
 
-nsim <- 500 # per drift/cond/participant
+nsim <- 10 # per drift/cond/participant
 nrepeat <- 24 # Vs fitting
 ntrials <- 5000 #model prediction
 # EXP 1 -------------------------------------------------------------------
@@ -259,7 +259,7 @@ Vs1 <- drifts[result]
 Vs1_matrix <- matrix(Vs1,nrow=N1,ncol=Ncond)
 
 df <- data.frame(Vs=vs_smooth1,bound = c(bound_train), ter = c(ter_train),Vo=c(v_train),
-                 sub=rep(subs1,Ncond),condition=rep(cond_1,each=N1),Vs=Vs1)
+                 sub=rep(subs1,Ncond),condition=rep(cond_1,each=N1),Vs_raw=Vs1)
 ## Generate model prediction ====
 go_to("results")
 
@@ -270,10 +270,12 @@ if (file.exists("model_prediction_exp1.csv")) {
   for(i in 1:N1){
     print(paste('simulating',i,'from',N1))
     for(c in 1:Ncond){
-      load(paste0("heatmaps/hm_",Vs1_matrix[i,c],"_filled.Rdata"))
+      temp_vs <- subset(df,condition==cond_1[c]&sub==subs1[i])$Vs
+      tempDat <- subset(Data1,selfconf==cond_1[c]&sub==subs1[i])
+      load(paste0("heatmaps/hm_",temp_vs,"_filled.Rdata"))
       hm_low <- output$lower; hm_up <- output$upper
       hmvec_low <- as.vector(hm_low); hmvec_up <- as.vector(hm_up)
-      temp <- chi_square_optim_DDM(c(bound[i,c],ter[i,c],0,nsim,.1,.001,conf_rt[i,c],1,v[i,c],v2[i,c],v3[i,c]),NULL,0)
+      temp <- chi_square_optim_DDM_fullconfRT(c(bound[i,c],ter[i,c],0,nsim,.1,.001,1,v[i,c],v2[i,c],v3[i,c]),tempDat,0)
       
       #match to the heatmap
       temp$closest_evdnc2 <- match.closest(temp$evidence2,ev_mapping)
@@ -287,8 +289,8 @@ if (file.exists("model_prediction_exp1.csv")) {
       temp$cj_cont <- temp$cj
       
       
-      if(!exists('Simuls')){ Simuls <- cbind(temp,rep(cond_1[c],nsim),rep(subs1[i],nsim))
-      }else{ Simuls <- rbind(Simuls,cbind(temp,rep(cond_1[c],nsim),rep(subs1[i],nsim)))
+      if(!exists('Simuls')){ Simuls <- cbind(temp,cond_1[c],subs1[i])
+      }else{ Simuls <- rbind(Simuls,cbind(temp,cond_1[c],subs1[i]))
       }
     }
   }
@@ -496,11 +498,13 @@ if (file.exists("model_prediction_exp2.csv")) {
   for(i in 1:Nsub_2){
     print(paste('simulating',i,'from',Nsub_2))
     for(c in 1:Ncond_2){
-      tempdat <- subset(Data2, sub==subs_2[i] & traindiffcond==cond_2[c])
-      load(paste0("heatmaps/hm_",Vs2_matrix[i,c],"_filled.Rdata"))
+      temp_vs <- subset(df2,condition==cond_2[c]&sub==subs_2[i])$Vs
+      tempDat <- subset(Data2, sub==subs_2[i] & traindiffcond==cond_2[c])
+      load(paste0("heatmaps/hm_",temp_vs,"_filled.Rdata"))
       hm_low <- output$lower; hm_up <- output$upper
       hmvec_low <- as.vector(hm_low); hmvec_up <- as.vector(hm_up)
-      temp <- chi_square_optim_DDM(c(bound[i,c],ter[i,c],0,nsim,.1,.001,conf_rt[i,c],1,v[i,c],v2[i,c],v3[i,c]),NULL,0)
+      temp <- chi_square_optim_DDM_fullconfRT(c(bound[i,c],ter[i,c],0,nsim,.1,
+                                                .001,1,v[i,c],v2[i,c],v3[i,c]),tempDat,0)
       
       #match to the heatmap
       temp$closest_evdnc2 <- match.closest(temp$evidence2,ev_mapping)
@@ -514,8 +518,8 @@ if (file.exists("model_prediction_exp2.csv")) {
       temp$cj_cont <- temp$cj
       
       
-      if(!exists('Simuls2')){ Simuls2 <- cbind(temp,rep(cond_2[c],nsim),rep(subs_2[i],nsim))
-      }else{ Simuls2 <- rbind(Simuls2,cbind(temp,rep(cond_2[c],nsim),rep(subs_2[i],nsim)))
+      if(!exists('Simuls2')){ Simuls2 <- cbind(temp,cond_2[c],subs_2[i])
+      }else{ Simuls2 <- rbind(Simuls2,cbind(temp,cond_2[c],subs_2[i]))
       }
     }
   }
@@ -637,6 +641,9 @@ anova(m) # No difference between mean and median
 m <- lmer(Vs~type*condition + (1|sub),data=subset(Vs_compare1,type %in% c("mean_fullconfRT","smooth")))
 anova(m) 
 
+m <- lmer(Vs~type*condition + (1|sub),data=subset(Vs_compare1,type %in% c("mean","smooth")))
+anova(m) 
+
 ## Exp 2: Training difficulty
 # Median confRT vs full distribution
 m <- lmer(data = subset(Vs_compare2,feedback=="block"&estimate_func=="mean"),
@@ -659,6 +666,11 @@ with(Vs_compare2,aggregate(Vs,by=list(estimate_func,condition),mean)) # Show mea
 # Smooth vs no Smooth
 m <- lmer(Vs~type*condition + (1|sub),data=subset(Vs_compare2,type %in% c("mean_fullconfRT","smooth")))
 anova(m) 
+
+m <- lmer(Vs~type*condition + (1|sub),data=subset(Vs_compare2,type %in% c("mean","smooth")))
+anova(m) 
+emm <- emmeans(m, ~ type|condition) 
+pairs(emm) # Higher Vs estimate using the mean in the easy condition 
 
 par(mfrow=c(1,3))
 for (i in 1:Nsub_2) {
@@ -801,15 +813,15 @@ for(i in seq(.6,1,.1)) abline(h=i,col="lightgrey",lty = "dashed")
 polygon(c(0:(n-1),(n-1):0),
         c(colMeans(x_sim,na.rm=T) + (colSds(as.matrix(x_sim))/sqrt(N1)),
           (colMeans(x_sim,na.rm=T) - colSds(as.matrix(x_sim))/sqrt(N1))[3:1]),
-        border=F,col=rgb(1,0,0,.2))
+        border=F,col=rgb(205,51,51,51,maxColorValue = 255))
 polygon(c(0:(n-1),(n-1):0),
         c(colMeans(xmed_sim,na.rm=T) + (colSds(as.matrix(xmed_sim))/sqrt(N1)),
           (colMeans(xmed_sim,na.rm=T) - colSds(as.matrix(xmed_sim))/sqrt(N1))[3:1]),
-        border=F,col=rgb(1,.5,0,.2))
+        border=F,col=rgb(0,139,139,51,maxColorValue = 255))
 polygon(c(0:(n-1),(n-1):0),
         c(colMeans(xhigh_sim,na.rm=T) + (colSds(as.matrix(xhigh_sim))/sqrt(N1)),
           (colMeans(xhigh_sim,na.rm=T) - colSds(as.matrix(xhigh_sim))/sqrt(N1))[3:1]),
-        border=F,col=rgb(0,0,1,.2))
+        border=F,col=rgb(205,149,12,51,maxColorValue = 255))
 means <- sapply(x, mean);n<- length(x)
 lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="brown3",lwd=lwddat)
 error.bar(0:(n-1),means,colSds(as.matrix(x),na.rm=T)/sqrt(N1),lwd=lwdgr,col="brown3")
@@ -863,15 +875,15 @@ for(i in seq(.6,1,.1)) abline(h=i,col="lightgrey",lty = "dashed")
 polygon(c(0:(n-1),(n-1):0),
         c(colMeans(x_sim,na.rm=T) + (colSds(as.matrix(x_sim))/sqrt(N1)),
           (colMeans(x_sim,na.rm=T) - colSds(as.matrix(x_sim))/sqrt(N1))[3:1]),
-        border=F,col=rgb(1,0,0,.2))
+        border=F,col=rgb(205,51,51,51,maxColorValue = 255))
 polygon(c(0:(n-1),(n-1):0),
         c(colMeans(xmed_sim,na.rm=T) + (colSds(as.matrix(xmed_sim))/sqrt(N1)),
           (colMeans(xmed_sim,na.rm=T) - colSds(as.matrix(xmed_sim))/sqrt(N1))[3:1]),
-        border=F,col=rgb(1,.5,0,.2))
+        border=F,col=rgb(0,139,139,51,maxColorValue = 255))
 polygon(c(0:(n-1),(n-1):0),
         c(colMeans(xhigh_sim,na.rm=T) + (colSds(as.matrix(xhigh_sim))/sqrt(N1)),
           (colMeans(xhigh_sim,na.rm=T) - colSds(as.matrix(xhigh_sim))/sqrt(N1))[3:1]),
-        border=F,col=rgb(0,0,1,.2))
+        border=F,col=rgb(205,149,12,51,maxColorValue = 255))
 means <- sapply(x, mean);n<- length(x)
 lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="brown3",lwd=lwddat)
 error.bar(0:(n-1),means,colSds(as.matrix(x),na.rm=T)/sqrt(N1),lwd=lwdgr,col="brown3")
@@ -932,15 +944,15 @@ for(i in seq(.6,1.1,.1)) abline(h=i,col="lightgrey",lty = "dashed")
 polygon(c(0:(n-1),(n-1):0),
         c(colMeans(x_sim,na.rm=T) + (colSds(as.matrix(x_sim))/sqrt(N1)),
           (colMeans(x_sim,na.rm=T) - colSds(as.matrix(x_sim))/sqrt(N1))[3:1]),
-        border=F,col=rgb(1,0,0,.2))
+        border=F,col=rgb(205,51,51,51,maxColorValue = 255))
 polygon(c(0:(n-1),(n-1):0),
         c(colMeans(xmed_sim,na.rm=T) + (colSds(as.matrix(xmed_sim))/sqrt(N1)),
           (colMeans(xmed_sim,na.rm=T) - colSds(as.matrix(xmed_sim))/sqrt(N1))[3:1]),
-        border=F,col=rgb(1,.5,0,.2))
+        border=F,col=rgb(0,139,139,51,maxColorValue = 255))
 polygon(c(0:(n-1),(n-1):0),
         c(colMeans(xhigh_sim,na.rm=T) + (colSds(as.matrix(xhigh_sim))/sqrt(N1)),
           (colMeans(xhigh_sim,na.rm=T) - colSds(as.matrix(xhigh_sim))/sqrt(N1))[3:1]),
-        border=F,col=rgb(0,0,1,.2))
+        border=F,col=rgb(205,149,12,51,maxColorValue = 255))
 means <- sapply(x, mean);n<- length(x)
 lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="brown3",lwd=lwddat)
 error.bar(0:(n-1),means,colSds(as.matrix(x),na.rm=T)/sqrt(N1),lwd=lwdgr,col="brown3")
@@ -993,15 +1005,15 @@ for(i in seq(.6,1.1,.1)) abline(h=i,col="lightgrey",lty = "dashed")
 polygon(c(0:(n-1),(n-1):0),
         c(colMeans(x_sim,na.rm=T) + (colSds(as.matrix(x_sim))/sqrt(N1)),
           (colMeans(x_sim,na.rm=T) - colSds(as.matrix(x_sim))/sqrt(N1))[3:1]),
-        border=F,col=rgb(1,0,0,.2))
+        border=F,col=rgb(205,51,51,51,maxColorValue = 255))
 polygon(c(0:(n-1),(n-1):0),
         c(colMeans(xmed_sim,na.rm=T) + (colSds(as.matrix(xmed_sim))/sqrt(N1)),
           (colMeans(xmed_sim,na.rm=T) - colSds(as.matrix(xmed_sim))/sqrt(N1))[3:1]),
-        border=F,col=rgb(1,.5,0,.2))
+        border=F,col=rgb(0,139,139,51,maxColorValue = 255))
 polygon(c(0:(n-1),(n-1):0),
         c(colMeans(xhigh_sim,na.rm=T) + (colSds(as.matrix(xhigh_sim))/sqrt(N1)),
           (colMeans(xhigh_sim,na.rm=T) - colSds(as.matrix(xhigh_sim))/sqrt(N1))[3:1]),
-        border=F,col=rgb(0,0,1,.2))
+        border=F,col=rgb(205,149,12,51,maxColorValue = 255))
 means <- sapply(x, mean);n<- length(x)
 lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="brown3",lwd=lwddat)
 error.bar(0:(n-1),means,colSds(as.matrix(x),na.rm=T)/sqrt(N1),lwd=lwdgr,col="brown3")
@@ -1186,7 +1198,7 @@ error.bar(1.2:3.2,colMeans(CJ_SC_diff_data[,c(10,8,9)]),colSds(as.matrix(CJ_SC_d
 # Plot confidence prediction ----------------------------------------------
 par(mar=c(0,0,0,0))
 plot.new()
-text(.5,.75, labels="G. Model Predictions",cex = cex_legend+.5,font=2)
+text(.5,.75, labels="E. Model Predictions",cex = cex_legend+.5,font=2)
 par(mar=c(5,5,0,2)+0.1)
 
 Simuls$cj <- Simuls$cj_cont
