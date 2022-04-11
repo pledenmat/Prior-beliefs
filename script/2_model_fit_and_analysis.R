@@ -50,6 +50,7 @@ cex_lab <- 3; cex_legend <- 3; cex_title <- 2.5
 windowsFonts(A = windowsFont("Calibri")) 
 par(family="A",font.main = 2, cex.main = cex_title)
 
+stat_test <- F
 # Global parameters --------------------------------------------------------------
 ## Heat map resolution
 dt <- .001; ev_bound <- .5; ev_window <- dt*10; upperRT <- 5
@@ -264,7 +265,7 @@ df <- data.frame(Vs=vs_smooth1,bound = c(bound_train), ter = c(ter_train),Vo=c(v
 go_to("results")
 
 if (file.exists("model_prediction_exp1.csv")) {
-  Simuls <- read.table("model_prediction_exp1.csv")
+  Simuls <- read.csv("model_prediction_exp1.csv")
 }else{
   rm(Simuls)
   for(i in 1:N1){
@@ -492,7 +493,7 @@ df2 <- data.frame(Vs=vs_smooth2,bound = c(bound_train), ter = c(ter_train),
 ## Generate model prediction ====
 go_to("results")
 if (file.exists("model_prediction_exp2.csv")) {
-  Simuls2 <- read.table("model_prediction_exp2.csv")
+  Simuls2 <- read.csv("model_prediction_exp2.csv")
 }else{
   rm(Simuls2)
   for(i in 1:Nsub_2){
@@ -538,211 +539,215 @@ if (file.exists("model_prediction_exp2.csv")) {
 #' We proceeded to go instead with the full confidence RT distribution to preserve
 #' more information.
 #' We also explore different approaches to estimate Vs
-
-means_fullconfRT <- with(cost_df,aggregate(cost,by=list(Vs=Vs,sub=sub,selfconf=selfconf),mean))
-means_fullconfRT <- cast(means_fullconfRT,selfconf+sub~Vs)
-result_mean <- means_fullconfRT[,3:dim(means_fullconfRT)[2]]
-result_mean <- as.matrix(result_mean)
-result_mean <- sapply(seq(nrow(result_mean)),function(i) {
-  j <- which.min(result_mean[i,])
-  c(j)
-})
-Vs_mean <- drifts[result_mean]
-
-medians <- with(cost_df,aggregate(cost,by=list(Vs=Vs,sub=sub,selfconf=selfconf),median))
-medians <- cast(medians,selfconf+sub~Vs)
-result_median <- medians[,3:dim(medians)[2]]
-result_median <- as.matrix(result_median)
-result_median <- sapply(seq(nrow(result_median)),function(i) {
-  j <- which.min(result_median[i,])
-  c(j)
-})
-Vs_median <- drifts[result_median]
-
-N_vs <- 4
-confRT <- c("median",rep("dist",N_vs-1))
-estimate_func <- c("mean","mean","median","mean")
-type <- c("mean","mean_fullconfRT","median","smooth")
-Vs_compare1 <- data.frame(Vs=c(Vs1,Vs_mean,Vs_median,vs_smooth1),sub=rep(subs1,Ncond*N_vs),
-                         condition=rep(cond_1,each=N1,length.out=Ncond*N1*N_vs),
-                         type=rep(type,each=Ncond*N1),estimate_func=rep(estimate_func,each=Ncond*N1),
-                         confRT=rep(confRT,each=Ncond*N1))
-
-means_fullconfRT <- with(cost_df_cor,aggregate(cost,by=list(Vs=Vs,sub=sub,traindiffcond=traindiffcond),mean))
-means_fullconfRT <- cast(means_fullconfRT,traindiffcond+sub~Vs)
-result_mean <- means_fullconfRT[,3:dim(means_fullconfRT)[2]]
-result_mean <- as.matrix(result_mean)
-result_mean <- sapply(seq(nrow(result_mean)),function(i) {
-  j <- which.min(result_mean[i,])
-  c(j)
-})
-Vs_mean <- drifts[result_mean]
-
-medians <- with(cost_df_cor,aggregate(cost,by=list(Vs=Vs,sub=sub,traindiffcond=traindiffcond),median))
-medians <- cast(medians,traindiffcond+sub~Vs)
-result_median <- medians[,3:dim(medians)[2]]
-result_median <- as.matrix(result_median)
-result_median <- sapply(seq(nrow(result_median)),function(i) {
-  j <- which.min(result_median[i,])
-  c(j)
-})
-Vs_median <- drifts[result_median]
-
-means_fullconfRT <- with(cost_df_fb,aggregate(cost,by=list(Vs=Vs,sub=sub,traindiffcond=traindiffcond),mean))
-means_fullconfRT <- cast(means_fullconfRT,traindiffcond+sub~Vs)
-result_mean <- means_fullconfRT[,3:dim(means_fullconfRT)[2]]
-result_mean <- as.matrix(result_mean)
-result_mean <- sapply(seq(nrow(result_mean)),function(i) {
-  j <- which.min(result_mean[i,])
-  c(j)
-})
-Vs_mean_fb <- drifts[result_mean]
-
-medians <- with(cost_df_fb,aggregate(cost,by=list(Vs=Vs,sub=sub,traindiffcond=traindiffcond),median))
-medians <- cast(medians,traindiffcond+sub~Vs)
-result_median <- medians[,3:dim(medians)[2]]
-result_median <- as.matrix(result_median)
-result_median <- sapply(seq(nrow(result_median)),function(i) {
-  j <- which.min(result_median[i,])
-  c(j)
-})
-Vs_median_fb <- drifts[result_median]
-
-N_vs <- 6
-type <- c("mean","mean_fullconfRT_fb","median_fb","mean_fullconfRT","median","smooth")
-confRT <- c("median",rep("dist",N_vs-1))
-estimate_func <- c("mean","mean","median","mean","median","mean")
-feedback <- c(rep("block",3),rep("trial",3))
-Vs_compare2 <- data.frame(Vs=c(Vs2,Vs_mean_fb,Vs_median_fb,Vs_mean,Vs_median,vs_smooth2),
-                          sub=rep(subs_2,Ncond*N_vs),
-                         condition=rep(cond_2,each=Nsub_2,length.out=Ncond*Nsub_2*N_vs),
-                         type=rep(type,each=Ncond*Nsub_2), confRT=rep(confRT,each=Ncond*Nsub_2),
-                         feedback=rep(feedback,each=Ncond*Nsub_2), estimate_func=rep(estimate_func,each=Ncond*Nsub_2))
-
-#' Questions : 
-#' - Is there a difference in fitted Vs between median confRT and full distribution ?
-#' - Which of the mean/median/min provide the most accurate estimate for Vs ?
-#' - Exp2 : Does the trial-by-trial feedback give different results than the blockwise feedback ? 
-
-## Exp 1: fake feedback
-# Median confRT vs full distribution
-m <- lmer(Vs~confRT*condition + (1|sub),data=subset(Vs_compare1,estimate_func=="mean"))
-anova(m)
-# Post-hoc test within each condition
-emm <- emmeans(m, ~ confRT|condition) 
-pairs(emm) # Slightly higher Vs with the full distribution in the positive FB condition 
-with(subset(Vs_compare1,estimate_func=="mean"),aggregate(Vs,by=list(confRT,condition),mean)) # Show mean estimates
-
-# Mean vs Median vs Min
-m <- lmer(Vs~estimate_func*condition + (1|sub),data=subset(Vs_compare1,confRT=="dist"))
-anova(m) # No difference between mean and median
-
-# Smooth vs no Smooth
-m <- lmer(Vs~type*condition + (1|sub),data=subset(Vs_compare1,type %in% c("mean_fullconfRT","smooth")))
-anova(m) 
-
-m <- lmer(Vs~type*condition + (1|sub),data=subset(Vs_compare1,type %in% c("mean","smooth")))
-anova(m) 
-
-## Exp 2: Training difficulty
-# Median confRT vs full distribution
-m <- lmer(data = subset(Vs_compare2,feedback=="block"&estimate_func=="mean"),
-          Vs~confRT*condition + (1|sub))
-anova(m)
-# Post-hoc test within each condition
-emm <- emmeans(m, ~ confRT|condition)
-pairs(emm) # Median confRT has lower Vs estimates in the easy condition
-
-# Trial-by-trial FB vs block FB + aggregation function of the repetitions
-m <- lmer(Vs~estimate_func*condition*feedback + (1|sub),data=subset(Vs_compare2,confRT=="dist"))
-anova(m)
-m <- lmer(Vs~condition*feedback + (1|sub),data=subset(Vs_compare2,confRT=="dist"&estimate_func=="mean"))
-anova(m)
-# Post-hoc test within each condition
-emm <- emmeans(m, ~ estimate_func|condition) 
-pairs(emm) # Higher Vs estimate using the mean in the easy condition 
-with(Vs_compare2,aggregate(Vs,by=list(estimate_func,condition),mean)) # Show mean estimates
-
-# Smooth vs no Smooth
-m <- lmer(Vs~type*condition + (1|sub),data=subset(Vs_compare2,type %in% c("mean_fullconfRT","smooth")))
-anova(m) 
-
-m <- lmer(Vs~type*condition + (1|sub),data=subset(Vs_compare2,type %in% c("mean","smooth")))
-anova(m) 
-emm <- emmeans(m, ~ type|condition) 
-pairs(emm) # Higher Vs estimate using the mean in the easy condition 
-
-par(mfrow=c(1,3))
-for (i in 1:Nsub_2) {
-  for (c in 1:Ncond_2) {
-    tempmean <- as.numeric(means_fullconfRT[Nsub_2*(c-1)+i,])
-    tempmean <- tempmean[complete.cases(tempmean)]
-    smoothed <- lowess(tempmean[2:501],f=.05)
-    plot(tempmean[2:501],main=paste(subs_2[i],cond_2[c],"mean"),
-         xlab="Vs",ylab="Mean over repetitions",xaxt='n')
-    lines(smoothed,col="green",lwd=2)
-    axis(1,at=seq(0,500,100),labels = seq(0,.5,.1))
-    abline(v=which.min(tempmean[2:501]),col="red")
-    abline(v=which.min(smoothed$y),col="green")
+if (stat_test) {
+  means_fullconfRT <- with(cost_df,aggregate(cost,by=list(Vs=Vs,sub=sub,selfconf=selfconf),mean))
+  means_fullconfRT <- cast(means_fullconfRT,selfconf+sub~Vs)
+  result_mean <- means_fullconfRT[,3:dim(means_fullconfRT)[2]]
+  result_mean <- as.matrix(result_mean)
+  result_mean <- sapply(seq(nrow(result_mean)),function(i) {
+    j <- which.min(result_mean[i,])
+    c(j)
+  })
+  Vs_mean <- drifts[result_mean]
+  
+  medians <- with(cost_df,aggregate(cost,by=list(Vs=Vs,sub=sub,selfconf=selfconf),median))
+  medians <- cast(medians,selfconf+sub~Vs)
+  result_median <- medians[,3:dim(medians)[2]]
+  result_median <- as.matrix(result_median)
+  result_median <- sapply(seq(nrow(result_median)),function(i) {
+    j <- which.min(result_median[i,])
+    c(j)
+  })
+  Vs_median <- drifts[result_median]
+  
+  N_vs <- 4
+  confRT <- c("median",rep("dist",N_vs-1))
+  estimate_func <- c("mean","mean","median","mean")
+  type <- c("mean","mean_fullconfRT","median","smooth")
+  Vs_compare1 <- data.frame(Vs=c(Vs1,Vs_mean,Vs_median,vs_smooth1),sub=rep(subs1,Ncond*N_vs),
+                            condition=rep(cond_1,each=N1,length.out=Ncond*N1*N_vs),
+                            type=rep(type,each=Ncond*N1),estimate_func=rep(estimate_func,each=Ncond*N1),
+                            confRT=rep(confRT,each=Ncond*N1))
+  
+  means_fullconfRT <- with(cost_df_cor,aggregate(cost,by=list(Vs=Vs,sub=sub,traindiffcond=traindiffcond),mean))
+  means_fullconfRT <- cast(means_fullconfRT,traindiffcond+sub~Vs)
+  result_mean <- means_fullconfRT[,3:dim(means_fullconfRT)[2]]
+  result_mean <- as.matrix(result_mean)
+  result_mean <- sapply(seq(nrow(result_mean)),function(i) {
+    j <- which.min(result_mean[i,])
+    c(j)
+  })
+  Vs_mean <- drifts[result_mean]
+  
+  medians <- with(cost_df_cor,aggregate(cost,by=list(Vs=Vs,sub=sub,traindiffcond=traindiffcond),median))
+  medians <- cast(medians,traindiffcond+sub~Vs)
+  result_median <- medians[,3:dim(medians)[2]]
+  result_median <- as.matrix(result_median)
+  result_median <- sapply(seq(nrow(result_median)),function(i) {
+    j <- which.min(result_median[i,])
+    c(j)
+  })
+  Vs_median <- drifts[result_median]
+  
+  means_fullconfRT <- with(cost_df_fb,aggregate(cost,by=list(Vs=Vs,sub=sub,traindiffcond=traindiffcond),mean))
+  means_fullconfRT <- cast(means_fullconfRT,traindiffcond+sub~Vs)
+  result_mean <- means_fullconfRT[,3:dim(means_fullconfRT)[2]]
+  result_mean <- as.matrix(result_mean)
+  result_mean <- sapply(seq(nrow(result_mean)),function(i) {
+    j <- which.min(result_mean[i,])
+    c(j)
+  })
+  Vs_mean_fb <- drifts[result_mean]
+  
+  medians <- with(cost_df_fb,aggregate(cost,by=list(Vs=Vs,sub=sub,traindiffcond=traindiffcond),median))
+  medians <- cast(medians,traindiffcond+sub~Vs)
+  result_median <- medians[,3:dim(medians)[2]]
+  result_median <- as.matrix(result_median)
+  result_median <- sapply(seq(nrow(result_median)),function(i) {
+    j <- which.min(result_median[i,])
+    c(j)
+  })
+  Vs_median_fb <- drifts[result_median]
+  
+  N_vs <- 6
+  type <- c("mean","mean_fullconfRT_fb","median_fb","mean_fullconfRT","median","smooth")
+  confRT <- c("median",rep("dist",N_vs-1))
+  estimate_func <- c("mean","mean","median","mean","median","mean")
+  feedback <- c(rep("block",3),rep("trial",3))
+  Vs_compare2 <- data.frame(Vs=c(Vs2,Vs_mean_fb,Vs_median_fb,Vs_mean,Vs_median,vs_smooth2),
+                            sub=rep(subs_2,Ncond*N_vs),
+                            condition=rep(cond_2,each=Nsub_2,length.out=Ncond*Nsub_2*N_vs),
+                            type=rep(type,each=Ncond*Nsub_2), confRT=rep(confRT,each=Ncond*Nsub_2),
+                            feedback=rep(feedback,each=Ncond*Nsub_2), estimate_func=rep(estimate_func,each=Ncond*Nsub_2))
+  
+  #' Questions :
+  #' - Is there a difference in fitted Vs between median confRT and full distribution ?
+  #' - Which of the mean/median/min provide the most accurate estimate for Vs ?
+  #' - Exp2 : Does the trial-by-trial feedback give different results than the blockwise feedback ?
+  
+  ## Exp 1: fake feedback
+  # Median confRT vs full distribution
+  m <- lmer(Vs~confRT*condition + (1|sub),data=subset(Vs_compare1,estimate_func=="mean"))
+  anova(m)
+  # Post-hoc test within each condition
+  emm <- emmeans(m, ~ confRT|condition)
+  pairs(emm) # Slightly higher Vs with the full distribution in the positive FB condition
+  with(subset(Vs_compare1,estimate_func=="mean"),aggregate(Vs,by=list(confRT,condition),mean)) # Show mean estimates
+  
+  # Mean vs Median vs Min
+  m <- lmer(Vs~estimate_func*condition + (1|sub),data=subset(Vs_compare1,confRT=="dist"))
+  anova(m) # No difference between mean and median
+  
+  # Smooth vs no Smooth
+  m <- lmer(Vs~type*condition + (1|sub),data=subset(Vs_compare1,type %in% c("mean_fullconfRT","smooth")))
+  anova(m)
+  
+  m <- lmer(Vs~type*condition + (1|sub),data=subset(Vs_compare1,type %in% c("mean","smooth")))
+  anova(m)
+  
+  ## Exp 2: Training difficulty
+  # Median confRT vs full distribution
+  m <- lmer(data = subset(Vs_compare2,feedback=="block"&estimate_func=="mean"),
+            Vs~confRT*condition + (1|sub))
+  anova(m)
+  # Post-hoc test within each condition
+  emm <- emmeans(m, ~ confRT|condition)
+  pairs(emm) # Median confRT has lower Vs estimates in the easy condition
+  
+  # Trial-by-trial FB vs block FB + aggregation function of the repetitions
+  m <- lmer(Vs~estimate_func*condition*feedback + (1|sub),data=subset(Vs_compare2,confRT=="dist"))
+  anova(m)
+  m <- lmer(Vs~condition*feedback + (1|sub),data=subset(Vs_compare2,confRT=="dist"&estimate_func=="mean"))
+  anova(m)
+  
+  # Smooth vs no Smooth
+  m <- lmer(Vs~type*condition + (1|sub),data=subset(Vs_compare2,type %in% c("mean_fullconfRT","smooth")))
+  anova(m)
+  
+  m <- lmer(Vs~type*condition + (1|sub),data=subset(Vs_compare2,type %in% c("mean","smooth")))
+  anova(m)
+  emm <- emmeans(m, ~ type|condition)
+  pairs(emm) # Higher Vs estimate using the mean in the easy condition
+  
+  par(mfrow=c(1,3))
+  for (i in 1:Nsub_2) {
+    for (c in 1:Ncond_2) {
+      tempmean <- as.numeric(means_fullconfRT[Nsub_2*(c-1)+i,])
+      tempmean <- tempmean[complete.cases(tempmean)]
+      smoothed <- lowess(tempmean[2:501],f=.05)
+      plot(tempmean[2:501],main=paste(subs_2[i],cond_2[c],"mean"),
+           xlab="Vs",ylab="Mean over repetitions",xaxt='n')
+      lines(smoothed,col="green",lwd=2)
+      axis(1,at=seq(0,500,100),labels = seq(0,.5,.1))
+      abline(v=which.min(tempmean[2:501]),col="red")
+      abline(v=which.min(smoothed$y),col="green")
+    }
   }
+  
 }
+
 
 # Stat tests ------------------------------------------------------------
 # Exp1 ====
-#DDM train
-df$sub <- as.factor(df$sub)
-m <- lmer(Vs ~ condition + (1|sub),data=df); anova(m);
-m <- aov(Vs ~ condition+ Error(sub/condition), data = df); summary(m) #Equivalent
-m <- lmer(Vo ~condition + (1|sub), data = df); anova(m)
-m <- lmer(bound ~ condition + (1|sub),data=df); anova(m);
-m <- lmer(ter ~ condition + (1|sub),data=df); anova(m);
-
-#DDM test
-param_1$sub <- as.factor(param_1$sub)
-test_bound1 <- with(param_1,aggregate(bound,by=list(condition=condition,sub=sub),mean))
-test_ter1 <- with(param_1,aggregate(ter,by=list(condition=condition,sub=sub),mean))
-m <- lmer(x ~ condition + (1|sub),data=test_bound1); anova(m);
-m <- lmer(x ~ condition + (1|sub),data=test_ter1); anova(m);
-m <- lmer(drift ~ condition*difflevel + (1|sub),data=param_1); anova(m);
-
-#Train vs Test
-bounds1$sub <- as.factor(bounds1$sub)
-vs$sub <- as.factor(vs$sub)
-ters1$sub <- as.factor(ters1$sub)
-m <- lmer(bound ~ phase*condition + (condition|sub),data = bounds1); anova(m)
-m <- lmer(v ~ phase*condition*difficulty + (difficulty|sub),data = vs); anova(m)
-m <- lmer(ter ~ phase*condition + (condition|sub),data = ters1); anova(m)
+if (stat_test) {
+  #DDM train
+  df$sub <- as.factor(df$sub)
+  m <- lmer(Vs ~ condition + (1|sub),data=df); anova(m);
+  m <- aov(Vs ~ condition+ Error(sub/condition), data = df); summary(m) #Equivalent
+  m <- lmer(Vo ~condition + (1|sub), data = df); anova(m)
+  m <- lmer(bound ~ condition + (1|sub),data=df); anova(m);
+  m <- lmer(ter ~ condition + (1|sub),data=df); anova(m);
+  
+  #DDM test
+  param_1$sub <- as.factor(param_1$sub)
+  test_bound1 <- with(param_1,aggregate(bound,by=list(condition=condition,sub=sub),mean))
+  test_ter1 <- with(param_1,aggregate(ter,by=list(condition=condition,sub=sub),mean))
+  m <- lmer(x ~ condition + (1|sub),data=test_bound1); anova(m);
+  m <- lmer(x ~ condition + (1|sub),data=test_ter1); anova(m);
+  m <- lmer(drift ~ condition*difflevel + (1|sub),data=param_1); anova(m);
+  
+  #Train vs Test
+  bounds1$sub <- as.factor(bounds1$sub)
+  vs$sub <- as.factor(vs$sub)
+  ters1$sub <- as.factor(ters1$sub)
+  m <- lmer(bound ~ phase*condition + (condition|sub),data = bounds1); anova(m)
+  m <- lmer(v ~ phase*condition*difficulty + (difficulty|sub),data = vs); anova(m)
+  m <- lmer(ter ~ phase*condition + (condition|sub),data = ters1); anova(m)
+}
 ## Exp2 ====
-#DDM train
-df2$sub <- as.factor(df2$sub)
-m <- aov(Vs ~ condition+ Error(sub/condition), data = df2); summary(m)
-m <- lmer(Vs ~condition + (1|sub), data = df2); anova(m)
-m <- lmer(Vo ~ condition + (1|sub),data=df2); anova(m);
-m <- lmer(bound ~ condition + (1|sub),data=df2); anova(m);
-m <- lmer(ter ~ condition + (1|sub),data=df2); anova(m)
-
-#DDM test
-param2$sub <- as.factor(param2$sub)
-test_bound2 <- with(param2,aggregate(bound,by=list(condition=condition,sub=sub),mean))
-test_ter2 <- with(param2,aggregate(ter,by=list(condition=condition,sub=sub),mean))
-m <- lmer(x ~ condition + (1|sub),data=test_bound2); anova(m);
-m <- lmer(x ~ condition + (1|sub),data=test_ter2); anova(m);
-m <- lmer(drift ~ condition*difflevel + (condition|sub),data=param2); anova(m);
-
-#Train vs Test
-bounds2$sub <- as.factor(bounds2$sub)
-ters2$sub <- as.factor(ters2$sub)
-m <- lmer(bound ~ phase*condition + (1|sub),data = bounds2); anova(m)
-m <- lmer(ter ~ phase*condition + (condition|sub),data = ters2); anova(m)
-
-sim_cj1 <- with(Simuls,aggregate(cj,by=list(condition=condition,coh=coh,sub=sub),mean))
-sim_cj2 <- with(Simuls2,aggregate(cj,by=list(condition=condition,coh=coh,sub=sub),mean))
-sim_cj1$sub <- as.factor(sim_cj1$sub)
-sim_cj2$sub <- as.factor(sim_cj2$sub)
-m <- lmer(x ~ condition*coh + (condition|sub), data = sim_cj1); anova(m)
-m <- lmer(x ~ condition*coh + (condition|sub), data = sim_cj2); anova(m)
-m <- aov(x ~ condition*coh+ Error(sub/condition), data = sim_cj1); summary(m)
-m <- aov(x ~ condition*coh+ Error(sub/condition), data = sim_cj2); summary(m)
+if (stat_test) {
+  #DDM train
+  df2$sub <- as.factor(df2$sub)
+  m <- aov(Vs ~ condition+ Error(sub/condition), data = df2); summary(m)
+  m <- lmer(Vs ~condition + (1|sub), data = df2); anova(m)
+  m <- lmer(Vo ~ condition + (1|sub),data=df2); anova(m);
+  m <- lmer(bound ~ condition + (1|sub),data=df2); anova(m);
+  m <- lmer(ter ~ condition + (1|sub),data=df2); anova(m)
+  
+  #DDM test
+  param2$sub <- as.factor(param2$sub)
+  test_bound2 <- with(param2,aggregate(bound,by=list(condition=condition,sub=sub),mean))
+  test_ter2 <- with(param2,aggregate(ter,by=list(condition=condition,sub=sub),mean))
+  m <- lmer(x ~ condition + (1|sub),data=test_bound2); anova(m);
+  m <- lmer(x ~ condition + (1|sub),data=test_ter2); anova(m);
+  m <- lmer(drift ~ condition*difflevel + (condition|sub),data=param2); anova(m);
+  
+  #Train vs Test
+  bounds2$sub <- as.factor(bounds2$sub)
+  ters2$sub <- as.factor(ters2$sub)
+  m <- lmer(bound ~ phase*condition + (1|sub),data = bounds2); anova(m)
+  m <- lmer(ter ~ phase*condition + (condition|sub),data = ters2); anova(m)
+  
+  sim_cj1 <- with(Simuls,aggregate(cj,by=list(condition=condition,coh=coh,sub=sub),mean))
+  sim_cj2 <- with(Simuls2,aggregate(cj,by=list(condition=condition,coh=coh,sub=sub),mean))
+  sim_cj1$sub <- as.factor(sim_cj1$sub)
+  sim_cj2$sub <- as.factor(sim_cj2$sub)
+  m <- lmer(x ~ condition*coh + (condition|sub), data = sim_cj1); anova(m)
+  m <- lmer(x ~ condition*coh + (condition|sub), data = sim_cj2); anova(m)
+  m <- aov(x ~ condition*coh+ Error(sub/condition), data = sim_cj1); summary(m)
+  m <- aov(x ~ condition*coh+ Error(sub/condition), data = sim_cj2); summary(m)
+  
+}
 # Plot Layout -------------------------------------------------------------
 go_to("plot")
 
