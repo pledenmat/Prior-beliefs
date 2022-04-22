@@ -1040,7 +1040,7 @@ average_CJ_SC_diff_data <- cast(average_CJ_SC_diff_data,selfconf~coh)
 CJ_SC_diff_plot = plot(as.numeric(average_CJ_SC_diff_data[1,]),type='n',frame=F,
                        main=NULL,
                        ylab="Confidence",
-                       xlab="Trial difficulty",
+                       xlab="",
                        xaxt='n',
                        xlim=c(1,3.3),ylim=c(3,6),
                        cex.axis = cex_lab-1, 
@@ -1082,7 +1082,7 @@ average_CJ_SC_diff_data <- cast(average_CJ_SC_diff_data,traindiffcond~coh)
 CJ_SC_diff_plot = plot(as.numeric(average_CJ_SC_diff_data[1,]),type='n',frame=F,
                        main=NULL,
                        ylab="Confidence",
-                       xlab="Trial difficulty",
+                       xlab="",
                        xaxt='n',
                        xlim=c(1,3.3),ylim=c(3,6),
                        cex.axis = cex_lab-1, 
@@ -1226,7 +1226,7 @@ xmed <- xmed[,c("hard","average","easy")];
 xhigh <- xhigh[,c("hard","average","easy")]
 
 stripchart(x,ylim=c(.45,1), xlim=c(-.05,n-1), vertical = TRUE, col="white",frame=F,xaxt='n',
-           main=NULL, yaxt = 'n',family="A",xlab="Trial difficulty",ylab = "Confidence",cex.lab=cex_lab )
+           main=NULL, yaxt = 'n',family="A",ylab = "Confidence",cex.lab=cex_lab )
 # mtext("Confidence",2,at=.75,line=2.5,cex=cex_lab);
 # mtext("Trial difficulty",1,3,at=1,cex=cex_lab)
 axis(1,at=0:(n-1),labels=names(x), cex.axis=cex_lab-1);
@@ -1263,7 +1263,7 @@ xmed <- xmed[,c("hard","average","easy")];
 xhigh <- xhigh[,c("hard","average","easy")]
 
 stripchart(x,ylim=c(.45,1), xlim=c(-.05,n-1), vertical = TRUE, col="white",frame=F,xaxt='n',
-           main=NULL, yaxt = 'n',family="A",ylab="Confidence",xlab="Trial difficulty",cex.lab=cex_lab)
+           main=NULL, yaxt = 'n',family="A",ylab="Confidence",cex.lab=cex_lab)
 # mtext("Confidence",2,at=.75,line=2.5,cex=cex_lab);
 # mtext("Trial difficulty",1,3,at=1,cex=cex_lab)
 axis(1,at=0:(n-1),labels=names(x), cex.axis=cex_lab-1);
@@ -1411,7 +1411,7 @@ plot_drift <- plot_drift[,c(4,2,3)] #Reorder columns to have hard -> easy
 plot(colMeans(plot_drift),frame=F,type='n',cex.lab=2.5,cex.axis=1.75,
      xlim=c(.8,Ncond+.2),ylab='Subjective drift',ylim=c(0,.5),
      xlab="Training condition",xaxt='n', yaxt='n')
-mtext("A.", at = .55, line = 3, cex = cex_title, font = 2)
+mtext("E.", at = .55, line = 3, cex = cex_title, font = 2)
 segments(y0 = seq(0,.5,.1),y1 = seq(0,.5,.1),x0 = 0, x1 = Ncond, col = "lightgrey", lty = "dotted")
 axis(1,1:Ncond,c("Difficult","Medium","Easy"),cex.axis=1.75)
 axis(2,at=seq(0,.5,.1),cex.axis=1.75)
@@ -1432,7 +1432,7 @@ plot_ter <- plot_ter[,c(4,2,3)] #Reorder columns to have easy -> hard
 plot(colMeans(plot_ter),frame=F,type='n',cex.lab=2.5,cex.axis=1.75,
      xlim=c(.8,Ncond+.2),ylim=c(.15,.8),ylab="Non-decision time",
      xlab="Training condition",xaxt='n',main="", cex.main = 2);
-mtext("C.", at = .55, line = 1, cex = cex_title, font = 2)
+mtext("G.", at = .55, line = 1, cex = cex_title, font = 2)
 axis(1,1:Ncond,c("Difficult","Medium","Easy"),cex.axis=1.75)
 segments(y0 = seq(.2,.8,.1),y1 = seq(.2,.8,.1),x0 = 0, x1 = Ncond, col = "lightgrey", lty = "dotted")
 for(i in 1:Nsub_2){
@@ -1450,7 +1450,7 @@ plot_bound <- plot_bound[,c(4,2,3)] #Reorder columns to have easy -> hard
 plot(colMeans(plot_bound),frame=F,type='n',cex.lab=2.5,cex.axis=1.75,
      xlim=c(.8,Ncond+.2),ylim=c(.04,.12),ylab="Bound",
      xlab="Training condition",xaxt='n',main="", cex.main = 2);
-mtext("D.", at = .55, line = 1, cex = cex_title, font = 2)
+mtext("H.", at = .55, line = 1, cex = cex_title, font = 2)
 segments(y0 = seq(.04,.12,.02),y1 = seq(.04,.12,.02),x0 = 0, x1 = Ncond, col = "lightgrey", lty = "dotted")
 axis(1,1:Ncond,c("Difficult","Medium","Easy"),cex.axis=1.75)
 for(i in 1:Nsub_2){
@@ -1470,7 +1470,7 @@ plot(colMeans(plot_drift_minus),frame=F,type='n',cex.lab=2.5,cex.axis=1.75,xlim=
      ylim=c(min(plot_drift_minus),.27),ylab="Drift rate",xlab="Training condition",xaxt='n',yaxt='n');
 axis(1,1:Ncond,c("Difficult","Medium","Easy"),cex.axis=1.75)
 axis(2,seq(0,.25,.05),cex.axis=1.75)
-mtext("B.", at = .55, line = 1, cex = cex_title, font = 2)
+mtext("F.", at = .55, line = 1, cex = cex_title, font = 2)
 segments(y0 = seq(0,.25,.05),y1 = seq(0,.25,.05),x0 = 0, x1 = Ncond, col = "lightgrey", lty = "dotted")
 points(colMeans(plot_drift_minus),type='b',lwd=5,col="darkolivegreen",lty="dashed")
 error.bar(1:Ncond,colMeans(plot_drift_minus),
