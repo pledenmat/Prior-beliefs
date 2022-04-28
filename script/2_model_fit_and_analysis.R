@@ -261,6 +261,102 @@ Vs1_matrix <- matrix(Vs1,nrow=N1,ncol=Ncond)
 
 df <- data.frame(Vs=vs_smooth1,bound = c(bound_train), ter = c(ter_train),Vo=c(v_train),
                  sub=rep(subs1,Ncond),condition=rep(cond_1,each=N1),Vs_raw=Vs1)
+## Fit subjective drift 2 ====
+go_to("results")
+if (!(file.exists("cost_vs_exp1.csv"))) {
+  means <- matrix(NA,nrow=Ncond*N1,ncol=length(drifts)) 
+  stds <- matrix(NA,nrow=Ncond*N1,ncol=length(drifts))
+  s <- 1; cond <- 1
+  while (s <= N1) {
+    while (cond <= Ncond) {
+      cost_conf <- matrix(NA,nrow=nrepeat,ncol=length(drifts))
+      print(paste("Running participant",s,"of",N1,"condition",cond))
+      tempDat <- subset(Data1_train,sub==subs1[s]&selfconf==cond_1[cond])
+      tempDat_test <- subset(Data1,sub==subs1[s]&selfconf==cond_1[cond])
+      ntrial <- dim(tempDat_test)[1]
+      ntrial_train <- dim(tempDat)[1]
+      temp_par <- c(bound_train[s,cond],ter_train[s,cond],0,nrepeat,
+                    .1,.001,1,v_train[s,cond],v2_train[s,cond],v3_train[s,cond])
+      
+      # First generate trials from estimated DDM parameters in the training phase
+      temp <- chi_square_optim_DDM_fullconfRT(temp_par,observations=tempDat_test,returnFit=0)
+      
+      # match to the heatmap
+      temp$closest_evdnc2 <- match.closest(temp$evidence2,ev_mapping)
+      temp$temprt2 <- temp$rt2;
+      temp$temprt2[temp$temprt2>5] <- 5 #heatmap doesn't go higher (5 seconds)
+      temp$temprt2 <- temp$temprt2*timesteps/5 #scale with the heatmap
+      
+      # We compute the cost function several times to take noise into account
+      temp$Nrep <- rep(1:nrepeat,each=ntrial/Ndiff,length.out=ntrial*nrepeat)        
+      
+      bar <- txtProgressBar(0,length(drifts),style=3,char="#")
+      for (d in 1:length(drifts)) {
+        hm_up <- fast_hm(drifts[d])
+        hm_low <- 1-hm_up
+        hmvec_low <- as.vector(hm_low); hmvec_up <- as.vector(hm_up)
+        
+        temp[temp$resp==1,]$cj <- hmvec_up[(temp[temp$resp==1,]$closest_evdnc2-1)*timesteps+round(temp[temp$resp==1,]$temprt2)]
+        temp[temp$resp==-1,]$cj <- hmvec_low[(temp[temp$resp==-1,]$closest_evdnc2-1)*timesteps+round(temp[temp$resp==-1,]$temprt2)]
+        
+        
+        for (i in 1:nrepeat) {
+          pred_sample <- subset(temp,Nrep==i)
+          #' Randomly sample 40 trials for each drift to get the same number of 
+          #' trials as in the training
+          pred_sample <- do.call(rbind,
+                                 lapply(split(pred_sample, pred_sample$drift),
+                                        function(x) x[sample(nrow(x), ntrial_train/Ndiff),]))
+          diff <- sum((tempDat$fb - pred_sample$cj)^2)
+          cost_conf[i,d] <- diff
+        }
+        setTxtProgressBar(bar,d)
+      }
+      temp_df <- data.frame(cost = as.vector(cost_conf),
+                            Nrep = rep(1:nrepeat,length(drifts)),
+                            Vs = rep(drifts,each=nrepeat),
+                            sub = subs1[s], selfconf = cond_1[cond])
+      if (s==1 & cond==1) {
+        cost_df <- temp_df
+      }else{
+        cost_df <- rbind(cost_df,temp_df)
+      }
+      means[s+N1*(cond-1),] <- colMeans(cost_conf)
+      stds[s+N1*(cond-1),] <- colSds(cost_conf)
+      cond <- cond + 1
+    }
+    s <- s + 1
+    cond <- 1
+  }
+  # save(means,file="means_exp1_full.Rdata")
+  # save(stds,file="stds_exp1_full.Rdata")
+  write.csv(cost_df,file="cost_vs_exp1.csv")
+}else{
+  load("means_exp1_full.Rdata")
+  load("stds_exp1_full.Rdata")
+  cost_df <- read.csv("cost_vs_exp1.csv")
+}
+
+means_fullconfRT <- with(cost_df,aggregate(cost,by=list(Vs=Vs,sub=sub,selfconf=selfconf),mean))
+means_fullconfRT <- cast(means_fullconfRT,selfconf+sub~Vs)
+
+vs_smooth1 <- sapply(seq(nrow(means_fullconfRT)), function(i) {
+  j <- as.numeric(means_fullconfRT[i,3:dim(means_fullconfRT)[2]])
+  j <- lowess(j,f=.05)
+  j <- which.min(j$y)
+  c(drifts[j])
+})
+
+result <- sapply(seq(nrow(means)),function(i) {
+  j <- which.min(means[i,])
+  c(j)
+})
+Vs1 <- drifts[result]
+Vs1_matrix <- matrix(Vs1,nrow=N1,ncol=Ncond)
+
+df <- data.frame(Vs=vs_smooth1,bound = c(bound_train), ter = c(ter_train),Vo=c(v_train),
+                 sub=rep(subs1,Ncond),condition=rep(cond_1,each=N1),Vs_raw=Vs1)
+
 ## Generate model prediction ====
 go_to("results")
 
@@ -489,6 +585,116 @@ Vs2_matrix <- matrix(Vs2,nrow=Nsub_2,ncol=Ncond_2)
 df2 <- data.frame(Vs=vs_smooth2,bound = c(bound_train), ter = c(ter_train),
                   Vo=c(v_train),sub=rep(subs_2,Ncond_2),condition=rep(cond_2,each=Nsub_2),
                   Vs_raw=Vs2)
+
+## Fit subjective drift 2 ====
+go_to("results")
+Ndiff <- 1 #Only one difficulty level in the training phase
+if (!(file.exists("cost_vs_exp2_cor.csv"))) {
+  means <- matrix(NA,nrow=Ncond_2*Nsub_2,ncol=length(drifts)) 
+  stds <- matrix(NA,nrow=Ncond_2*Nsub_2,ncol=length(drifts))
+  s <- 1; cond <- 1
+  while (s <= Nsub_2) {
+    while (cond <= Ncond_2) {
+      cost_conf_cor <- matrix(NA,nrow=nrepeat,ncol=length(drifts))
+      cost_conf_fb <- matrix(NA,nrow=nrepeat,ncol=length(drifts))
+      print(paste("Running participant",s,"of",Nsub_2,"condition",cond))
+      tempDat <- subset(Data2_train,sub==subs_2[s]&traindiffcond==cond_2[cond])
+      tempDat_test <- subset(Data2,sub==subs_2[s]&traindiffcond==cond_2[cond])
+      ntrial <- dim(tempDat_test)[1]
+      ntrial_train <- dim(tempDat)[1]
+      temp_par <- c(bound_train[s,cond],ter_train[s,cond],0,nrepeat,
+                    .1,.001,1,v_train[s,cond],v2_train[s,cond],v3_train[s,cond])
+      
+      # First generate trials from estimated DDM parameters in the training phase
+      temp <- chi_square_optim_DDM_fullconfRT(temp_par,observations=tempDat_test,returnFit=0)
+      
+      # match to the heatmap
+      temp$closest_evdnc2 <- match.closest(temp$evidence2,ev_mapping)
+      temp$temprt2 <- temp$rt2;
+      temp$temprt2[temp$temprt2>5] <- 5 #heatmap doesn't go higher (5 seconds)
+      temp$temprt2 <- temp$temprt2*timesteps/5 #scale with the heatmap
+      
+      # We compute the cost function several times to take noise into account
+      temp$Nrep <- rep(1:nrepeat,each=ntrial/Ndiff,length.out=ntrial*nrepeat)        
+      
+      bar <- txtProgressBar(0,length(drifts),style=3,char="#")
+      for (d in 1:length(drifts)) {
+        hm_up <- fast_hm(drifts[d])
+        hm_low <- 1-hm_up
+        hmvec_low <- as.vector(hm_low); hmvec_up <- as.vector(hm_up)
+        
+        temp[temp$resp==1,]$cj <- hmvec_up[(temp[temp$resp==1,]$closest_evdnc2-1)*timesteps+round(temp[temp$resp==1,]$temprt2)]
+        temp[temp$resp==-1,]$cj <- hmvec_low[(temp[temp$resp==-1,]$closest_evdnc2-1)*timesteps+round(temp[temp$resp==-1,]$temprt2)]
+        
+        
+        for (i in 1:nrepeat) {
+          pred_sample <- subset(temp,Nrep==i)
+          #' Randomly sample 40 trials for each drift to get the same number of 
+          #' trials as in the training
+          pred_sample <- do.call(rbind,
+                                 lapply(split(pred_sample, pred_sample$drift),
+                                        function(x) x[sample(nrow(x), ntrial_train/Ndiff),]))
+          diff <- sum((tempDat$cor - pred_sample$cj)^2)
+          cost_conf_cor[i,d] <- diff
+          diff <- sum((tempDat$fb - pred_sample$cj)^2)
+          cost_conf_fb[i,d] <- diff
+        }
+        setTxtProgressBar(bar,d)
+      }
+      temp_df_cor <- data.frame(cost = as.vector(cost_conf_cor),
+                                Nrep = rep(1:nrepeat,length(drifts)),
+                                Vs = rep(drifts,each=nrepeat),
+                                sub = subs_2[s], traindiffcond = cond_2[cond])
+      temp_df_fb <- data.frame(cost = as.vector(cost_conf_fb),
+                               Nrep = rep(1:nrepeat,length(drifts)),
+                               Vs = rep(drifts,each=nrepeat),
+                               sub = subs_2[s], traindiffcond = cond_2[cond])
+      if (s==1 & cond==1) {
+        cost_df_cor <- temp_df_cor
+        cost_df_fb <- temp_df_fb
+      }else{
+        cost_df_cor <- rbind(cost_df_cor,temp_df_cor)
+        cost_df_fb <- rbind(cost_df_fb,temp_df_fb)
+      }
+      means[s+Nsub_2*(cond-1),] <- colMeans(cost_conf)
+      stds[s+Nsub_2*(cond-1),] <- colSds(cost_conf)
+      cond <- cond + 1
+    }
+    s <- s + 1
+    cond <- 1
+  }
+  # save(means,file="means_exp2_full.Rdata")
+  # save(stds,file="stds_exp2_full.Rdata")
+  write.csv(cost_df_cor,file="cost_vs_exp2_cor.csv")
+  write.csv(cost_df_fb,file="cost_vs_exp2_fb.csv")
+}else{
+  load("means_exp2.Rdata")
+  load("stds_exp2.Rdata")
+  cost_df_cor <- read.csv("cost_vs_exp2_cor.csv")
+  cost_df_fb <- read.csv("cost_vs_exp2_fb.csv")
+}
+
+means_fullconfRT <- with(cost_df_cor,aggregate(cost,by=list(Vs=Vs,sub=sub,traindiffcond=traindiffcond),mean))
+means_fullconfRT <- cast(means_fullconfRT,traindiffcond+sub~Vs)
+
+vs_smooth2 <- sapply(seq(nrow(means_fullconfRT)), function(i) {
+  j <- as.numeric(means_fullconfRT[i,3:dim(means_fullconfRT)[2]])
+  j <- lowess(j,f=.05)
+  j <- which.min(j$y)
+  c(drifts[j])
+})
+
+result <- sapply(seq(nrow(means)),function(i) {
+  j <- which.min(means[i,])
+  c(j)
+})
+Vs2 <- drifts[result]
+Vs2_matrix <- matrix(Vs2,nrow=Nsub_2,ncol=Ncond_2)
+
+df2 <- data.frame(Vs=vs_smooth2,bound = c(bound_train), ter = c(ter_train),
+                  Vo=c(v_train),sub=rep(subs_2,Ncond_2),condition=rep(cond_2,each=Nsub_2),
+                  Vs_raw=Vs2)
+
 
 ## Generate model prediction ====
 go_to("results")
