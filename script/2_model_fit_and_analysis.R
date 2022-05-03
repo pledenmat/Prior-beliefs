@@ -334,14 +334,23 @@ if (!(file.exists("cost_vs_exp1.csv"))) {
 }else{
   load("means_exp1_full.Rdata")
   load("stds_exp1_full.Rdata")
-  cost_df <- read.csv("cost_vs_exp1.csv")
+  cost_df_old <- read.csv("cost_vs_exp1.csv")
+  cost_df <- read.csv("cost_vs_exp1_fasthm.csv")
 }
 
 means_fullconfRT <- with(cost_df,aggregate(cost,by=list(Vs=Vs,sub=sub,selfconf=selfconf),mean))
 means_fullconfRT <- cast(means_fullconfRT,selfconf+sub~Vs)
+means_fullconfRT_old <- with(cost_df_old,aggregate(cost,by=list(Vs=Vs,sub=sub,selfconf=selfconf),mean))
+means_fullconfRT_old <- cast(means_fullconfRT_old,selfconf+sub~Vs)
 
 vs_smooth1 <- sapply(seq(nrow(means_fullconfRT)), function(i) {
   j <- as.numeric(means_fullconfRT[i,3:dim(means_fullconfRT)[2]])
+  j <- lowess(j,f=.05)
+  j <- which.min(j$y)
+  c(drifts[j])
+})
+vs_smooth1_old <- sapply(seq(nrow(means_fullconfRT_old)), function(i) {
+  j <- as.numeric(means_fullconfRT_old[i,3:dim(means_fullconfRT_old)[2]])
   j <- lowess(j,f=.05)
   j <- which.min(j$y)
   c(drifts[j])
@@ -357,6 +366,10 @@ Vs1_matrix <- matrix(Vs1,nrow=N1,ncol=Ncond)
 df <- data.frame(Vs=vs_smooth1,bound = c(bound_train), ter = c(ter_train),Vo=c(v_train),
                  sub=rep(subs1,Ncond),condition=rep(cond_1,each=N1),Vs_raw=Vs1)
 
+df_compare1 <- data.frame(Vs=c(vs_smooth1,vs_smooth1_old),bound = rep(c(bound_train),2), ter = rep(c(ter_train),2),
+                         Vo=rep(c(v_train),2),sub=rep(rep(subs1,Ncond),2),condition=rep(rep(cond_1,each=N1),2),hm=rep(c("sim","fast"),each=length(vs_smooth1)))
+m <- lmer(data=df_compare1, Vs~hm*condition + (1|sub))
+anova(m)
 ## Generate model prediction ====
 go_to("results")
 
@@ -589,7 +602,7 @@ df2 <- data.frame(Vs=vs_smooth2,bound = c(bound_train), ter = c(ter_train),
 ## Fit subjective drift 2 ====
 go_to("results")
 Ndiff <- 1 #Only one difficulty level in the training phase
-if (!(file.exists("cost_vs_exp2_cor.csv"))) {
+if (!(file.exists("cost_vs_exp2_cor_fasthm.csv"))) {
   means <- matrix(NA,nrow=Ncond_2*Nsub_2,ncol=length(drifts)) 
   stds <- matrix(NA,nrow=Ncond_2*Nsub_2,ncol=length(drifts))
   s <- 1; cond <- 1
@@ -636,8 +649,6 @@ if (!(file.exists("cost_vs_exp2_cor.csv"))) {
                                         function(x) x[sample(nrow(x), ntrial_train/Ndiff),]))
           diff <- sum((tempDat$cor - pred_sample$cj)^2)
           cost_conf_cor[i,d] <- diff
-          diff <- sum((tempDat$fb - pred_sample$cj)^2)
-          cost_conf_fb[i,d] <- diff
         }
         setTxtProgressBar(bar,d)
       }
@@ -645,19 +656,13 @@ if (!(file.exists("cost_vs_exp2_cor.csv"))) {
                                 Nrep = rep(1:nrepeat,length(drifts)),
                                 Vs = rep(drifts,each=nrepeat),
                                 sub = subs_2[s], traindiffcond = cond_2[cond])
-      temp_df_fb <- data.frame(cost = as.vector(cost_conf_fb),
-                               Nrep = rep(1:nrepeat,length(drifts)),
-                               Vs = rep(drifts,each=nrepeat),
-                               sub = subs_2[s], traindiffcond = cond_2[cond])
       if (s==1 & cond==1) {
         cost_df_cor <- temp_df_cor
-        cost_df_fb <- temp_df_fb
       }else{
         cost_df_cor <- rbind(cost_df_cor,temp_df_cor)
-        cost_df_fb <- rbind(cost_df_fb,temp_df_fb)
       }
-      means[s+Nsub_2*(cond-1),] <- colMeans(cost_conf)
-      stds[s+Nsub_2*(cond-1),] <- colSds(cost_conf)
+      # means[s+Nsub_2*(cond-1),] <- colMeans(cost_conf)
+      # stds[s+Nsub_2*(cond-1),] <- colSds(cost_conf)
       cond <- cond + 1
     }
     s <- s + 1
@@ -665,20 +670,28 @@ if (!(file.exists("cost_vs_exp2_cor.csv"))) {
   }
   # save(means,file="means_exp2_full.Rdata")
   # save(stds,file="stds_exp2_full.Rdata")
-  write.csv(cost_df_cor,file="cost_vs_exp2_cor.csv")
-  write.csv(cost_df_fb,file="cost_vs_exp2_fb.csv")
+  write.csv(cost_df_cor,file="cost_vs_exp2_cor_fasthm.csv")
 }else{
   load("means_exp2.Rdata")
   load("stds_exp2.Rdata")
-  cost_df_cor <- read.csv("cost_vs_exp2_cor.csv")
+  cost_df_cor_old <- read.csv("cost_vs_exp2_cor.csv")
+  cost_df_cor <- read.csv("cost_vs_exp2_cor_fasthm.csv")
   cost_df_fb <- read.csv("cost_vs_exp2_fb.csv")
 }
 
 means_fullconfRT <- with(cost_df_cor,aggregate(cost,by=list(Vs=Vs,sub=sub,traindiffcond=traindiffcond),mean))
 means_fullconfRT <- cast(means_fullconfRT,traindiffcond+sub~Vs)
+means_fullconfRT_old <- with(cost_df_cor_old,aggregate(cost,by=list(Vs=Vs,sub=sub,traindiffcond=traindiffcond),mean))
+means_fullconfRT_old <- cast(means_fullconfRT_old,traindiffcond+sub~Vs)
 
 vs_smooth2 <- sapply(seq(nrow(means_fullconfRT)), function(i) {
   j <- as.numeric(means_fullconfRT[i,3:dim(means_fullconfRT)[2]])
+  j <- lowess(j,f=.05)
+  j <- which.min(j$y)
+  c(drifts[j])
+})
+vs_smooth2_old <- sapply(seq(nrow(means_fullconfRT_old)), function(i) {
+  j <- as.numeric(means_fullconfRT_old[i,3:dim(means_fullconfRT_old)[2]])
   j <- lowess(j,f=.05)
   j <- which.min(j$y)
   c(drifts[j])
@@ -693,8 +706,12 @@ Vs2_matrix <- matrix(Vs2,nrow=Nsub_2,ncol=Ncond_2)
 
 df2 <- data.frame(Vs=vs_smooth2,bound = c(bound_train), ter = c(ter_train),
                   Vo=c(v_train),sub=rep(subs_2,Ncond_2),condition=rep(cond_2,each=Nsub_2),
-                  Vs_raw=Vs2)
+                  Vs_old=vs_smooth2_old)
 
+df_compare2 <- data.frame(Vs=c(vs_smooth2,vs_smooth2_old),bound = rep(c(bound_train),2), ter = rep(c(ter_train),2),
+                         Vo=rep(c(v_train),2),sub=rep(rep(subs_2,Ncond_2),2),condition=rep(rep(cond_2,each=Nsub_2),2),hm=rep(c("sim","fast"),each=length(vs_smooth2)))
+m <- lmer(data=df_compare2, Vs~hm*condition + (1|sub))
+anova(m)
 
 ## Generate model prediction ====
 go_to("results")
