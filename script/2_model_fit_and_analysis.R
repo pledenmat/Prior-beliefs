@@ -987,12 +987,12 @@ layout(matrix(c(1,3,7,9,10,1,5,7,9,10,2,4,8,9,11,2,6,8,9,11),ncol=4),heights = c
 par(mar=c(0,0,0,0))
 plot.new()
 legend("top",legend=c("Negative","Average","Positive"),
-       title = "Experiment 1: Feedback condition",pch=rep(16,3),bty = "n",inset=0,
+       title = "Exp. 1: Fake feedback",pch=rep(16,3),bty = "n",inset=0,
        cex = cex_legend,col=c("brown3","cyan4","darkgoldenrod3"), horiz = T)
 
 plot.new()
 legend("top",legend=c("Difficult","Medium","Easy"),
-       title = "Experiment 2: Training condition",pch=rep(16,3),bty = "n",inset=0, 
+       title = "Exp. 2: Training difficulty",pch=rep(16,3),bty = "n",inset=0, 
        cex = cex_legend,col=c("brown3","cyan4","darkgoldenrod3"), horiz = T)
 par(mar=c(5,5,2,2)+0.1)
 # Plot overlay accuracy ---------------------------------------------------
@@ -1452,10 +1452,11 @@ stripchart(x,ylim=c(.45,1), xlim=c(-.05,n-1), vertical = TRUE, col="white",frame
            main=NULL, yaxt = 'n',family="A",ylab = "Confidence",cex.lab=cex_lab )
 # mtext("Confidence",2,at=.75,line=2.5,cex=cex_lab);
 # mtext("Trial difficulty",1,3,at=1,cex=cex_lab)
+# mtext("E.", at=.7, line = 1, cex = cex_title, font = 2)
 axis(1,at=0:(n-1),labels=names(x), cex.axis=cex_lab-1);
 axis(2, seq(.5,1,.1), cex.axis=cex_lab-1)
 means <- sapply(x, mean);n<- length(x)
-for(i in seq(.5,1,length.out = 5)) abline(h=i,col="lightgrey",lty = "dashed")
+for(i in seq(.5,1,length.out = 6)) abline(h=i,col="lightgrey",lty = "dashed")
 lines(0:(n-1),means,type='b',pch=16,cex=cexkl,col="brown3",lwd=lwddat,lty = "dashed")
 error.bar(0:(n-1),means,colSds(as.matrix(x),na.rm=T)/sqrt(N1),lwd=lwdgr,col="brown3")
 means <- sapply(xmed, mean,na.rm=T)
@@ -1489,6 +1490,7 @@ stripchart(x,ylim=c(.45,1), xlim=c(-.05,n-1), vertical = TRUE, col="white",frame
            main=NULL, yaxt = 'n',family="A",ylab="Confidence",cex.lab=cex_lab)
 # mtext("Confidence",2,at=.75,line=2.5,cex=cex_lab);
 # mtext("Trial difficulty",1,3,at=1,cex=cex_lab)
+# mtext("F.", at=.7, line = 1, cex = cex_title, font = 2)
 axis(1,at=0:(n-1),labels=names(x), cex.axis=cex_lab-1);
 axis(2, seq(.5,1,.1), cex.axis=cex_lab-1)
 means <- sapply(x, mean);n<- length(x)
@@ -1516,7 +1518,7 @@ jpeg(
 layout(matrix(c(1,2,3,1,5,4),ncol=2),heights = c(.2,1,1))
 par(mar=c(0,0,0,0))
 plot.new()
-text(.5,.75, labels="Experiment 1: fake feedback",cex = cex_legend+.5,font=2)
+text(.5,.75, labels="Exp. 1: Fake feedback",cex = cex_legend+.5,font=2)
 par(mar=c(5,5,4,0)+0.1)
 # Plot Subjective drift -----------------------------------------------------
 ##Exp1
@@ -1524,7 +1526,7 @@ plot_drift <- with(df,aggregate(Vs,by=list(sub=sub,condition=condition),mean))
 plot_drift <- cast(plot_drift,sub~condition)
 plot_drift <- plot_drift[,c(3,4,2)] #Reorder columns to have hard -> easy
 plot(colMeans(plot_drift),frame=F,type='n',cex.lab=2.5,cex.axis=1.75,
-     xlim=c(.8,Ncond+.2),ylab='Subjective drift',ylim=c(0,.16),
+     xlim=c(.8,Ncond+.2),ylab='Subjective drift rate',ylim=c(0,.16),
      xlab="Feedback condition",xaxt='n', yaxt='n')
 mtext("A.", at = .55, line = 3, cex = cex_title, font = 2)
 segments(y0 = seq(0,.16,.04),y1 = seq(0,.16,.04),x0 = 0, x1 = Ncond, col = "lightgrey", lty = "dotted")
@@ -1624,7 +1626,7 @@ jpeg(
 layout(matrix(c(1,2,3,1,5,4),ncol=2),heights = c(.2,1,1))
 par(mar=c(0,0,0,0))
 plot.new()
-text(.5,.75, labels="Experiment 2: training condition",cex = cex_legend+.5,font=2)
+text(.5,.75, labels="Exp. 2: Training difficulty",cex = cex_legend+.5,font=2)
 par(mar=c(5,5,4,0)+0.1)
 # Plot Subjective drift -----------------------------------------------------
 ##Exp1
@@ -1632,7 +1634,7 @@ plot_drift <- with(df2,aggregate(Vs,by=list(sub=sub,condition=condition),mean))
 plot_drift <- cast(plot_drift,sub~condition)
 plot_drift <- plot_drift[,c(4,2,3)] #Reorder columns to have hard -> easy
 plot(colMeans(plot_drift),frame=F,type='n',cex.lab=2.5,cex.axis=1.75,
-     xlim=c(.8,Ncond+.2),ylab='Subjective drift',ylim=c(0,.5),
+     xlim=c(.8,Ncond+.2),ylab='Subjective drift rate',ylim=c(0,.5),
      xlab="Training condition",xaxt='n', yaxt='n')
 mtext("E.", at = .55, line = 3, cex = cex_title, font = 2)
 segments(y0 = seq(0,.5,.1),y1 = seq(0,.5,.1),x0 = 0, x1 = Ncond, col = "lightgrey", lty = "dotted")
