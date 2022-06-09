@@ -146,7 +146,7 @@ for(i in 1:N1){
     resid[i,cond] <- results$optim$bestval
   }
 }
-param_1 <- data.frame(drift = c(v,v2,v3),bound=rep(bound,Ndiff),ter=rep(ter,Ndiff),
+param_ddm_test_exp1 <- data.frame(drift = c(v,v2,v3),bound=rep(bound,Ndiff),ter=rep(ter,Ndiff),
                       sub=rep(subs1,Ndiff*Ncond),
                       condition=rep(cond_1,each=N1,length.out=N1*Ncond*Ndiff),
                       difflevel=rep(coh,each=N1*Ncond),exp=1,resid=rep(resid,Ndiff))
@@ -474,7 +474,7 @@ for(i in 1:Nsub_2){
   }
 }
 
-param2 <- data.frame(drift = c(v,v2,v3),bound=rep(bound,Ndiff),ter=rep(ter,Ndiff),
+param_ddm_test_exp2 <- data.frame(drift = c(v,v2,v3),bound=rep(bound,Ndiff),ter=rep(ter,Ndiff),
                      sub=rep(subs_2,Ndiff*Ncond_2),
                      condition=rep(cond_2,each=Nsub_2,length.out=Nsub_2*Ncond_2*Ndiff),
                      difflevel=rep(coh,each=Nsub_2*Ncond_2),exp=2,resid=rep(resid,Ndiff))
@@ -922,12 +922,12 @@ if (stat_test) {
   m <- lmer(ter ~ condition + (1|sub),data=df); anova(m);
   
   #DDM test
-  param_1$sub <- as.factor(param_1$sub)
-  test_bound1 <- with(param_1,aggregate(bound,by=list(condition=condition,sub=sub),mean))
-  test_ter1 <- with(param_1,aggregate(ter,by=list(condition=condition,sub=sub),mean))
+  param_ddm_test_exp1$sub <- as.factor(param_ddm_test_exp1$sub)
+  test_bound1 <- with(param_ddm_test_exp1,aggregate(bound,by=list(condition=condition,sub=sub),mean))
+  test_ter1 <- with(param_ddm_test_exp1,aggregate(ter,by=list(condition=condition,sub=sub),mean))
   m <- lmer(x ~ condition + (1|sub),data=test_bound1); anova(m);
   m <- lmer(x ~ condition + (1|sub),data=test_ter1); anova(m);
-  m <- lmer(drift ~ condition*difflevel + (1|sub),data=param_1); anova(m);
+  m <- lmer(drift ~ condition*difflevel + (1|sub),data=param_ddm_test_exp1); anova(m);
   
   #Train vs Test
   bounds1$sub <- as.factor(bounds1$sub)
@@ -948,12 +948,12 @@ if (stat_test) {
   m <- lmer(ter ~ condition + (1|sub),data=df2); anova(m)
   
   #DDM test
-  param2$sub <- as.factor(param2$sub)
-  test_bound2 <- with(param2,aggregate(bound,by=list(condition=condition,sub=sub),mean))
-  test_ter2 <- with(param2,aggregate(ter,by=list(condition=condition,sub=sub),mean))
+  param_ddm_test_exp2$sub <- as.factor(param_ddm_test_exp2$sub)
+  test_bound2 <- with(param_ddm_test_exp2,aggregate(bound,by=list(condition=condition,sub=sub),mean))
+  test_ter2 <- with(param_ddm_test_exp2,aggregate(ter,by=list(condition=condition,sub=sub),mean))
   m <- lmer(x ~ condition + (1|sub),data=test_bound2); anova(m);
   m <- lmer(x ~ condition + (1|sub),data=test_ter2); anova(m);
-  m <- lmer(drift ~ condition*difflevel + (condition|sub),data=param2); anova(m);
+  m <- lmer(drift ~ condition*difflevel + (condition|sub),data=param_ddm_test_exp2); anova(m);
   
   #Train vs Test
   bounds2$sub <- as.factor(bounds2$sub)
@@ -1543,7 +1543,7 @@ error.bar(1:Ncond,colMeans(plot_drift),colSds(plot_drift,na.rm=T)/sqrt(N1),lwd=3
 # Plot DDM parameters test phase EXP1 ------------------------------------------
 par(mar=c(5,5,2,0)+0.1)
 ##Non-decision time
-plot_ter <- with(param_1,aggregate(ter,by=list(sub=sub,condition=condition),mean))
+plot_ter <- with(param_ddm_test_exp1,aggregate(ter,by=list(sub=sub,condition=condition),mean))
 plot_ter <- cast(plot_ter,sub~condition)
 plot_ter <- plot_ter[,c(3,4,2)] #Reorder columns to have easy -> hard
 plot(colMeans(plot_ter),frame=F,type='n',cex.lab=2.5,cex.axis=1.75,
@@ -1561,7 +1561,7 @@ points(colMeans(plot_ter),type='b',lwd=5)
 error.bar(1:Ncond,colMeans(plot_ter),colSds(plot_ter,na.rm=T)/sqrt(N1),lwd=3,length=0)
 
 ##Bound
-plot_bound <- with(param_1,aggregate(bound,by=list(sub=sub,condition=condition),mean))
+plot_bound <- with(param_ddm_test_exp1,aggregate(bound,by=list(sub=sub,condition=condition),mean))
 plot_bound <- cast(plot_bound,sub~condition)
 plot_bound <- plot_bound[,c(3,4,2)] #Reorder columns to have easy -> hard
 plot(colMeans(plot_bound),frame=F,type='n',cex.lab=2.5,cex.axis=1.75,
@@ -1579,7 +1579,7 @@ points(colMeans(plot_bound),type='b',lwd=5)
 error.bar(1:Ncond,colMeans(plot_bound),colSds(plot_bound,na.rm=T)/sqrt(N1),lwd=3,length=0)
 
 ##Drift interaction
-plot_drift_minus <- with(subset(param_1,difflevel=="hard"),
+plot_drift_minus <- with(subset(param_ddm_test_exp1,difflevel=="hard"),
                          aggregate(drift,by=list(sub=sub,condition=condition),mean))
 plot_drift_minus <- cast(plot_drift_minus,sub~condition)
 plot_drift_minus <- plot_drift_minus[,c(3,4,2)] #Reorder columns to have easy -> hard
@@ -1592,7 +1592,7 @@ points(colMeans(plot_drift_minus),type='b',lwd=5,col="darkolivegreen",lty="dashe
 error.bar(1:Ncond,colMeans(plot_drift_minus),
           colSds(plot_drift_minus,na.rm=T)/sqrt(N1),lwd=3,length=0,col="darkolivegreen")
 
-plot_drift_control <- with(subset(param_1,difflevel=="average"),
+plot_drift_control <- with(subset(param_ddm_test_exp1,difflevel=="average"),
                            aggregate(drift,by=list(sub=sub,condition=condition),mean))
 plot_drift_control <- cast(plot_drift_control,sub~condition)
 plot_drift_control <- plot_drift_control[,c(3,4,2)] #Reorder columns to have easy -> hard
@@ -1600,7 +1600,7 @@ points(colMeans(plot_drift_control),type='b',lwd=5,col="darkolivegreen3",lty="do
 error.bar(1:Ncond,colMeans(plot_drift_control),
           colSds(plot_drift_control,na.rm=T)/sqrt(N1),lwd=3,length=0,col="darkolivegreen3")
 
-plot_drift_plus <- with(subset(param_1,difflevel=="easy"),
+plot_drift_plus <- with(subset(param_ddm_test_exp1,difflevel=="easy"),
                         aggregate(drift,by=list(sub=sub,condition=condition),mean))
 plot_drift_plus <- cast(plot_drift_plus,sub~condition)
 plot_drift_plus <- plot_drift_plus[,c(3,4,2)] #Reorder columns to have easy -> hard
@@ -1651,7 +1651,7 @@ error.bar(1:Ncond,colMeans(plot_drift),colSds(plot_drift,na.rm=T)/sqrt(Nsub_2),l
 # Plot DDM parameters test phase EXP2 ------------------------------------------
 par(mar=c(5,5,2,0)+0.1)
 ##Non-decision time
-plot_ter <- with(param2,aggregate(ter,by=list(sub=sub,condition=condition),mean))
+plot_ter <- with(param_ddm_test_exp2,aggregate(ter,by=list(sub=sub,condition=condition),mean))
 plot_ter <- cast(plot_ter,sub~condition)
 plot_ter <- plot_ter[,c(4,2,3)] #Reorder columns to have easy -> hard
 plot(colMeans(plot_ter),frame=F,type='n',cex.lab=2.5,cex.axis=1.75,
@@ -1669,7 +1669,7 @@ points(colMeans(plot_ter),type='b',lwd=5)
 error.bar(1:Ncond,colMeans(plot_ter),colSds(plot_ter,na.rm=T)/sqrt(Nsub_2),lwd=3,length=0)
 
 ##Bound
-plot_bound <- with(param2,aggregate(bound,by=list(sub=sub,condition=condition),mean))
+plot_bound <- with(param_ddm_test_exp2,aggregate(bound,by=list(sub=sub,condition=condition),mean))
 plot_bound <- cast(plot_bound,sub~condition)
 plot_bound <- plot_bound[,c(4,2,3)] #Reorder columns to have easy -> hard
 plot(colMeans(plot_bound),frame=F,type='n',cex.lab=2.5,cex.axis=1.75,
@@ -1687,7 +1687,7 @@ points(colMeans(plot_bound),type='b',lwd=5)
 error.bar(1:Ncond,colMeans(plot_bound),colSds(plot_bound,na.rm=T)/sqrt(Nsub_2),lwd=3,length=0)
 
 ##Drift interaction
-plot_drift_minus <- with(subset(param2,difflevel=="hard"),
+plot_drift_minus <- with(subset(param_ddm_test_exp2,difflevel=="hard"),
                          aggregate(drift,by=list(sub=sub,condition=condition),mean))
 plot_drift_minus <- cast(plot_drift_minus,sub~condition)
 plot_drift_minus <- plot_drift_minus[,c(4,2,3)] #Reorder columns to have easy -> hard
@@ -1701,7 +1701,7 @@ points(colMeans(plot_drift_minus),type='b',lwd=5,col="darkolivegreen",lty="dashe
 error.bar(1:Ncond,colMeans(plot_drift_minus),
           colSds(plot_drift_minus,na.rm=T)/sqrt(Nsub_2),lwd=3,length=0,col="darkolivegreen")
 
-plot_drift_control <- with(subset(param2,difflevel=="average"),
+plot_drift_control <- with(subset(param_ddm_test_exp2,difflevel=="average"),
                            aggregate(drift,by=list(sub=sub,condition=condition),mean))
 plot_drift_control <- cast(plot_drift_control,sub~condition)
 plot_drift_control <- plot_drift_control[,c(4,2,3)] #Reorder columns to have easy -> hard
@@ -1709,7 +1709,7 @@ points(colMeans(plot_drift_control),type='b',lwd=5,col="darkolivegreen3",lty="do
 error.bar(1:Ncond,colMeans(plot_drift_control),
           colSds(plot_drift_control,na.rm=T)/sqrt(Nsub_2),lwd=3,length=0,col="darkolivegreen3")
 
-plot_drift_plus <- with(subset(param2,difflevel=="easy"),
+plot_drift_plus <- with(subset(param_ddm_test_exp2,difflevel=="easy"),
                         aggregate(drift,by=list(sub=sub,condition=condition),mean))
 plot_drift_plus <- cast(plot_drift_plus,sub~condition)
 plot_drift_plus <- plot_drift_plus[,c(4,2,3)] #Reorder columns to have easy -> hard
@@ -1766,3 +1766,11 @@ plot(obj_drift~subj_drift,cex.axis=1.75,cex.lab=1.75,frame=F,pch=19, xlim=drift_
 print(cor.test(obj_drift,subj_drift));
 abline(lm(obj_drift~subj_drift),lty=2)
 mtext(paste('Experiment 2: r = ',round(cor(obj_drift,subj_drift),3)))
+
+# Sort --------------------------------------------------------------------
+
+
+save(param_ddm_test_exp1,file="param_ddm_test_exp1.Rdata")
+save(param_ddm_test_exp2,file="param_ddm_test_exp2.Rdata")
+save(df,file="param_train_exp1.Rdata")
+save(df2,file="param_train_exp2.Rdata")
