@@ -1,6 +1,19 @@
 library(fields)
 library(mnormt)
 
+#' Fast generation of p(cor) heatmap
+#'
+#' @param mu Drift rate used to generate the heatmap (only correctly works with 1 drift rate for now)
+#' @param sigma 
+#' @param dt 
+#' @param ev_bound 
+#' @param ev_window 
+#' @param upperRT 
+#'
+#' @return
+#' @export
+#'
+#' @examples
 fast_hm <- function(mu, sigma = .1, dt = .001, ev_bound = .5, ev_window = .01, upperRT = 5){
   ev_mapping <- seq(-ev_bound,ev_bound,by=ev_window)
   time_vec <- seq(0,upperRT,dt)
@@ -36,24 +49,24 @@ fast_hm <- function(mu, sigma = .1, dt = .001, ev_bound = .5, ev_window = .01, u
 }
 
 ## Heat map resolution
-dt <- .001; ev_bound <- .5; ev_window <- dt*10; upperRT <- 5
-ev_mapping <- seq(-ev_bound,ev_bound,by=ev_window)
-timesteps <- upperRT/dt
-v <- .1
-Nv <- 100
-mu <- rnorm(Nv,v,.02)
-
-hm <- fast_hm(v)
-
-colMap <- viridis(length(hm))
-
-image.plot(1:dim(hm)[1],1:dim(hm)[2],hm,zlim=c(0,1),
-          col=colMap,ylab="",xlab='',legend.shrink=.25,
-          axes=F)
-mtext("Evidence",2,at=dim(hm)[2]/2,line=2);
-mtext("Time (s)",1,at=dim(hm)[1]/2,line=2)
-axis(1,at=c(1,timesteps),labels=c(0,upperRT));
-axis(2,at=c(1,length(ev_mapping)),labels=c(-ev_bound,ev_bound))
+# dt <- .001; ev_bound <- .5; ev_window <- dt*10; upperRT <- 5
+# ev_mapping <- seq(-ev_bound,ev_bound,by=ev_window)
+# timesteps <- upperRT/dt
+# v <- .1
+# Nv <- 100
+# mu <- rnorm(Nv,v,.02)
+# 
+# hm <- fast_hm(v)
+# 
+# colMap <- viridis(length(hm))
+# 
+# image.plot(1:dim(hm)[1],1:dim(hm)[2],hm,zlim=c(0,1),
+#           col=colMap,ylab="",xlab='',legend.shrink=.25,
+#           axes=F)
+# mtext("Evidence",2,at=dim(hm)[2]/2,line=2);
+# mtext("Time (s)",1,at=dim(hm)[1]/2,line=2)
+# axis(1,at=c(1,timesteps),labels=c(0,upperRT));
+# axis(2,at=c(1,length(ev_mapping)),labels=c(-ev_bound,ev_bound))
 
 
 
