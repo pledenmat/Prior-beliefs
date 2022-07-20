@@ -2,7 +2,7 @@
 ##' 
 ##' - Loads raw data files
 ##' - Aggregates data into one dataframe per experiment
-##' - Trims 200 ms < RT < 5000 ms
+##' - Trims 100 ms < RT < 5000 ms
 ##' - Removes participants that did not exceed chance level performance in the test phase
 ##' - Writes csv files of aggregated data for each experiment
 ##' 
@@ -14,7 +14,6 @@ library(effects)
 library(lmerTest)
 library(scales)
 library(prob)
-library(myPackage)
 curdir <- dirname(rstudioapi::getSourceEditorContext()$path)
 setwd(curdir) ## change our current working directory
 
@@ -23,12 +22,11 @@ write_csv <- T
 
 # Experiment 1 ------------------------------------------------------------
 N <- 50
-go_to("data")
 for(i in 1:N){
   if(i == 1){
-    Data_exp1 <- read.csv(paste0('RealData_1A/selfconfidence1A_sub',i,'.csv'),fileEncoding="UTF-8-BOM")
+    Data_exp1 <- read.csv(paste0('Data/Data_1/selfconfidence1A_sub',i,'.csv'),fileEncoding="UTF-8-BOM")
   }else{
-    temp <- read.csv(paste0('RealData_1A/selfconfidence1A_sub',i,'.csv'),fileEncoding="UTF-8-BOM")
+    temp <- read.csv(paste0('Data/Data_1/selfconfidence1A_sub',i,'.csv'),fileEncoding="UTF-8-BOM")
     Data_exp1 <- rbind(Data_exp1,temp)
   }
 }
@@ -38,7 +36,7 @@ head(Data_exp1)
 Training_exp1 <- subset(Data_exp1, running == "training")
 Data_exp1 <- subset(Data_exp1, running == "main")
 
-Data_exp1 <- subset(Data_exp1,rt>200) #There was no trial below 200ms
+Data_exp1 <- subset(Data_exp1,rt>100) #There was no trial below 100ms
 Data_exp1 <- subset(Data_exp1,rt<5000)
 
 Data_exp1['response'] <- 0
@@ -77,7 +75,7 @@ Data_exp1 <- Data_exp1[complete.cases(Data_exp1$rt),]
 Data_exp1$response[Data_exp1$response==0] <- -1
 
 Data_exp1 <- Data_exp1[,c("sub","task","selfconf","difflevel","rt","response","cor","cj","RTconf","block")]
-names(Data_exp1) <- c("sub","task","selfconf","coh","rt","resp","cor","cj","RTconf","block")
+names(Data_exp1) <- c("sub","task","selfconf","trialdifflevel","rt","resp","cor","cj","RTconf","block")
 ## Convert into seconds
 Data_exp1$rt <- Data_exp1$rt/1000
 Data_exp1$RTconf <- Data_exp1$RTconf/1000
@@ -86,7 +84,7 @@ Training_exp1 <- subset(Training_exp1,!(sub %in% exclusion))
 Training_exp1['response'] <- -1
 Training_exp1$response[Training_exp1$resp == "['n']"] <- 1
 Training_exp1 <- Training_exp1[,c("sub","task","selfconf","difflevel","rt","response","cor","cj","RTconf")]
-names(Training_exp1) <- c("sub","task","selfconf","coh","rt","resp","cor","cj","RTconf")
+names(Training_exp1) <- c("sub","task","selfconf","trialdifflevel","rt","resp","cor","cj","RTconf")
 Training_exp1$rt <- Training_exp1$rt/1000;
 Training_exp1$RTconf <- Training_exp1$RTconf/1000
 
@@ -123,13 +121,12 @@ Training_exp1 <- subset(Training_exp1,rt>.2)
 Training_exp1 <- subset(Training_exp1,rt<5)
 
 # Experiment 2 ------------------------------------------------------------
-go_to("data")
 N <- 50
 for(i in 1:N){
   if(i == 1){
-    Data_exp2 <- read.csv(paste0('RealData_1B/selfconfidence1B_sub',i,'.csv'),fileEncoding="UTF-8-BOM")
+    Data_exp2 <- read.csv(paste0('Data/Data_2/selfconfidence1B_sub',i,'.csv'),fileEncoding="UTF-8-BOM")
   }else{
-    temp <- read.csv(paste0('RealData_1B/selfconfidence1B_sub',i,'.csv'),fileEncoding="UTF-8-BOM")
+    temp <- read.csv(paste0('Data/Data_2/selfconfidence1B_sub',i,'.csv'),fileEncoding="UTF-8-BOM")
     Data_exp2 <- rbind(Data_exp2,temp)
   }
 }
@@ -139,7 +136,7 @@ head(Data_exp2)
 Training_exp2 <- subset(Data_exp2, running == "training")
 Data_exp2 <- subset(Data_exp2, running == "main")
 
-Data_exp2 <- subset(Data_exp2,rt>200) #There was no trial below 200ms
+Data_exp2 <- subset(Data_exp2,rt>100) #There was no trial below 100ms
 Data_exp2 <- subset(Data_exp2,rt<5000)
 
 Data_exp2['response'] <- 0
@@ -177,7 +174,7 @@ Data_exp2 <- Data_exp2[complete.cases(Data_exp2$rt),]
 Data_exp2$response[Data_exp2$response==0] <- -1
 
 Data_exp2 <- Data_exp2[,c("sub","task","traindiffcond","trialdifflevel","rt","response","cor","cj","RTconf","block")]
-names(Data_exp2) <- c("sub","task","traindiffcond","coh","rt","resp","cor","cj","RTconf","block")
+names(Data_exp2) <- c("sub","task","traindiffcond","trialdifflevel","rt","resp","cor","cj","RTconf","block")
 ## Convert into seconds
 Data_exp2$rt <- Data_exp2$rt/1000
 Data_exp2$RTconf <- Data_exp2$RTconf/1000
@@ -186,26 +183,16 @@ Training_exp2 <- subset(Training_exp2,!(sub %in% exclusion))
 Training_exp2['response'] <- -1
 Training_exp2$response[Training_exp2$resp == "['n']"] <- 1
 Training_exp2 <- Training_exp2[,c("sub","task","traindiffcond","trialdifflevel","rt","response","cor","cj","RTconf")]
-names(Training_exp2) <- c("sub","task","traindiffcond","coh","rt","resp","cor","cj","RTconf")
+names(Training_exp2) <- c("sub","task","traindiffcond","trialdifflevel","rt","resp","cor","cj","RTconf")
 Training_exp2$rt <- Training_exp2$rt/1000;
 Training_exp2$RTconf <- Training_exp2$RTconf/1000
-
-##' Again, we're retrieving the feedback at the end of each block and assign it to
-##' every trials of the block.
-##' Here, the exact fb value is known since it was equal to the accuracy within the block
-len_block <- 24
-Training_exp2$fb <- -99
-for (i in seq(1,dim(Training_exp2)[1],len_block)) {
-  Training_exp2[i:(i+len_block-1),]$fb <- round(mean(Training_exp2[i:(i+len_block-1),]$cor),2)
-}
-Training_exp2[Training_exp2$fb<.5,]$fb <- .5 # Actual feedback was "lower than 50%"
 
 Training_exp2 <- subset(Training_exp2,rt>.2) 
 Training_exp2 <- subset(Training_exp2,rt<5)
 
 # Export aggregated data in csv files -------------------------------------
 if (write_csv) {
-  go_to("results")
+  setwd("Data/Aggregated")
   write.csv(Data_exp1,"data_exp1.csv",row.names = FALSE)
   write.csv(Data_exp2,"data_exp2.csv",row.names = FALSE)
   write.csv(Training_exp1,"data_exp1_training.csv",row.names = FALSE)
