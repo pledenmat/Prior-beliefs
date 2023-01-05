@@ -5,9 +5,9 @@
 ##' - Generates model predictions of RT/accuracy and confidence in the testing phase
 ##' - Computes stat tests on the predictions and fitted parameters
 
-rm(list=ls())
 curdir <- dirname(rstudioapi::getSourceEditorContext()$path)
 setwd(curdir)
+source("1_preprocessing.R")
 library(reshape)
 library(effects)
 library(lmerTest)
@@ -16,12 +16,12 @@ library(DEoptim)
 library(prob)
 library(car)
 library(MALDIquant)
-library(emmeans)
 library(Rcpp)
 sourceCpp("DDM_with_confidence_slow.cpp")
 sourceCpp("DDM_with_confidence_slow_fullconfRT.cpp")
-source("1_preprocessing.R")
-setwd(curdir)
+source("quantile_fit_DDM.R")
+source("build_hm.R")
+
 
 stat_test <- F
 # Global parameters --------------------------------------------------------------
@@ -47,8 +47,10 @@ setwd(curdir)
 
 
 subs_1 <- sort(unique(Data1_train$sub)); Nsub_1 <- length(subs_1) 
-cond_1 <- sort(unique(Data1_train$selfconf)); Ncond_1 <- length(cond_1)
-coh <- sort(unique(Data1_train$coh));Ndiff <- length(coh)
+cond_1 <- sort(unique(Data1_train$fbcond)); Ncond_1 <- length(cond_1)
+trialdifflevel <- sort(unique(Data1_train$trialdifflevel));Ndiff <- length(trialdifflevel)
+
+
 
 # Load fitted DDM parameters in the training phase 
 bound_train <- matrix(NA,Nsub_1,Ncond_1)
@@ -62,7 +64,7 @@ for (i in 1:Nsub_1) {
   tempAll <- subset(Data1_train,sub==subs_1[i])
   for (cond in 1:Ncond_1) {
     print(paste('Running participant',i,'from',Nsub_1,"condition",cond))
-    tempDat <- subset(tempAll,selfconf==cond_1[cond])
+    tempDat <- subset(tempAll,fbcond==cond_1[cond])
     file_name <- paste0('Fits/Exp1/Train/trainfit',cond_1[cond],subs_1[i],'.Rdata')
     if(file.exists(file_name)){
       load(file_name)
@@ -126,7 +128,7 @@ for(i in 1:Nsub_1){
 param_ddm_test_exp1 <- data.frame(drift = c(v,v2,v3),bound=rep(bound,Ndiff),ter=rep(ter,Ndiff),
                       sub=rep(subs_1,Ndiff*Ncond_1),
                       condition=rep(cond_1,each=Nsub_1,length.out=Nsub_1*Ncond_1*Ndiff),
-                      difflevel=rep(coh,each=Nsub_1*Ncond_1),exp=1,resid=rep(resid,Ndiff))
+                      difflevel=rep(trialdifflevel,each=Nsub_1*Ncond_1),exp=1,resid=rep(resid,Ndiff))
 ## Fit subjective drift ====
 if (!(file.exists("Data/Aggregated/cost_vs_exp1.csv"))) {
   s <- 1; cond <- 1
@@ -134,8 +136,8 @@ if (!(file.exists("Data/Aggregated/cost_vs_exp1.csv"))) {
     while (cond <= Ncond_1) {
       print(paste("Running participant",s,"of",Nsub_1,"condition",cond))
       cost_conf <- matrix(NA,nrow=nrepeat,ncol=length(v_s_all))
-      tempDat <- subset(Data1_train,sub==subs_1[s]&selfconf==cond_1[cond])
-      tempDat_test <- subset(Data1,sub==subs_1[s]&selfconf==cond_1[cond])
+      tempDat <- subset(Data1_train,sub==subs_1[s]&fbcond==cond_1[cond])
+      tempDat_test <- subset(Data1,sub==subs_1[s]&fbcond==cond_1[cond])
       ntrial <- dim(tempDat_test)[1]
       ntrial_train <- dim(tempDat)[1]
       temp_par <- c(bound_train[s,cond],ter_train[s,cond],0,nrepeat,
@@ -154,7 +156,7 @@ if (!(file.exists("Data/Aggregated/cost_vs_exp1.csv"))) {
       
       bar <- txtProgressBar(0,length(v_s_all),style=3,char="#")
       for (d in 1:length(v_s_all)) {
-        hm_up <- fast_hm(v_s_all[d])
+        hm_up <- build_hm(v_s_all[d])
         hm_low <- 1-hm_up
         hmvec_low <- as.vector(hm_low); hmvec_up <- as.vector(hm_up)
         
@@ -177,7 +179,7 @@ if (!(file.exists("Data/Aggregated/cost_vs_exp1.csv"))) {
       temp_df <- data.frame(cost = as.vector(cost_conf),
                             Nrep = rep(1:nrepeat,length(v_s_all)),
                             Vs = rep(v_s_all,each=nrepeat),
-                            sub = subs_1[s], selfconf = cond_1[cond])
+                            sub = subs_1[s], fbcond = cond_1[cond])
       if (s==1 & cond==1) {
         cost_df <- temp_df
       }else{
@@ -193,8 +195,8 @@ if (!(file.exists("Data/Aggregated/cost_vs_exp1.csv"))) {
   cost_df <- read.csv("Data/Aggregated/cost_vs_exp1.csv")
 }
 
-means_fullconfRT <- with(cost_df,aggregate(cost,by=list(Vs=Vs,sub=sub,selfconf=selfconf),mean))
-means_fullconfRT <- cast(means_fullconfRT,selfconf+sub~Vs)
+means_fullconfRT <- with(cost_df,aggregate(cost,by=list(Vs=Vs,sub=sub,fbcond=fbcond),mean))
+means_fullconfRT <- cast(means_fullconfRT,fbcond+sub~Vs)
 
 # Smooth over subjective v_s_all
 vs_smooth1 <- sapply(seq(nrow(means_fullconfRT)), function(i) {
@@ -216,8 +218,8 @@ if (file.exists("Data/Aggregated/model_prediction_exp1.csv")) {
     print(paste('simulating',i,'from',Nsub_1))
     for(c in 1:Ncond_1){
       temp_vs <- subset(param_train_exp1,condition==cond_1[c]&sub==subs_1[i])$Vs
-      tempDat <- subset(Data1,selfconf==cond_1[c]&sub==subs_1[i])
-      hm_up <- fast_hm(temp_vs)
+      tempDat <- subset(Data1,fbcond==cond_1[c]&sub==subs_1[i])
+      hm_up <- build_hm(temp_vs)
       hm_low <- 1-hm_up
       hmvec_low <- as.vector(hm_low); hmvec_up <- as.vector(hm_up)
       temp <- quantile_optim_DDM_fullconfRT(c(bound[i,c],ter[i,c],0,nsim,.1,dt,1,v[i,c],v2[i,c],v3[i,c]),tempDat,0)
@@ -235,12 +237,12 @@ if (file.exists("Data/Aggregated/model_prediction_exp1.csv")) {
       }
     }
   }
-  Simuls <- data.frame(Simuls);names(Simuls) <- c('rt','resp','cor','evidence2','rt2', 'cj','drift','closest_evdnc2',"rt2",'condition','sub')
+  Simuls <- data.frame(Simuls);names(Simuls) <- c('rt','resp','cor','evidence2','rt2', 'cj','drift','closest_evdnc2','condition','sub')
   
-  coherences <- sort(unique(Data1$coh))
-  Simuls$coh <- 0
+  difflevels <- sort(unique(Data1$trialdifflevel))
+  Simuls$trialdifflevel <- 0
   for (i in 1:Nsub_1) {
-    for(d in 1:length(coherences)) Simuls$coh[Simuls$sub==subs_1[i] & Simuls$drift %in% c(unique(subset(Simuls,sub==subs_1[i])$drift)[d],unique(subset(Simuls,sub==subs_1[i])$drift)[d+3],unique(subset(Simuls,sub==subs_1[i])$drift)[d+6])] <- coherences[d] #recode drift to coherence
+    for(d in 1:length(difflevels)) Simuls$trialdifflevel[Simuls$sub==subs_1[i] & Simuls$drift %in% c(unique(subset(Simuls,sub==subs_1[i])$drift)[d],unique(subset(Simuls,sub==subs_1[i])$drift)[d+3],unique(subset(Simuls,sub==subs_1[i])$drift)[d+6])] <- difflevels[d] #recode drift to trialdifflevelerence
   }
   write.csv(Simuls,file = "Data/Aggregated/model_prediction_exp1.csv")
 }
@@ -248,7 +250,7 @@ if (file.exists("Data/Aggregated/model_prediction_exp1.csv")) {
 ## Data Load ====
 subs_2 <- sort(unique(Data2_train$sub)); Nsub_2 <- length(subs_2)
 cond_2 <- sort(unique(Data2_train$traindiffcond)); Ncond_2 <- length(cond_2)
-coh <- sort(unique(Data2_train$coh));Ndiff <- length(coh)
+trialdifflevel <- sort(unique(Data2_train$trialdifflevel));Ndiff <- length(trialdifflevel)
 
 
 #Load fitted train DDM parameters
@@ -320,8 +322,8 @@ for(i in 1:Nsub_2){
 param_ddm_test_exp2 <- data.frame(drift = c(v,v2,v3),bound=rep(bound,Ndiff),ter=rep(ter,Ndiff),
                      sub=rep(subs_2,Ndiff*Ncond_2),
                      condition=rep(cond_2,each=Nsub_2,length.out=Nsub_2*Ncond_2*Ndiff),
-                     difflevel=rep(coh,each=Nsub_2*Ncond_2),exp=2,resid=rep(resid,Ndiff))
-## Fit subjective drift 2 ====
+                     difflevel=rep(trialdifflevel,each=Nsub_2*Ncond_2),exp=2,resid=rep(resid,Ndiff))
+## Fit subjective drift  ====
 Ndiff <- 1 # Only one difficulty level in the training phase
 if (!(file.exists("Data/Aggregated/cost_vs_exp2.csv"))) {
   s <- 1; cond <- 1
@@ -354,7 +356,7 @@ if (!(file.exists("Data/Aggregated/cost_vs_exp2.csv"))) {
       
       bar <- txtProgressBar(0,length(v_s_all),style=3,char="#")
       for (d in 1:length(v_s_all)) {
-        hm_up <- fast_hm(v_s_all[d])
+        hm_up <- build_hm(v_s_all[d])
         hm_low <- 1-hm_up
         hmvec_low <- as.vector(hm_low); hmvec_up <- as.vector(hm_up)
         
@@ -378,10 +380,11 @@ if (!(file.exists("Data/Aggregated/cost_vs_exp2.csv"))) {
                                 Vs = rep(v_s_all,each=nrepeat),
                                 sub = subs_2[s], traindiffcond = cond_2[cond])
       if (s==1 & cond==1) {
-        cost_df_cor <- temp_df_cor
+        cost_df <- temp_df_cor
       }else{
-        cost_df_cor <- rbind(cost_df_cor,temp_df_cor)
+        cost_df <- rbind(cost_df,temp_df_cor)
       }
+      write.csv(cost_df,file="Data/Aggregated/cost_vs_exp2.csv")
       cond <- cond + 1
     }
     s <- s + 1
@@ -414,9 +417,8 @@ if (file.exists("Data/Aggregated/model_prediction_exp2.csv")) {
     for(c in 1:Ncond_2){
       temp_vs <- subset(param_train_exp2,condition==cond_2[c]&sub==subs_2[i])$Vs
       tempDat <- subset(Data2, sub==subs_2[i] & traindiffcond==cond_2[c])
-      hm_up <- fast_hm(temp_vs)
+      hm_up <- build_hm(temp_vs)
       hm_low <- 1-hm_up
-      hm_low <- output$lower; hm_up <- output$upper
       hmvec_low <- as.vector(hm_low); hmvec_up <- as.vector(hm_up)
       temp <- quantile_optim_DDM_fullconfRT(c(bound[i,c],ter[i,c],0,nsim,.1,
                                                 dt,1,v[i,c],v2[i,c],v3[i,c]),tempDat,0)
@@ -435,12 +437,12 @@ if (file.exists("Data/Aggregated/model_prediction_exp2.csv")) {
       }
     }
   }
-  Simuls2 <- data.frame(Simuls2);names(Simuls2) <- c('rt','resp','cor','evidence2','rt2', 'cj','drift','closest_evdnc2',"rt2",'condition','sub')
+  Simuls2 <- data.frame(Simuls2);names(Simuls2) <- c('rt','resp','cor','evidence2','rt2', 'cj','drift','closest_evdnc2','condition','sub')
   
-  coherences <- sort(unique(Data2$coh))
-  Simuls2$coh <- 0
+  difflevels <- sort(unique(Data2$trialdifflevel))
+  Simuls2$trialdifflevel <- 0
   for (i in 1:Nsub_2) {
-    for(d in 1:length(coherences)) Simuls2$coh[Simuls2$sub==subs_2[i] & Simuls2$drift %in% c(unique(subset(Simuls2,sub==subs_2[i])$drift)[d],unique(subset(Simuls2,sub==subs_2[i])$drift)[d+3],unique(subset(Simuls2,sub==subs_2[i])$drift)[d+6])] <- coherences[d] #recode drift to coherence
+    for(d in 1:length(difflevels)) Simuls2$trialdifflevel[Simuls2$sub==subs_2[i] & Simuls2$drift %in% c(unique(subset(Simuls2,sub==subs_2[i])$drift)[d],unique(subset(Simuls2,sub==subs_2[i])$drift)[d+3],unique(subset(Simuls2,sub==subs_2[i])$drift)[d+6])] <- difflevels[d] #recode drift to trialdifflevelerence
   }
   write.csv(Simuls2,file = "Data/Aggregated/model_prediction_exp2.csv")
 }
@@ -480,12 +482,12 @@ if (stat_test) {
   m <- lmer(drift ~ condition*difflevel + (condition|sub),data=param_ddm_test_exp2); anova(m);
   
 
-  sim_cj1 <- with(Simuls,aggregate(cj,by=list(condition=condition,coh=coh,sub=sub),mean))
-  sim_cj2 <- with(Simuls2,aggregate(cj,by=list(condition=condition,coh=coh,sub=sub),mean))
+  sim_cj1 <- with(Simuls,aggregate(cj,by=list(condition=condition,trialdifflevel=trialdifflevel,sub=sub),mean))
+  sim_cj2 <- with(Simuls2,aggregate(cj,by=list(condition=condition,trialdifflevel=trialdifflevel,sub=sub),mean))
   sim_cj1$sub <- as.factor(sim_cj1$sub)
   sim_cj2$sub <- as.factor(sim_cj2$sub)
-  m <- lmer(x ~ condition*coh + (condition|sub), data = sim_cj1); anova(m)
-  m <- lmer(x ~ condition*coh + (condition|sub), data = sim_cj2); anova(m)
+  m <- lmer(x ~ condition*trialdifflevel + (condition|sub), data = sim_cj1); anova(m)
+  m <- lmer(x ~ condition*trialdifflevel + (condition|sub), data = sim_cj2); anova(m)
 
 }
 # Other aggregated data for plotting purpose --------------------------------------------------------------------
