@@ -1,0 +1,1570 @@
+---
+title: "PriorBeliefs_Figures"
+author: "Hélène Van Marcke"
+date: "9-1-2023"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Preparation}
+curdir <- dirname(rstudioapi::getSourceEditorContext()$path)
+setwd(curdir)
+library(reshape) #cast
+library(timeSeries) #colSds
+library(ggplot2)
+library(Rmisc)
+library(ggpubr)
+library(ggplotify)
+
+setwd("Data/Aggregated")
+Data1 <- read.csv('data_exp1.csv')
+Data2 <- read.csv('data_exp2.csv')
+Simuls <- read.csv("model_prediction_exp1.csv")
+Simuls2 <- read.csv("model_prediction_exp2.csv")
+load("param_ddm_test_exp1.Rdata")
+load("param_ddm_test_exp2.Rdata")
+load("param_train_exp1.Rdata")
+load("param_train_exp2.Rdata")
+setwd(curdir)
+
+subs1 <- sort(unique(Data1$sub))
+Nsub_1 <- length(subs1) 
+cond_1 <- sort(unique(Data1$fbcond))
+Ncond <- length(cond_1)
+trialdifflevel <- sort(unique(Data1$trialdifflevel))
+Ndiff <- length(trialdifflevel)
+
+subs_2 <- sort(unique(Data2$sub))
+Nsub_2 <- length(subs_2)
+cond_2 <- sort(unique(Data2$traindiffcond))
+Ncond_2 <- length(cond_2)
+trialdifflevel <- sort(unique(Data2$trialdifflevel))
+Ndiff <- length(trialdifflevel)
+
+
+# Functions and parameters ----
+
+transp <- function(color, percent = 70, name = NULL) {
+  rgb.val <- col2rgb(color)
+  transp <- rgb(rgb.val[1], rgb.val[2], rgb.val[3],
+                max = 255,
+                alpha = (100 - percent) * 255 / 100,
+                names = name)
+    invisible(transp)
+}
+
+error.bar <- function(x, y, upper, lower=upper, length=0,...){
+  if(length(x) != length(y) | length(y) !=length(lower) | length(lower) != length(upper))
+    stop("vectors must be same length")
+  arrows(x,y+upper, x, y-lower, angle=90, code=3, length=length, ...)
+}
+
+
+theme_set(theme_bw())
+theme_update(panel.grid.major = element_line(colour = "white"),
+             panel.grid.minor = element_line(colour = "white"),
+             axis.title = element_text(colour = "grey30",size=13),
+             axis.title.y = element_text(vjust = +3),
+             axis.title.x = element_text(vjust = -0.75))
+
+col_low="#CC6677"
+col_av="#44AA99"
+col_high="#E69F00"
+
+
+```
+
+# Figure 3
+
+## Top panel
+
+Objective performance: behavioural data and model fits for exp1 (A) and exp2 (B).
+
+### Accuracy, exp 1 
+
+```{r}
+
+## Experiment 1
+cor_sum = summarySE(Data1, measurevar = "cor", 
+                         groupvars = c("trialdifflevel", "fbcond"))
+
+# Simulated data
+cor_sim <-  aggregate(.~sub+trialdifflevel+condition,Simuls,mean)
+cor_simsum = summarySE(cor_sim, measurevar = "cor", 
+                         groupvars = c("trialdifflevel", "condition"))
+
+cor_sum$sim_ymin <- cor_simsum$cor-cor_simsum$se
+cor_sum$sim_ymax <- cor_simsum$cor+cor_simsum$se
+
+
+
+# PLOT
+(acc_exp1 <- ggplot(data=cor_sum, 
+             aes(y=cor, x=factor(trialdifflevel,level = c('hard','average','easy')),
+                 color=factor(fbcond,level = c('lowSC','highSC','mediumSC')))) + 
+
+  scale_color_manual(values = c(col_high,col_av,col_low),
+                    labels=c('hard', 'average','easy')) +
+
+  # Add modeling Data
+  geom_ribbon(aes(ymin=sim_ymin, ymax=sim_ymax, 
+                 group=fbcond,
+                 fill=factor(fbcond,level = c('lowSC','highSC','mediumSC'))),
+              colour="white",alpha=0.2) +
+  
+  # Add behavioural Data
+  geom_point(size=1) +
+  geom_line(aes(group=fbcond),size=.6)+
+  geom_errorbar(aes(ymin=cor-se, ymax=cor+se), width=.04) +
+
+  scale_y_continuous(limits = c(0.55, 1), expand = c(0.01,0.01)) +
+  scale_x_discrete(labels=c("hard","average","easy"), expand = c(0.02,0.02)) +
+
+  labs(title = "A.",
+       x = "",
+       y = "Accuracy") +
+  theme(legend.position = "none",
+        plot.title.position = "plot",
+        plot.title = element_text(face = "bold"))
+)
+
+
+```
+
+### RT, exp 1
+
+```{r}
+
+## Experiment 1
+rt_sum = summarySE(Data1, measurevar = "rt", 
+                         groupvars = c("trialdifflevel", "fbcond"))
+
+# Simulated data
+rt_sim <-  aggregate(.~sub+trialdifflevel+condition,Simuls,mean)
+rt_simsum = summarySE(rt_sim, measurevar = "rt", 
+                         groupvars = c("trialdifflevel", "condition"))
+
+rt_sum$sim_ymin <- rt_simsum$rt-rt_simsum$se
+rt_sum$sim_ymax <- rt_simsum$rt+rt_simsum$se
+
+
+
+# PLOT
+(rt_exp1 <- ggplot(data=rt_sum, 
+             aes(y=rt, x=factor(trialdifflevel,level = c('hard','average','easy')),
+                 color=factor(fbcond,level = c('lowSC','highSC','mediumSC')))) + 
+
+  scale_color_manual(values = c(col_high,col_av,col_low),
+                    labels=c('hard', 'average','easy')) +
+
+  # Add modeling Data
+  geom_ribbon(aes(ymin=sim_ymin, ymax=sim_ymax, 
+                 group=fbcond,
+                 fill=factor(fbcond,level = c('lowSC','highSC','mediumSC'))),
+              colour="white",alpha=0.2) +
+  
+  # Add behavioural Data
+  geom_point(size=1) +
+  geom_line(aes(group=fbcond),size=.6)+
+  geom_errorbar(aes(ymin=rt-se, ymax=rt+se), width=.04) +
+
+  scale_y_continuous(limits = c(0.6, 1.1), expand = c(0.01,0.01)) +
+  scale_x_discrete(labels=c("hard","average","easy"), expand = c(0.02,0.02)) +
+
+  labs(title = "",
+       x = "",
+       y = "RT (s)") +
+  theme(legend.position = "none",
+        plot.title.position = "plot",
+        plot.title = element_text(face = "bold"))
+)
+
+```
+
+
+
+### Accuracy, exp 2
+
+```{r}
+
+## Experiment 1
+cor_sum = summarySE(Data2, measurevar = "cor", 
+                         groupvars = c("trialdifflevel", "traindiffcond"))
+
+# Simulated data
+cor_sim <-  aggregate(.~sub+trialdifflevel+condition,Simuls2,mean)
+cor_simsum = summarySE(cor_sim, measurevar = "cor", 
+                         groupvars = c("trialdifflevel", "condition"))
+
+cor_sum$sim_ymin <- cor_simsum$cor-cor_simsum$se
+cor_sum$sim_ymax <- cor_simsum$cor+cor_simsum$se
+
+
+
+# PLOT
+(acc_exp2 <- ggplot(data=cor_sum, 
+             aes(y=cor, x=factor(trialdifflevel,level = c('hard','average','easy')),
+                 color=factor(traindiffcond,level = c('hard','easy','average')))) + 
+
+  scale_color_manual(values = c(col_high,col_av,col_low),
+                    labels=c('hard', 'average','easy')) +
+
+  # Add modeling Data
+  geom_ribbon(aes(ymin=sim_ymin, ymax=sim_ymax, 
+                 group=traindiffcond,
+                 fill=factor(traindiffcond,level = c('hard','easy','average'))),
+              colour="white",alpha=0.2) +
+  
+  # Add behavioural Data
+  geom_point(size=1) +
+  geom_line(aes(group=traindiffcond),size=.6)+
+  geom_errorbar(aes(ymin=cor-se, ymax=cor+se), width=.04) +
+
+  scale_y_continuous(limits = c(0.55, 1), expand = c(0.01,0.01)) +
+  scale_x_discrete(labels=c("hard","average","easy"), expand = c(0.02,0.02)) +
+
+  labs(title = "B.",
+       x = "",
+       y = "Accuracy") +
+  theme(legend.position = "none",
+        plot.title.position = "plot",
+        plot.title = element_text(face = "bold"))
+)
+
+
+```
+
+### RT, exp 2
+
+```{r}
+
+## Experiment 1
+rt_sum = summarySE(Data2, measurevar = "rt", 
+                         groupvars = c("trialdifflevel", "traindiffcond"))
+
+# Simulated data
+rt_sim <-  aggregate(.~sub+trialdifflevel+condition,Simuls2,mean)
+rt_simsum = summarySE(rt_sim, measurevar = "rt", 
+                         groupvars = c("trialdifflevel", "condition"))
+
+rt_sum$sim_ymin <- rt_simsum$rt-rt_simsum$se
+rt_sum$sim_ymax <- rt_simsum$rt+rt_simsum$se
+
+
+
+# PLOT
+(rt_exp2 <- ggplot(data=rt_sum, 
+             aes(y=rt, x=factor(trialdifflevel,level = c('hard','average','easy')),
+                 color=factor(traindiffcond,level = c('hard','easy','average')))) + 
+
+  scale_color_manual(values = c(col_high,col_av,col_low),
+                    labels=c('hard', 'average','easy')) +
+
+  # Add modeling Data
+  geom_ribbon(aes(ymin=sim_ymin, ymax=sim_ymax, 
+                 group=traindiffcond,
+                 fill=factor(traindiffcond,level = c('hard','easy','average'))),
+              colour="white",alpha=0.2) +
+  
+  # Add behavioural Data
+  geom_point(size=1) +
+  geom_line(aes(group=traindiffcond),size=.6)+
+  geom_errorbar(aes(ymin=rt-se, ymax=rt+se), width=.04) +
+
+  scale_y_continuous(limits = c(0.6, 1.1), expand = c(0.01,0.01)) +
+  scale_x_discrete(labels=c("hard","average","easy"), expand = c(0.02,0.02)) +
+
+  labs(title = "",
+       x = "",
+       y = "RT (s)") +
+  theme(legend.position = "none",
+        plot.title.position = "plot",
+        plot.title = element_text(face = "bold"))
+)
+
+```
+
+
+## Middle panel
+
+Confidence data (main results)
+
+```{r}
+
+## Experiment 1
+cj_sum = summarySE(Data1, measurevar = "cj", 
+                         groupvars = c("trialdifflevel", "fbcond"))
+
+cj_sum_ind <- with(Data1,aggregate(cj,by=list(sub,fbcond,trialdifflevel),mean))
+names(cj_sum_ind) <- c("sub","fbcond","trialdifflevel","cj")
+
+cj_sum$fbcond <- factor(cj_sum$fbcond, levels = c("lowSC","mediumSC","highSC"))
+cj_sum_ind$fbcond <- factor(cj_sum_ind$fbcond, levels = c("lowSC", "mediumSC", "highSC"))
+
+levels(cj_sum$fbcond) <- c("negative", "average", "positive")
+levels(cj_sum_ind$fbcond) <- c("negative", "average", "positive")
+
+# PLOT
+(cj_exp1 <- ggplot(data=cj_sum, 
+             aes(y=cj, x=factor(trialdifflevel,level = c('hard','average','easy')),
+                 color=factor(fbcond))) + 
+  
+  scale_color_manual(values = c(col_high,col_av,col_low),
+                    labels=c('negative', 'average','positive')) +
+
+  # Individual datapoints
+  geom_point(data=cj_sum_ind, aes(y=cj,
+                                  x=factor(trialdifflevel,level = c('hard','average','easy')),
+                                  shape=factor(fbcond)),
+            size=1.5,alpha=.35,
+            position = position_jitterdodge(jitter.width=0.15,dodge.width = 0.3)) +
+
+    
+  # Add modeling Data
+  geom_ribbon(aes(ymin=cj-se,ymax=cj+se,
+                  group=fbcond,
+                  fill=factor(fbcond)),
+              colour="white",
+              position=position_dodge(0.3),
+              alpha=0.6) +
+    
+  scale_fill_manual(values = c(col_high,col_av,col_low),
+                    labels=c('negative', 'average','positive')) +
+    
+  # Add summarised Data
+  geom_point(size=2,aes(shape=fbcond),position=position_dodge(0.3)) +
+     
+ # geom_line(aes(group=fbcond),size=.6,position=position_dodge(0.3))+
+    
+ # geom_errorbar(aes(ymin=cj-se, ymax=cj+se), 
+  #              width=.1,size=.8,position=position_dodge(0.3)) +
+
+    
+  scale_y_continuous(limits = c(3,6), expand = c(0.01,0.01)) +
+  scale_x_discrete(labels=c('negative', 'average','positive'), expand = c(0.03,0.03)) +
+
+  labs(title = "C.",
+       x = "",
+       y = "Confidence",
+       fill="Exp. 1: Comparative feedback",
+       color="Exp. 1: Comparative feedback",
+       shape="Exp. 1: Comparative feedback") +
+  theme(legend.position = "top",
+        legend.title = element_text(face = "bold"),
+        plot.title.position = "plot",
+        plot.title = element_text(face = "bold"),
+        axis.text = element_text(size = 12),
+        axis.title = element_text(size = 12)) +
+  
+    guides(color = guide_legend(title.position="top", title.hjust = 0.5),
+         fill = guide_legend(title.position="top", title.hjust = 0.5),
+         shape = guide_legend(title.position="top", title.hjust = 0.5))
+)
+
+
+legend1 <- as.ggplot(get_legend(cj_exp1))
+
+
+(cj_exp1 <- ggplot(data=cj_sum, 
+             aes(y=cj, x=factor(trialdifflevel,level = c('hard','average','easy')),
+                 color=factor(fbcond))) + 
+  scale_color_manual(values = c(col_high,col_av,col_low),
+                    labels=c('Negative', 'Average','Positive')) +
+  geom_point(data=cj_sum_ind, aes(y=cj,
+                                  x=factor(trialdifflevel,level = c('hard','average','easy')),
+                                  shape=factor(fbcond)),
+            size=1.5,alpha=.35,
+            position = position_jitterdodge(jitter.width=0.15,dodge.width = 0.3)) +
+  geom_ribbon(aes(ymin=cj-se,ymax=cj+se,
+                  group=fbcond,
+                  fill=factor(fbcond)),
+              colour="white",
+              position=position_dodge(0.3),
+              alpha=0.6) +
+    
+  scale_fill_manual(values = c(col_high,col_av,col_low),
+                    labels=c('Negative', 'Average','Positive')) +
+  geom_point(size=2,aes(shape=fbcond),position=position_dodge(0.3)) +
+  scale_y_continuous(limits = c(3,6), expand = c(0.01,0.01)) +
+  scale_x_discrete(labels=c('Negative', 'Average','Positive'), expand = c(0.03,0.03)) +
+  labs(title = "C.",
+       x = "",
+       y = "Confidence",
+       fill="Exp. 1: Comparative feedback",
+       color="Exp. 1: Comparative feedback",
+       shape="Exp. 1: Comparative feedback") +
+  theme(legend.position = "none",
+        legend.title = element_text(face = "bold"),
+        plot.title.position = "plot",
+        plot.title = element_text(face = "bold"),
+        axis.text = element_text(size = 12),
+        axis.title = element_text(size = 12)) +
+  guides(color = guide_legend(title.position="top", title.hjust = 0.5),
+         fill = guide_legend(title.position="top", title.hjust = 0.5),
+         shape = guide_legend(title.position="top", title.hjust = 0.5))
+)
+
+```
+
+
+
+Exp 2
+
+```{r}
+Data2 <- subset(Data2,cor==0)
+## Experiment 1
+cj_sum = summarySE(Data2, measurevar = "cj", 
+                         groupvars = c("trialdifflevel", "traindiffcond"))
+
+cj_sum_ind <- with(Data2,aggregate(cj,by=list(sub,traindiffcond,trialdifflevel),mean))
+names(cj_sum_ind) <- c("sub","traindiffcond","trialdifflevel","cj")
+
+cj_sum$traindiffcond <- factor(cj_sum$traindiffcond, levels = c("hard", "average", "easy"))
+cj_sum_ind$traindiffcond <- factor(cj_sum_ind$traindiffcond, levels = c("hard", "average", "easy"))
+
+
+# PLOT
+(cj_exp2 <- ggplot(data=cj_sum, 
+             aes(y=cj, x=factor(trialdifflevel,level = c('hard','average','easy')),
+                 color=factor(traindiffcond))) + 
+  
+  scale_color_manual(values = c(col_high,col_av,col_low),
+                    labels=c('hard', 'average','easy')) +
+
+  # Individual datapoints
+  geom_point(data=cj_sum_ind, aes(y=cj,
+                                  x=factor(trialdifflevel,level = c('hard','average','easy')),
+                                  shape=factor(traindiffcond)),
+            size=1.5,alpha=.35,
+            position = position_jitterdodge(jitter.width=0.15,dodge.width = 0.3)) +
+
+    
+  # Add modeling Data
+  geom_ribbon(aes(ymin=cj-se,ymax=cj+se,
+                  group=traindiffcond,
+                  fill=factor(traindiffcond)),
+              colour="white",
+              position=position_dodge(0.3),
+              alpha=0.6) +
+    
+  scale_fill_manual(values = c(col_high,col_av,col_low),
+                    labels=c('hard', 'average','easy')) +
+    
+  # Add summarised Data
+  geom_point(size=2,aes(shape=traindiffcond),position=position_dodge(0.3)) +
+     
+ # geom_line(aes(group=traindiffcond),size=.6,position=position_dodge(0.3))+
+    
+ # geom_errorbar(aes(ymin=cj-se, ymax=cj+se), 
+  #              width=.1,size=.8,position=position_dodge(0.3)) +
+
+    
+ # scale_y_continuous(limits = c(3,6), expand = c(0.01,0.01)) +
+  scale_x_discrete(labels=c("hard","average","easy"), expand = c(0.03,0.03)) +
+
+  
+  labs(title = "D.",
+       x = "",
+       y = "",
+       fill="Exp. 2: Training difficulty",
+       color="Exp. 2: Training difficulty",
+       shape="Exp. 2: Training difficulty") +
+    
+  theme(legend.position = "top",
+        legend.title = element_text(face = "bold"),
+        plot.title.position = "plot",
+        plot.title = element_text(face = "bold"),
+        axis.text = element_text(size = 12),
+        axis.title = element_text(size = 12)) +
+  
+    guides(color = guide_legend(title.position="top", title.hjust = 0.5),
+         fill = guide_legend(title.position="top", title.hjust = 0.5),
+         shape = guide_legend(title.position="top", title.hjust = 0.5))
+)
+
+
+legend2 <- as.ggplot(get_legend(cj_exp2))
+
+
+
+(cj_exp2 <- ggplot(data=cj_sum, 
+             aes(y=cj, x=factor(trialdifflevel,level = c('hard','average','easy')),
+                 color=factor(traindiffcond))) + 
+  
+  scale_color_manual(values = c(col_high,col_av,col_low),
+                    labels=c('hard', 'average','easy')) +
+  geom_point(data=cj_sum_ind, aes(y=cj,
+                                  x=factor(trialdifflevel,level = c('hard','average','easy')),
+                                  shape=factor(traindiffcond)),
+            size=1.5,alpha=.35,
+            position = position_jitterdodge(jitter.width=0.15,dodge.width = 0.3)) +
+  geom_ribbon(aes(ymin=cj-se,ymax=cj+se,
+                  group=traindiffcond,
+                  fill=factor(traindiffcond)),
+              colour="white",
+              position=position_dodge(0.3),
+              alpha=0.6) +
+    
+  scale_fill_manual(values = c(col_high,col_av,col_low),
+                    labels=c('hard', 'average','easy')) +
+  geom_point(size=2,aes(shape=traindiffcond),position=position_dodge(0.3)) +
+  scale_y_continuous(limits = c(3,6), expand = c(0.01,0.01)) +
+  scale_x_discrete(labels=c("hard","average","easy"), expand = c(0.03,0.03)) +
+  labs(title = "D.",
+       x = "",
+       y = "",
+       fill="Exp. 2: Training difficulty",
+       color="Exp. 2: Training difficulty",
+       shape="Exp. 2: Training difficulty") +
+  theme(legend.position = "none",
+        legend.title = element_text(face = "bold"),
+        plot.title.position = "plot",
+        plot.title = element_text(face = "bold"),
+        axis.text = element_text(size = 12),
+        axis.title = element_text(size = 12)) +
+  guides(color = guide_legend(title.position="top", title.hjust = 0.5),
+         fill = guide_legend(title.position="top", title.hjust = 0.5),
+         shape = guide_legend(title.position="top", title.hjust = 0.5))
+)
+
+```
+
+
+## Bottom panel
+
+Qualitative modeling data 
+
+```{r}
+
+# Simulated data
+cj_sim <-  aggregate(.~sub+trialdifflevel+condition,Simuls,mean)
+cj_simsum = summarySE(cj_sim, measurevar = "cj", 
+                         groupvars = c("trialdifflevel", "condition"))
+
+cj_simsum$fbcond <- factor(cj_simsum$condition, levels = c("lowSC", "mediumSC", "highSC"))
+
+
+# PLOT
+(cj_sim_exp1 <- ggplot(data=cj_simsum, 
+             aes(y=cj, x=factor(trialdifflevel,level = c('hard','average','easy')),
+                 color=factor(fbcond))) + 
+  
+  scale_color_manual(values = c(col_high,col_av,col_low),
+                    labels=c('hard', 'average','easy')) +
+  
+  # Add Data
+  geom_ribbon(aes(ymin=cj-se,ymax=cj+se,
+                  group=fbcond,
+                  fill=factor(fbcond)),
+              colour="white",
+              alpha=0.6) +
+    
+  scale_fill_manual(values = c(col_high,col_av,col_low),
+                    labels=c('hard', 'average','easy')) +
+    
+  # Add summarised Data
+  geom_point(size=2,aes(shape=fbcond)) +
+     
+ # geom_line(aes(group=fbcond),size=.6,position=position_dodge(0.3))+
+    
+ # geom_errorbar(aes(ymin=cj-se, ymax=cj+se), 
+  #              width=.1,size=.8,position=position_dodge(0.3)) +
+
+    
+  scale_y_continuous(limits = c(.5,.92), expand = c(0.01,0.01)) +
+  scale_x_discrete(labels=c("hard","average","easy"), expand = c(0.03,0.03)) +
+
+  labs(title = "E. Model predictions",
+       x = "",
+       y = "Confidence") +
+  theme(legend.position = "none",
+        plot.title.position = "plot",
+        plot.title = element_text(face = "bold"),
+        axis.text = element_text(size = 12),
+        axis.title = element_text(size = 12))
+)
+
+```
+
+
+Exp 2
+
+```{r}
+
+# Simulated data
+cj_sim <-  aggregate(.~sub+trialdifflevel+condition,Simuls2,mean)
+cj_simsum = summarySE(cj_sim, measurevar = "cj", 
+                         groupvars = c("trialdifflevel", "condition"))
+
+cj_simsum$fbcond <- factor(cj_simsum$condition, levels = c("hard", "average", "easy"))
+
+
+# PLOT
+(cj_sim_exp2 <- ggplot(data=cj_simsum, 
+             aes(y=cj, x=factor(trialdifflevel,level = c('hard','average','easy')),
+                 color=factor(fbcond))) + 
+  
+  scale_color_manual(values = c(col_high,col_av,col_low),
+                    labels=c('hard', 'average','easy')) +
+  
+  # Add Data
+  geom_ribbon(aes(ymin=cj-se,ymax=cj+se,
+                  group=fbcond,
+                  fill=factor(fbcond)),
+              colour="white",
+              alpha=0.6) +
+    
+  scale_fill_manual(values = c(col_high,col_av,col_low),
+                    labels=c('hard', 'average','easy')) +
+    
+  # Add summarised Data
+  geom_point(size=2,aes(shape=fbcond)) +
+     
+ # geom_line(aes(group=fbcond),size=.6,position=position_dodge(0.3))+
+    
+ # geom_errorbar(aes(ymin=cj-se, ymax=cj+se), 
+  #              width=.1,size=.8,position=position_dodge(0.3)) +
+
+    
+  scale_y_continuous(limits = c(.5,.92), expand = c(0.01,0.01)) +
+  scale_x_discrete(labels=c("hard","average","easy"), expand = c(0.03,0.03)) +
+
+  labs(title = "",
+       x = "",
+       y = "") +
+  theme(legend.position = "none",
+        plot.title.position = "plot",
+        plot.title = element_text(face = "bold"),
+        axis.text = element_text(size = 12))
+)
+
+```
+
+
+```{r}
+
+library(grid)
+library(gridExtra)
+
+jpeg(
+  filename="MainFigure.jpeg",
+  width=10,
+  height=13,
+  units="in",
+  res=500)
+
+lay <- rbind(c(0,0,1,1),
+             c(2,3,4,5),
+             c(6,6,7,7),
+             c(6,6,7,7),
+             c(8,8,9,9),
+             c(8,8,9,9))
+
+grid.arrange(legend1,legend2,
+             acc_exp1,rt_exp1,acc_exp2,rt_exp2,
+             cj_exp1,cj_exp2,
+             cj_sim_exp1,cj_sim_exp2,
+             layout_matrix=lay)
+
+
+dev.off()
+
+
+```
+
+
+
+# Figure 4
+
+## Exp 1
+
+```{r}
+
+# Subjective drift 
+
+plot_vs <- with(param_train_exp1,aggregate(Vs,by=list(sub,condition),mean))
+names(plot_vs) <- c("sub","cond","vs")
+
+
+plot_vs$cond <- factor(plot_vs$cond,levels=c("lowSC","mediumSC","highSC"))
+levels(plot_vs$cond) <- c("negative", "average", "positive")
+
+# sort by subject or the jitter doesn't align between points and lines - even with seed
+# see https://github.com/tidyverse/ggplot2/issues/3535 
+# OR next time, switch condition and sub arguments above :)
+plot_vs <-
+  plot_vs %>%
+  arrange(sub, cond)
+
+
+# PLOT
+(vs_exp1 <- ggplot(data=plot_vs, aes(y=vs, x=cond)) + 
+  
+  geom_line(aes(group=sub),size=.5,col="grey",alpha=.5,
+             position = position_jitter(0.05, seed=2))+
+  geom_point(size=2,col="grey",alpha=.6,
+             position = position_jitter(0.05,seed=2)) +
+  
+  stat_summary(aes(group=1),geom = "line",fun = "mean",col = "black",size = 1.5) +
+  stat_summary(geom = "point",fun = "mean",col = "black",size = 3) +
+  stat_summary(fun.data = mean_se,geom = "errorbar",width=0,size=1) + 
+    
+  scale_y_continuous(expand = c(0.01,0.01)) +
+  scale_x_discrete(labels=c("Negative","Average","Positive"), expand = c(0.04,0.04)) +
+
+  labs(title = "A.",
+       x = "",
+       y = "Subjective drift") +
+  theme(legend.position = "none",
+        plot.title.position = "plot",
+        plot.title = element_text(face = "bold"),
+        axis.text = element_text(size = 12),
+        plot.margin = margin(.7,.7,0,.7, "cm"))
+
+)
+
+
+```
+
+
+```{r}
+
+## Non-decision time
+
+plot_ter <- with(param_ddm_test_exp1,aggregate(ter,by=list(condition,sub),mean))
+names(plot_ter) <- c("cond","sub","ter")
+
+plot_ter$cond <- factor(plot_ter$cond,levels=c("lowSC","mediumSC","highSC"))
+levels(plot_ter$cond) <- c("negative", "average", "positive")
+
+plot_ter <-
+  plot_ter %>%
+  arrange(sub, cond)
+
+
+# PLOT
+(ter_exp1 <- ggplot(data=plot_ter, aes(y=ter, x=cond)) + 
+  
+  geom_line(aes(group=sub),size=.5,col="grey",alpha=.5,
+             position = position_jitter(0.05, seed=2))+
+  geom_point(size=2,col="grey",alpha=.6,
+             position = position_jitter(0.05,seed=2)) +
+  
+  stat_summary(aes(group=1),geom = "line",fun = "mean",col = "black",size = 1.5) +
+  stat_summary(geom = "point",fun = "mean",col = "black",size = 3) +
+  stat_summary(fun.data = mean_se,geom = "errorbar",width=0,size=1) + 
+    
+  scale_y_continuous(expand = c(0.01,0.01)) +
+  scale_x_discrete(labels=c("Negative","Average","Positive"), expand = c(0.04,0.04)) +
+
+  labs(title = "C.",
+       x = "Feedback condition",
+       y = "Non-decision time") +
+  theme(legend.position = "none",
+        plot.title.position = "plot",
+        plot.title = element_text(face = "bold"),
+        axis.text = element_text(size = 12),
+        axis.title = element_text(size = 13),
+        plot.margin = margin(.5,.7,.7,.7, "cm"))
+
+)
+
+```
+
+```{r}
+
+## Bound
+
+plot_bound <- with(param_ddm_test_exp1,aggregate(bound,by=list(condition,sub),mean))
+names(plot_bound) <- c("cond","sub","bound")
+
+plot_bound$cond <- factor(plot_bound$cond,levels=c("lowSC","mediumSC","highSC"))
+levels(plot_bound$cond) <- c("negative", "average", "positive")
+
+plot_bound <-
+  plot_bound %>%
+  arrange(sub, cond)
+
+
+# PLOT
+(bound_exp1 <- ggplot(data=plot_bound, aes(y=bound, x=cond)) + 
+  
+  geom_line(aes(group=sub),size=.5,col="grey",alpha=.5,
+             position = position_jitter(0.05, seed=2))+
+  geom_point(size=2,col="grey",alpha=.6,
+             position = position_jitter(0.05,seed=2)) +
+  
+  stat_summary(aes(group=1),geom = "line",fun = "mean",col = "black",size = 1.5) +
+  stat_summary(geom = "point",fun = "mean",col = "black",size = 3) +
+  stat_summary(fun.data = mean_se,geom = "errorbar",width=0,size=1) + 
+    
+  scale_y_continuous(expand = c(0.01,0.01)) +
+  scale_x_discrete(labels=c("Negative","Average","Positive"), expand = c(0.04,0.04)) +
+
+  labs(title = "D.",
+       x = "Feedback condition",
+       y = "Bound") +
+  theme(legend.position = "none",
+        plot.title.position = "plot",
+        plot.title = element_text(face = "bold"),
+        axis.text = element_text(size = 12),
+        plot.margin = margin(.5,.7,.7,.7, "cm"))
+
+)
+
+```
+
+```{r}
+
+## Drift interaction
+
+plot_drift <- with(param_ddm_test_exp1,aggregate(drift,by=list(sub,condition,difflevel),mean))
+names(plot_drift) <- c("sub","cond","trialdiff","drift")
+
+plot_drift$cond <- factor(plot_drift$cond,levels=c("lowSC","mediumSC","highSC"))
+levels(plot_drift$cond) <- c("negative", "average", "positive")
+
+plot_drift$trialdiff <- factor(plot_drift$trialdiff,levels=c("easy","average","hard"))
+levels(plot_drift$trialdiff) <- c("Easy", "Average", "Hard")
+
+plot_drift = summarySE(plot_drift, measurevar = "drift", 
+                         groupvars = c("trialdiff", "cond"))
+
+# PLOT
+(drift_exp1 <- ggplot(data=plot_drift, aes(y=drift,x=cond,col=trialdiff)) + 
+  
+  geom_line(aes(group=trialdiff,linetype=trialdiff),size=1)+
+  geom_point(size=2) +
+  geom_errorbar(aes(ymin=drift-se, ymax=drift+se),width=0,size=.8) +
+    
+  scale_color_manual(values=c('orange', 'darkorange3','orangered4')) +
+
+  scale_y_continuous(limits=c(0,.25),expand = c(0.01,0.01)) +
+  scale_x_discrete(labels=c("Negative","Average","Positive"), expand = c(0.04,0.04)) +
+
+  labs(title = "B.",
+       x = "",
+       y = "Drift rate",
+       color= "Trial difficulty:",
+       linetype= "Trial difficulty:") +
+    
+  theme(legend.position = c(.5,.1),
+        plot.title.position = "plot",legend.direction="horizontal",
+        plot.title = element_text(face = "bold"),
+        axis.text = element_text(size = 12),
+        legend.title = element_text(size=10),
+        plot.margin = margin(.7,.7,0,.7, "cm")) 
+  #guides(color = guide_legend(title.position="top", title.hjust = 0.5))
+
+)
+
+
+```
+
+
+```{r}
+
+library(grid)
+library(gridExtra)
+
+jpeg(
+  filename="ModelParameters_Exp1.jpeg",
+  width=10,
+  height=7,
+  units="in",
+  res=500)
+
+lay <- rbind(c(1,2),
+             c(3,4))
+
+grid.arrange(vs_exp1,drift_exp1,ter_exp1,bound_exp1,
+             layout_matrix=lay,
+             top=textGrob("Exp. 1: Comparative feedback",gp=gpar(fontsize=13,font=2)))
+
+
+dev.off()
+
+
+```
+
+
+## Exp 2
+
+```{r}
+
+# Subjective drift 
+plot_vs <- with(param_train_exp2,aggregate(Vs,by=list(condition,sub),mean))
+names(plot_vs) <- c("cond","sub","vs")
+
+plot_vs$cond <- factor(plot_vs$cond,levels=c("hard","average","easy"))
+levels(plot_vs$cond)
+
+plot_vs <-
+  plot_vs %>%
+  arrange(sub, cond)
+
+# PLOT
+(vs_exp2 <- ggplot(data=plot_vs, aes(y=vs, x=cond)) + 
+  
+  geom_line(aes(group=sub),size=.5,col="grey",alpha=.5,
+             position = position_jitter(0.05, seed=2))+
+  geom_point(size=2,col="grey",alpha=.6,
+             position = position_jitter(0.05,seed=2)) +
+  
+  stat_summary(aes(group=1),geom = "line",fun = "mean",col = "black",size = 1.5) +
+  stat_summary(geom = "point",fun = "mean",col = "black",size = 3) +
+  stat_summary(fun.data = mean_se,geom = "errorbar",width=0,size=1) + 
+    
+  scale_y_continuous(expand = c(0.01,0.01)) +
+  scale_x_discrete(labels=c("hard","average","easy"), expand = c(0.04,0.04)) +
+
+  labs(title = "E.",
+       x = "",
+       y = "Subjective drift") +
+  theme(legend.position = "none",
+        plot.title.position = "plot",
+        plot.title = element_text(face = "bold"),
+        axis.text = element_text(size = 12),
+        plot.margin = margin(.7,.7,0,.7, "cm"))
+
+)
+
+
+```
+
+
+```{r}
+
+## Non-decision time
+
+plot_ter <- with(param_ddm_test_exp2,aggregate(ter,by=list(condition,sub),mean))
+names(plot_ter) <- c("cond","sub","ter")
+
+plot_ter$cond <- factor(plot_ter$cond,levels=c("hard","average","easy"))
+levels(plot_ter$cond)
+
+plot_ter <-
+  plot_ter %>%
+  arrange(sub, cond)
+
+
+# PLOT
+(ter_exp2 <- ggplot(data=plot_ter, aes(y=ter, x=cond)) + 
+  
+  geom_line(aes(group=sub),size=.5,col="grey",alpha=.5,
+             position = position_jitter(0.05, seed=2))+
+  geom_point(size=2,col="grey",alpha=.6,
+             position = position_jitter(0.05,seed=2)) +
+  
+  stat_summary(aes(group=1),geom = "line",fun = "mean",col = "black",size = 1.5) +
+  stat_summary(geom = "point",fun = "mean",col = "black",size = 3) +
+  stat_summary(fun.data = mean_se,geom = "errorbar",width=0,size=1) + 
+    
+  scale_y_continuous(expand = c(0.01,0.01)) +
+  scale_x_discrete(labels=c("hard","average","easy"), expand = c(0.04,0.04)) +
+
+  labs(title = "G.",
+       x = "Training condition",
+       y = "Non-decision time") +
+  theme(legend.position = "none",
+        plot.title.position = "plot",
+        plot.title = element_text(face = "bold"),
+        axis.text = element_text(size = 12),
+        axis.title = element_text(size = 13),
+        plot.margin = margin(.5,.7,.7,.7, "cm"))
+
+)
+
+```
+
+```{r}
+
+## Bound
+
+plot_bound <- with(param_ddm_test_exp2,aggregate(bound,by=list(condition,sub),mean))
+names(plot_bound) <- c("cond","sub","bound")
+
+plot_bound$cond <- factor(plot_bound$cond,levels=c("hard","average","easy"))
+levels(plot_bound$cond)
+
+plot_bound <-
+  plot_bound %>%
+  arrange(sub, cond)
+
+
+# PLOT
+(bound_exp2 <- ggplot(data=plot_bound, aes(y=bound, x=cond)) + 
+  
+  geom_line(aes(group=sub),size=.5,col="grey",alpha=.5,
+             position = position_jitter(0.05, seed=2))+
+  geom_point(size=2,col="grey",alpha=.6,
+             position = position_jitter(0.05,seed=2)) +
+  
+  stat_summary(aes(group=1),geom = "line",fun = "mean",col = "black",size = 1.5) +
+  stat_summary(geom = "point",fun = "mean",col = "black",size = 3) +
+  stat_summary(fun.data = mean_se,geom = "errorbar",width=0,size=1) + 
+    
+  scale_y_continuous(expand = c(0.01,0.01)) +
+  scale_x_discrete(labels=c("hard","average","easy"), expand = c(0.04,0.04)) +
+
+  labs(title = "H.",
+       x = "Training condition",
+       y = "Bound") +
+  theme(legend.position = "none",
+        plot.title.position = "plot",
+        plot.title = element_text(face = "bold"),
+        axis.text = element_text(size = 12),
+        plot.margin = margin(.5,.7,.7,.7, "cm"))
+
+)
+
+```
+
+```{r}
+
+## Drift interaction
+
+plot_drift <- with(param_ddm_test_exp2,aggregate(drift,by=list(sub,condition,difflevel),mean))
+names(plot_drift) <- c("sub","cond","trialdiff","drift")
+
+plot_drift$cond <- factor(plot_drift$cond,levels=c("hard","average","easy"))
+levels(plot_drift$cond)
+
+plot_drift$trialdiff <- factor(plot_drift$trialdiff,levels=c("easy","average","hard"))
+levels(plot_drift$trialdiff) <- c("Easy", "Average", "Hard")
+
+plot_drift = summarySE(plot_drift, measurevar = "drift", 
+                         groupvars = c("trialdiff", "cond"))
+
+# PLOT
+(drift_exp2 <- ggplot(data=plot_drift, aes(y=drift,x=cond,col=trialdiff)) + 
+  
+  geom_line(aes(group=trialdiff,linetype=trialdiff),size=1)+
+  geom_point(size=2) +
+  geom_errorbar(aes(ymin=drift-se, ymax=drift+se),width=0,size=.8) +
+    
+  scale_color_manual(values=c('orange', 'darkorange3','orangered4')) +
+
+  scale_y_continuous(limits=c(0,.29),expand = c(0.01,0.01)) +
+  scale_x_discrete(labels=c("Negative","Average","Positive"), expand = c(0.04,0.04)) +
+
+  labs(title = "F.",
+       x = "",
+       y = "Drift rate",
+       color= "Trial difficulty:",
+       linetype= "Trial difficulty:") +
+    
+  theme(legend.position = c(.5,0.9),
+        plot.title.position = "plot",legend.direction="horizontal",
+        plot.title = element_text(face = "bold"),
+        axis.text = element_text(size = 12),
+        legend.title = element_text(size=10),
+        plot.margin = margin(.7,.7,0,.7, "cm")) 
+  #guides(color = guide_legend(title.position="top", title.hjust = 0.5))
+
+)
+
+
+```
+
+
+```{r}
+
+library(grid)
+library(gridExtra)
+
+jpeg(
+  filename="ModelParameters_Exp2.jpeg",
+  width=10,
+  height=7,
+  units="in",
+  res=500)
+
+lay <- rbind(c(1,2),
+             c(3,4))
+
+grid.arrange(vs_exp2,drift_exp2,ter_exp2,bound_exp2,
+             layout_matrix=lay,
+             top=textGrob("Exp. 2: Training difficulty",gp=gpar(fontsize=13,font=2)))
+
+
+dev.off()
+
+
+```
+
+
+
+# Extra figures: effects per task
+
+### Accuracy, exp 1 
+
+```{r}
+
+## Experiment 1
+cor_sum = summarySE(Data1, measurevar = "cor", 
+                         groupvars = c("trialdifflevel", "fbcond","task"))
+cor_sum$task <- as.factor(cor_sum$task)
+levels(cor_sum$task)
+
+levels(cor_sum$task) <- c("Dot color","Dot number","Letter discrimination")
+
+# PLOT
+(acc_exp1 <- ggplot(data=cor_sum, 
+             aes(y=cor, x=factor(trialdifflevel,level = c('hard','average','easy')),
+                 color=factor(fbcond,level = c('lowSC','mediumSC','highSC')))) + 
+
+  scale_color_manual(values = c(col_high,col_av,col_low),
+                   labels=c('negative', 'average','positive')) +
+  
+  # Add behavioural Data
+  geom_point(size=1) +
+  geom_line(aes(group=fbcond),size=.6)+
+  geom_errorbar(aes(ymin=cor-se, ymax=cor+se), width=.04) +
+  
+  facet_wrap(facets = vars(factor(task))) +
+    
+  scale_y_continuous(expand = c(0.01,0.01)) +
+  scale_x_discrete(labels=c("hard","average","easy"), expand = c(0.04,0.04)) +
+
+  labs(title = "B.",
+       x = "",
+       y = "Accuracy") +
+  theme(legend.position = "",
+        plot.title.position = "plot",
+        plot.title = element_text(face = "bold"),        
+        plot.margin = margin(.7,.7,0,.7, "cm"))
+)
+
+
+```
+
+### RT, exp 1
+
+```{r}
+
+## Experiment 1
+rt_sum = summarySE(Data1, measurevar = "rt", 
+                         groupvars = c("trialdifflevel", "fbcond","task"))
+rt_sum$task <- as.factor(rt_sum$task)
+levels(rt_sum$task)
+
+levels(rt_sum$task) <- c("Dot color","Dot number","Letter discrimination")
+
+
+# PLOT
+(rt_exp1 <- ggplot(data=rt_sum, 
+             aes(y=rt, x=factor(trialdifflevel,level = c('hard','average','easy')),
+                 color=factor(fbcond,level = c('lowSC','mediumSC','highSC')))) + 
+
+  scale_color_manual(values = c(col_high,col_av,col_low),
+                   labels=c('negative', 'average','positive')) +
+  
+  # Add behavioural Data
+  geom_point(size=1) +
+  geom_line(aes(group=fbcond),size=.6)+
+  geom_errorbar(aes(ymin=rt-se, ymax=rt+se), width=.04) +
+    
+  facet_wrap(facets = vars(factor(task))) +
+
+  scale_y_continuous(expand = c(0.01,0.01)) +
+  scale_x_discrete(labels=c("hard","average","easy"), expand = c(0.04,0.04)) +
+
+  labs(title = "C.",
+       x = "",
+       y = "RT (s)") +
+  theme(legend.position = "",
+        plot.title.position = "plot",
+        plot.title = element_text(face = "bold"),        
+        plot.margin = margin(.7,.7,0,.7, "cm"))
+)
+
+```
+
+
+### Confidence data (main results)
+
+```{r}
+
+## Experiment 1
+cj_sum = summarySE(Data1, measurevar = "cj", 
+                         groupvars = c("trialdifflevel", "fbcond","task"))
+cj_sum$task <- as.factor(cj_sum$task)
+levels(cj_sum$task)
+
+levels(cj_sum$task) <- c("Dot color","Dot number","Letter discrimination")
+
+
+# PLOT
+(cj_exp1 <- ggplot(data=cj_sum, 
+             aes(y=cj, x=factor(trialdifflevel,level = c('hard','average','easy')),
+                 color=factor(fbcond,level = c('lowSC','mediumSC','highSC')))) + 
+
+  scale_color_manual(values = c(col_high,col_av,col_low),
+                   labels=c('negative', 'average','positive')) +
+  
+  # Add behavioural Data
+  geom_point(size=1) +
+  geom_line(aes(group=fbcond),size=.6)+
+  geom_errorbar(aes(ymin=cj-se, ymax=cj+se), width=.04) +
+    
+  facet_wrap(facets = vars(factor(task))) +
+
+  scale_y_continuous(expand = c(0.01,0.01)) +
+  scale_x_discrete(labels=c("hard","average","easy"), expand = c(0.04,0.04)) +
+
+  labs(title = "A.",
+       x = "",
+       y = "Confidence",
+       color="Exp. 1:\nComparative feedback") +
+    
+  theme(legend.position = "right",
+        legend.title = element_text(face = "bold"),
+        plot.title.position = "plot",
+        plot.title = element_text(face = "bold"),        
+        plot.margin = margin(.7,.7,0,.7, "cm")) 
+)
+
+```
+
+
+
+
+### Accuracy, exp 2
+
+```{r}
+
+## Experiment 1
+cor_sum = summarySE(Data2, measurevar = "cor", 
+                         groupvars = c("trialdifflevel", "traindiffcond","task"))
+cor_sum$task <- as.factor(cor_sum$task)
+levels(cor_sum$task)
+
+levels(cor_sum$task) <- c("Dot color","Dot number","Letter discrimination")
+
+# PLOT
+(acc_exp2 <- ggplot(data=cor_sum, 
+             aes(y=cor, x=factor(trialdifflevel,level = c('hard','average','easy')),
+                 color=factor(traindiffcond,level = c('hard','average','easy')))) + 
+
+  scale_color_manual(values = c(col_high,col_av,col_low),
+                  labels=c('hard', 'average','easy')) +
+  
+  # Add behavioural Data
+  geom_point(size=1) +
+  geom_line(aes(group=traindiffcond),size=.6)+
+  geom_errorbar(aes(ymin=cor-se, ymax=cor+se), width=.04) +
+  
+  facet_wrap(facets = vars(factor(task))) +
+    
+  scale_y_continuous(expand = c(0.01,0.01)) +
+  scale_x_discrete(labels=c("hard","average","easy"), expand = c(0.04,0.04)) +
+
+  labs(title = "E.",
+       x = "",
+       y = "Accuracy") +
+  theme(legend.position = "",
+        plot.title.position = "plot",
+        plot.title = element_text(face = "bold"),        
+        plot.margin = margin(.7,.7,0,.7, "cm"))
+)
+
+
+```
+
+### RT, exp 2
+
+```{r}
+
+## Experiment 1
+rt_sum = summarySE(Data2, measurevar = "rt", 
+                         groupvars = c("trialdifflevel", "traindiffcond","task"))
+rt_sum$task <- as.factor(rt_sum$task)
+levels(rt_sum$task)
+
+levels(rt_sum$task) <- c("Dot color","Dot number","Letter discrimination")
+
+
+# PLOT
+(rt_exp2 <- ggplot(data=rt_sum, 
+             aes(y=rt, x=factor(trialdifflevel,level = c('hard','average','easy')),
+                 color=factor(traindiffcond,level = c('hard','average','easy')))) + 
+
+  scale_color_manual(values = c(col_high,col_av,col_low),
+                  labels=c('hard', 'average','easy')) +
+  
+  # Add behavioural Data
+  geom_point(size=1) +
+  geom_line(aes(group=traindiffcond),size=.6)+
+  geom_errorbar(aes(ymin=rt-se, ymax=rt+se), width=.04) +
+    
+  facet_wrap(facets = vars(factor(task))) +
+
+  scale_y_continuous(expand = c(0.01,0.01)) +
+  scale_x_discrete(labels=c("hard","average","easy"), expand = c(0.04,0.04)) +
+
+  labs(title = "F.",
+       x = "",
+       y = "RT (s)") +
+  theme(legend.position = "",
+        plot.title.position = "plot",
+        plot.title = element_text(face = "bold"),        
+        plot.margin = margin(.7,.7,0,.7, "cm"))
+)
+
+```
+
+
+### Confidence data (main results)
+
+```{r}
+
+## Experiment 1
+cj_sum = summarySE(Data2, measurevar = "cj", 
+                         groupvars = c("trialdifflevel", "traindiffcond","task"))
+cj_sum$task <- as.factor(cj_sum$task)
+levels(cj_sum$task)
+
+levels(cj_sum$task) <- c("Dot color","Dot number","Letter discrimination")
+
+
+# PLOT
+(cj_exp2 <- ggplot(data=cj_sum, 
+             aes(y=cj, x=factor(trialdifflevel,level = c('hard','average','easy')),
+                 color=factor(traindiffcond,level = c('hard','average','easy')))) + 
+
+  scale_color_manual(values = c(col_high,col_av,col_low),
+                  labels=c('hard', 'average','easy')) +
+  
+  # Add behavioural Data
+  geom_point(size=1) +
+  geom_line(aes(group=traindiffcond),size=.6)+
+  geom_errorbar(aes(ymin=cj-se, ymax=cj+se), width=.04) +
+    
+  facet_wrap(facets = vars(factor(task))) +
+
+  scale_y_continuous(expand = c(0.01,0.01)) +
+  scale_x_discrete(labels=c("hard","average","easy"), expand = c(0.04,0.04)) +
+
+  labs(title = "D.",
+       x = "",
+       y = "Confidence",
+       color="Exp. 2:\nTraining difficulty") +
+    
+  theme(legend.position = "right",
+        legend.title = element_text(face = "bold"),
+        plot.title.position = "plot",
+        plot.title = element_text(face = "bold"),        
+        plot.margin = margin(.7,.7,0,.7, "cm")) 
+)
+
+```
+
+
+```{r}
+
+library(grid)
+library(gridExtra)
+
+jpeg(
+  filename="Exra_EffectsPerTask.jpeg",
+  width=12,
+  height=12,
+  units="in",
+  res=500)
+
+lay <- rbind(c(1,1),
+             c(1,1),
+             c(1,1),
+             c(3,4),
+             c(3,4),
+             c(5,5),
+             c(5,5),
+             c(5,5),
+             c(6,7),
+             c(6,7))
+
+grid.arrange(cj_exp1,
+             acc_exp1,rt_exp1,
+             cj_exp2,
+             acc_exp2,rt_exp2,
+             layout_matrix=lay)
+
+
+dev.off()
+
+
+```
+
+
+# Quantitative fits figure
+
+```{r}
+
+setwd("Data/Aggregated")
+quantData1 <- read.csv('quantitative_prediction_exp1.csv')
+quantData2 <- read.csv('quantitative_prediction_exp2.csv')
+
+
+## EXPERIMENT 1 --------------------
+
+# Simulated data
+cj_sim <-  aggregate(.~sub+trialdifflevel+condition,quantData1,mean)
+cj_simsum = summarySE(cj_sim, measurevar = "cj", 
+                         groupvars = c("trialdifflevel", "condition"))
+cj_simsum$condition <- factor(cj_simsum$condition,levels=c("lowSC","mediumSC","highSC"))
+
+# Behavioural data
+cj_sum = summarySE(Data1, measurevar = "cj", 
+                         groupvars = c("trialdifflevel", "fbcond"))
+cj_sum$condition <- factor(cj_sum$fbcond, levels = c("lowSC","mediumSC","highSC"))
+
+
+
+# PLOT
+(cj_quant_exp1 <- ggplot(data=cj_simsum, 
+             aes(y=cj, x=factor(trialdifflevel,level = c('hard','average','easy')),
+                 color=condition)) + 
+  
+  scale_color_manual(values = c(col_low,col_av,col_high),
+                    labels=c('negative', 'average','positive')) +
+  scale_fill_manual(values = c(col_low,col_av,col_high),
+                    labels=c('negative', 'average','positive')) +
+  
+  # Add Modelling Data
+  geom_ribbon(aes(ymin=cj-se,ymax=cj+se,
+                  group=condition,
+                  fill=condition),
+              colour="white",
+              alpha=0.4) +
+
+
+  # Behavioural data
+  geom_line(data=cj_sum,size=1,
+             aes(y=cj,
+                 x=factor(trialdifflevel,level = c('hard','average','easy')),
+                 group=condition)) +
+  geom_point(data=cj_sum,size=2,
+             aes(y=cj,
+                 x=factor(trialdifflevel,level = c('hard','average','easy')),
+                 shape=condition)) +
+  geom_errorbar(data=cj_sum,
+                aes(ymin=cj-se, ymax=cj+se), 
+                width=0,size=1) +
+    
+    
+  scale_y_continuous(limits = c(4,5.5),expand = c(0.01,0.01)) +
+  scale_x_discrete(labels=c("hard","average","easy"), expand = c(0.03,0.03)) +
+
+  labs(title = "Experiment 1: comparative feedback",
+       y = "Confidence",
+       x = "Trial difficulty") +
+  theme(legend.position = "none",
+        plot.title.position = "plot",
+        plot.title = element_text(face = "bold"),
+        axis.text = element_text(size = 12)) +
+    
+  guides(color = guide_legend(title.position="top", title.hjust = 0.5),
+         fill = guide_legend(title.position="top", title.hjust = 0.5),
+         shape = guide_legend(title.position="top", title.hjust = 0.5))
+
+)
+
+
+
+
+## EXPERIMENT 2 --------------------
+
+# Simulated data
+cj_sim <-  aggregate(.~sub+trialdifflevel+condition,quantData2,mean)
+cj_simsum = summarySE(cj_sim, measurevar = "cj", 
+                         groupvars = c("trialdifflevel", "condition"))
+cj_simsum$condition <- factor(cj_simsum$condition,levels=c("hard","average","easy"))
+
+# Behavioural data
+cj_sum = summarySE(Data2, measurevar = "cj", 
+                         groupvars = c("trialdifflevel", "traindiffcond"))
+cj_sum$condition <- factor(cj_sum$traindiffcond, levels = c("hard","average","easy"))
+
+
+
+# PLOT
+(cj_quant_exp2 <- ggplot(data=cj_simsum, 
+             aes(y=cj, x=factor(trialdifflevel,level = c('hard','average','easy')),
+                 color=condition)) + 
+  
+  scale_color_manual(values = c(col_low,col_av,col_high),
+                    labels=c('hard', 'average','easy')) +
+  scale_fill_manual(values = c(col_low,col_av,col_high),
+                    labels=c('hard', 'average','easy')) +
+  
+  # Add Modelling Data
+  geom_ribbon(aes(ymin=cj-se,ymax=cj+se,
+                  group=condition,
+                  fill=condition),
+              colour="white",
+              alpha=0.4) +
+
+
+  # Behavioural data
+  geom_line(data=cj_sum,size=1,
+             aes(y=cj,
+                 x=factor(trialdifflevel,level = c('hard','average','easy')),
+                 group=condition)) +
+  geom_point(data=cj_sum,size=2,
+             aes(y=cj,
+                 x=factor(trialdifflevel,level = c('hard','average','easy')),
+                 shape=condition)) +
+  geom_errorbar(data=cj_sum,
+                aes(ymin=cj-se, ymax=cj+se), 
+                width=0,size=1) +
+    
+    
+  scale_y_continuous(limits = c(4,5.5),expand = c(0.01,0.01)) +
+  scale_x_discrete(labels=c("hard","average","easy"), expand = c(0.03,0.03)) +
+
+  labs(title = "Experiment 2: Training difficulty",
+       y = "",
+       x = "Trial difficulty") +
+  theme(legend.position = "none",
+        plot.title.position = "plot",
+        plot.title = element_text(face = "bold"),
+        axis.text = element_text(size = 12)) +
+    
+  guides(color = guide_legend(title.position="top", title.hjust = 0.5),
+         fill = guide_legend(title.position="top", title.hjust = 0.5),
+         shape = guide_legend(title.position="top", title.hjust = 0.5))
+
+)
+
+
+
+## COMBINE -------------------
+
+library(grid)
+library(gridExtra)
+
+setwd("C:/Users/u0140313/OneDrive - KU Leuven/Desktop/PriorBeliefs/Pierres_Files")
+
+
+jpeg(
+  filename="QuantitativeFits.jpeg",
+  width=12,
+  height=7,
+  units="in",
+  res=500)
+
+
+grid.arrange(cj_quant_exp1,cj_quant_exp2,ncol=2)
+
+
+dev.off()
+
+
+```
+
+
+

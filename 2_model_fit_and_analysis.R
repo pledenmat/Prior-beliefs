@@ -452,7 +452,7 @@ if (stat_test) {
   #DDM train
   df$sub <- as.factor(df$sub)
   m <- lmer(Vs ~ condition + (1|sub),data=df); anova(m);
-  m <- lmer(Vo ~condition + (1|sub), data = df); anova(m)
+  m <- lmer(Vo ~ condition + (1|sub), data = df); anova(m)
   m <- lmer(bound ~ condition + (1|sub),data=df); anova(m);
   m <- lmer(ter ~ condition + (1|sub),data=df); anova(m);
   
