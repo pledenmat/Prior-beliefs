@@ -38,17 +38,9 @@ nsim <- 1 # Number of times the dataset is simulated in model predictions
 nrepeat <- 24 # Number of times each v_s is estimated
 # EXP 1 -------------------------------------------------------------------
 ## Data load =====
-setwd("Data/Aggregated")
-Data1 <- read.csv('data_exp1.csv')
-Data2 <- read.csv('data_exp2.csv')
-Data1_train <- read.csv("data_exp1_training.csv")
-Data2_train <- read.csv("data_exp2_training.csv")
-setwd(curdir)
-
-
-subs_1 <- sort(unique(Data1_train$sub)); Nsub_1 <- length(subs_1) 
-cond_1 <- sort(unique(Data1_train$fbcond)); Ncond_1 <- length(cond_1)
-trialdifflevel <- sort(unique(Data1_train$trialdifflevel));Ndiff <- length(trialdifflevel)
+subs_1 <- sort(unique(Training_exp1$sub)); Nsub_1 <- length(subs_1) 
+cond_1 <- sort(unique(Training_exp1$fbcond)); Ncond_1 <- length(cond_1)
+trialdifflevel <- sort(unique(Training_exp1$trialdifflevel));Ndiff <- length(trialdifflevel)
 
 
 
@@ -61,7 +53,7 @@ v2_train <- matrix(NA,Nsub_1,Ncond_1)
 v3_train <- matrix(NA,Nsub_1,Ncond_1)
 resid_train <- matrix(NA,Nsub_1,Ncond_1)
 for (i in 1:Nsub_1) {
-  tempAll <- subset(Data1_train,sub==subs_1[i])
+  tempAll <- subset(Training_exp1,sub==subs_1[i])
   for (cond in 1:Ncond_1) {
     print(paste('Running participant',i,'from',Nsub_1,"condition",cond))
     tempDat <- subset(tempAll,fbcond==cond_1[cond])
@@ -136,8 +128,8 @@ if (!(file.exists("Data/Aggregated/cost_vs_exp1.csv"))) {
     while (cond <= Ncond_1) {
       print(paste("Running participant",s,"of",Nsub_1,"condition",cond))
       cost_conf <- matrix(NA,nrow=nrepeat,ncol=length(v_s_all))
-      tempDat <- subset(Data1_train,sub==subs_1[s]&fbcond==cond_1[cond])
-      tempDat_test <- subset(Data1,sub==subs_1[s]&fbcond==cond_1[cond])
+      tempDat <- subset(Training_exp1,sub==subs_1[s]&fbcond==cond_1[cond])
+      tempDat_test <- subset(Data_exp1,sub==subs_1[s]&fbcond==cond_1[cond])
       ntrial <- dim(tempDat_test)[1]
       ntrial_train <- dim(tempDat)[1]
       temp_par <- c(bound_train[s,cond],ter_train[s,cond],0,nrepeat,
@@ -218,7 +210,7 @@ if (file.exists("Data/Aggregated/model_prediction_exp1.csv")) {
     print(paste('simulating',i,'from',Nsub_1))
     for(c in 1:Ncond_1){
       temp_vs <- subset(param_train_exp1,condition==cond_1[c]&sub==subs_1[i])$Vs
-      tempDat <- subset(Data1,fbcond==cond_1[c]&sub==subs_1[i])
+      tempDat <- subset(Data_exp1,fbcond==cond_1[c]&sub==subs_1[i])
       hm_up <- build_hm(temp_vs)
       hm_low <- 1-hm_up
       hmvec_low <- as.vector(hm_low); hmvec_up <- as.vector(hm_up)
@@ -239,7 +231,7 @@ if (file.exists("Data/Aggregated/model_prediction_exp1.csv")) {
   }
   Simuls <- data.frame(Simuls);names(Simuls) <- c('rt','resp','cor','evidence2','rt2', 'cj','drift','closest_evdnc2','condition','sub')
   
-  difflevels <- sort(unique(Data1$trialdifflevel))
+  difflevels <- sort(unique(Data_exp1$trialdifflevel))
   Simuls$trialdifflevel <- 0
   for (i in 1:Nsub_1) {
     for(d in 1:length(difflevels)) Simuls$trialdifflevel[Simuls$sub==subs_1[i] & Simuls$drift %in% c(unique(subset(Simuls,sub==subs_1[i])$drift)[d],unique(subset(Simuls,sub==subs_1[i])$drift)[d+3],unique(subset(Simuls,sub==subs_1[i])$drift)[d+6])] <- difflevels[d] #recode drift to trialdifflevelerence
@@ -248,9 +240,9 @@ if (file.exists("Data/Aggregated/model_prediction_exp1.csv")) {
 }
 # EXP 2 -------------------------------------------------------------------
 ## Data Load ====
-subs_2 <- sort(unique(Data2_train$sub)); Nsub_2 <- length(subs_2)
-cond_2 <- sort(unique(Data2_train$traindiffcond)); Ncond_2 <- length(cond_2)
-trialdifflevel <- sort(unique(Data2_train$trialdifflevel));Ndiff <- length(trialdifflevel)
+subs_2 <- sort(unique(Training_exp2$sub)); Nsub_2 <- length(subs_2)
+cond_2 <- sort(unique(Training_exp2$traindiffcond)); Ncond_2 <- length(cond_2)
+trialdifflevel <- sort(unique(Training_exp2$trialdifflevel));Ndiff <- length(trialdifflevel)
 
 
 #Load fitted train DDM parameters
@@ -260,7 +252,7 @@ v_train <- matrix(NA,Nsub_2,Ncond_2) # 1 difficulty per condition so only 1 drif
 resid_train <- matrix(NA,Nsub_2,Ncond_2)
 
 for (i in 1:Nsub_2) {
-  tempAll <- subset(Data2_train,sub==subs_2[i])
+  tempAll <- subset(Training_exp2,sub==subs_2[i])
   for (c in 1:Ncond_2) {
     tempDat <- subset(tempAll,traindiffcond==cond_2[c])
     file_name <- paste0('Fits/Exp2/Train/trainfit',cond_2[c],subs_2[i],'.Rdata')
@@ -332,8 +324,8 @@ if (!(file.exists("Data/Aggregated/cost_vs_exp2.csv"))) {
       print(paste("Running participant",s,"of",Nsub_2,"condition",cond))
       cost_conf <- matrix(NA,nrow=nrepeat,ncol=length(v_s_all))
       
-      tempDat <- subset(Data2_train,sub==subs_2[s]&traindiffcond==cond_2[cond])
-      tempDat_test <- subset(Data2,sub==subs_2[s]&traindiffcond==cond_2[cond])
+      tempDat <- subset(Training_exp2,sub==subs_2[s]&traindiffcond==cond_2[cond])
+      tempDat_test <- subset(Data_exp2,sub==subs_2[s]&traindiffcond==cond_2[cond])
       
       ntrial_train <- dim(tempDat)[1]
       
@@ -416,7 +408,7 @@ if (file.exists("Data/Aggregated/model_prediction_exp2.csv")) {
     print(paste('simulating',i,'from',Nsub_2))
     for(c in 1:Ncond_2){
       temp_vs <- subset(param_train_exp2,condition==cond_2[c]&sub==subs_2[i])$Vs
-      tempDat <- subset(Data2, sub==subs_2[i] & traindiffcond==cond_2[c])
+      tempDat <- subset(Data_exp2, sub==subs_2[i] & traindiffcond==cond_2[c])
       hm_up <- build_hm(temp_vs)
       hm_low <- 1-hm_up
       hmvec_low <- as.vector(hm_low); hmvec_up <- as.vector(hm_up)
@@ -439,7 +431,7 @@ if (file.exists("Data/Aggregated/model_prediction_exp2.csv")) {
   }
   Simuls2 <- data.frame(Simuls2);names(Simuls2) <- c('rt','resp','cor','evidence2','rt2', 'cj','drift','closest_evdnc2','condition','sub')
   
-  difflevels <- sort(unique(Data2$trialdifflevel))
+  difflevels <- sort(unique(Data_exp2$trialdifflevel))
   Simuls2$trialdifflevel <- 0
   for (i in 1:Nsub_2) {
     for(d in 1:length(difflevels)) Simuls2$trialdifflevel[Simuls2$sub==subs_2[i] & Simuls2$drift %in% c(unique(subset(Simuls2,sub==subs_2[i])$drift)[d],unique(subset(Simuls2,sub==subs_2[i])$drift)[d+3],unique(subset(Simuls2,sub==subs_2[i])$drift)[d+6])] <- difflevels[d] #recode drift to trialdifflevelerence
@@ -490,9 +482,10 @@ if (stat_test) {
   m <- lmer(x ~ condition*trialdifflevel + (condition|sub), data = sim_cj2); anova(m)
 
 }
-# Other aggregated data for plotting purpose --------------------------------------------------------------------
-
+# Save aggregated data for plotting purpose --------------------------------------------------------------------
 save(param_ddm_test_exp1,file="Data/Aggregated/param_ddm_test_exp1.Rdata")
 save(param_ddm_test_exp2,file="Data/Aggregated/param_ddm_test_exp2.Rdata")
 save(param_train_exp1,file="Data/Aggregated/param_train_exp1.Rdata")
 save(param_train_exp2,file="Data/Aggregated/param_train_exp2.Rdata")
+
+
