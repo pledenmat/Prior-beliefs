@@ -473,13 +473,13 @@ if (stat_test) {
   m <- lmer(x ~ condition + (1|sub),data=test_ter2); anova(m);
   m <- lmer(drift ~ condition*difflevel + (condition|sub),data=param_ddm_test_exp2); anova(m);
   
-
-  sim_cj1 <- with(Simuls,aggregate(cj,by=list(condition=condition,trialdifflevel=trialdifflevel,sub=sub),mean))
-  sim_cj2 <- with(Simuls2,aggregate(cj,by=list(condition=condition,trialdifflevel=trialdifflevel,sub=sub),mean))
-  sim_cj1$sub <- as.factor(sim_cj1$sub)
-  sim_cj2$sub <- as.factor(sim_cj2$sub)
-  m <- lmer(x ~ condition*trialdifflevel + (condition|sub), data = sim_cj1); anova(m)
-  m <- lmer(x ~ condition*trialdifflevel + (condition|sub), data = sim_cj2); anova(m)
+  m <- lmer(cj ~ condition*trialdifflevel + (condition+trialdifflevel|sub), data = Simuls, 
+            control = lmerControl(optimizer='bobyqa')); 
+  anova(m)
+  m2 <- lmer(cj ~ condition*trialdifflevel + (condition+trialdifflevel|sub), data = Simuls2, 
+            control = lmerControl(optimizer='bobyqa')); 
+  anova(m2)
+  
 
 }
 # Save aggregated data for plotting purpose --------------------------------------------------------------------
