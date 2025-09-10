@@ -19,7 +19,9 @@
 library(MALDIquant)
 library(Rcpp)
 library(myPackage)
-source('fast_hm.R')
+sourceCpp("DDM_with_confidence_slow_fullconfRT.cpp")
+source('build_hm.R')
+source('fastmerge.R')
 
 quantile_optim_DDM_Vs_bias <- function(params, observations, returnFit,confRT_name = "RTconf",condition_name = "selfconf",
                                        ev_bound = .5, ev_window = .01, upperRT = 5, conf_min = 0, binning = T){ # Heatmap parameters
