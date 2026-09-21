@@ -80,7 +80,7 @@ project as it was archived on OSF (https://osf.io/8bf3r/). Fixed here:
 
 ## Known limitations (not fixed - ongoing investigations)
 
-**Postcheck coding is missing, not just miscoded.** `post1`...`post6` in the
+**Postcheck coding is missing.** `post1`...`post6` in the
 raw data are free-text debriefing answers (in Dutch). The three named
 variables the analysis expects (`SubjectiveInfluenceFb`,
 `FeedbackCredibility`, `ManipulationAwareness`). The postcheck follow-up analysis (not the main confidence result) is
@@ -92,3 +92,5 @@ match `fit3`.** Right after the `fit11`->`fit3` fix, there's a hand-built
 coefficients. 27 is exactly what a three-way interaction with another
 3-level factor would need - almost certainly one of the `fitFC`/`fitMA`/
 `fitSI` postcheck models further down, not `fit3`. Needs investigation on whether this is important or can be cut from analysis.
+
+**`BehaviouralDataAnalysis_Exp{1,2}.R` F values do not match manuscript.** Looks like ANOVAs on mixed models were done by using lmerTest::anova(), instead of car:Anova(type="III") currently reported in the scripts. Needs further investigation to confirm.
