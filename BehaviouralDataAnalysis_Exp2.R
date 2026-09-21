@@ -128,7 +128,6 @@ for(i in 1:N){
 }
 
 Data <- subset(Data,!(sub %in% exclusion)) #Sub 12, 32 and 50 removed 
-postchecks <- subset(postchecks,!(sub %in% exclusion)) #Sub 12, 32 and 50 removed
 
 length(unique(Data$sub)) # 47 pps left
 
@@ -193,9 +192,12 @@ anova(nullmod,fit2)
 summary(fit1)
 Anova(fit1, type="III")
 
+# FIX (reproducibility report, Sept 2026): fit9 is never defined in this file (only
+# nullmod/fit1/fit2 are); fit1 is the model just summarized/tested above, so these
+# plots are of fit1.
 # plot the effects
-plot(allEffects(fit9))
-plot(effect("traindiffcond", fit9)) 
+plot(allEffects(fit1))
+plot(effect("traindiffcond", fit1))
 
 
 ##----------------

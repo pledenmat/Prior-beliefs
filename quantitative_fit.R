@@ -53,6 +53,9 @@ setwd("Fits")
 ddm_params <- data.frame(drift=NA,bound=NA,ter=NA,sub=rep(subs1,Ndiff*Ncond),
                          condition=rep(cond_1,each=Nsub_1,length.out=Nsub_1*Ncond*Ndiff),
                          difflevel=rep(trialdifflevel,each=Nsub_1*Ncond))
+# FIX (reproducibility report, Sept 2026): Plots could not be reproduced because
+# variable naming changes led to drift rates being assigned to conditions instead of difficulty
+ddm_params <- ddm_params[order(ddm_params$sub,ddm_params$condition),] 
 bound <- matrix(NA,Nsub_1,Ncond);
 ter <- matrix(NA,Nsub_1,Ncond)
 v1 <- matrix(NA,Nsub_1,Ncond) 
@@ -146,7 +149,7 @@ for (s in 1:Nsub_1) {
   tempDat <- subset(Data_exp1,sub==subs1[s])
   temp <- quantile_optim_DDM_Vs_biasfixed(c(0,1,.1,.001,bias[s],rep(1,Ncond),v_s[s,]),
                                           tempDat,returnFit=0,ddm_params=tempddm,
-                                          condition_name = "selfconf")
+                                          condition_name = "fbcond")
   if(!exists('Simuls1')){ Simuls1 <- cbind(temp,subs1[s])
   }else{ Simuls1 <- rbind(Simuls1,cbind(temp,subs1[s]))
   }
@@ -160,6 +163,9 @@ setwd("Fits")
 ddm_params <- data.frame(drift=NA,bound=NA,ter=NA,sub=rep(subs2,Ndiff*Ncond),
                          condition=rep(cond_2,each=Nsub_2,length.out=Nsub_2*Ncond*Ndiff),
                          difflevel=rep(trialdifflevel,each=Nsub_2*Ncond))
+# FIX (reproducibility report, Sept 2026): Plots could not be reproduced because
+# variable naming changes led to drift rates being assigned to conditions instead of difficulty
+ddm_params <- ddm_params[order(ddm_params$sub,ddm_params$condition),] 
 bound <- matrix(NA,Nsub_2,Ncond);ter <- matrix(NA,Nsub_2,Ncond)
 v1 <- matrix(NA,Nsub_2,Ncond) 
 v2 <- matrix(NA,Nsub_2,Ncond) 

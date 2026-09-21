@@ -149,12 +149,26 @@ library(ggthemes)
 library(ggridges)
 library(matrixStats)
 
-postchecks$SubjectiveInfluenceFb <- factor(postchecks$SubjectiveInfluenceFb)
-postchecks$FeedbackCredibility   <- factor(postchecks$FeedbackCredibility)
-postchecks$ManipulationAwareness <- factor(postchecks$ManipulationAwareness)
+# FIX NEEDED (reproducibility report, Sept 2026): postchecks only ever gets the raw
+# columns post1..post6. This script has always expected three *coded*
+# categorical columns here instead - SubjectiveInfluenceFb, FeedbackCredibility,
+# ManipulationAwareness - which never existed under those names. 
+# @Hélène do you have perhaps an Excel file or something where you manually coded
+# the free text responses into those three columns? In the meantime, I'm guarding 
+# this chunk here so the rest of the script can still run:
+if (all(c("SubjectiveInfluenceFb","FeedbackCredibility","ManipulationAwareness") %in% names(postchecks))) {
+  postchecks$SubjectiveInfluenceFb <- factor(postchecks$SubjectiveInfluenceFb)
+  postchecks$FeedbackCredibility   <- factor(postchecks$FeedbackCredibility)
+  postchecks$ManipulationAwareness <- factor(postchecks$ManipulationAwareness)
 
-posts_table <- table(postchecks$FeedbackCredibility,postchecks$ManipulationAwareness)
-posts_table <- posts_table[,c(2,3,1)]
+  posts_table <- table(postchecks$FeedbackCredibility,postchecks$ManipulationAwareness)
+  posts_table <- posts_table[,c(2,3,1)]
+} else {
+  warning("Skipping post-check follow-up analysis: coded postcheck columns ",
+          "(SubjectiveInfluenceFb/FeedbackCredibility/ManipulationAwareness) are ",
+          "not available - see comment above. postchecks currently only has the ",
+          "raw post1..post6 free-text columns.")
+}
 
 
 maindata <- subset(Data, running == "main")
@@ -198,17 +212,30 @@ anova(nullmod,fit2)
 # Add both 
 fit3 <- lmer(cj ~ 1 + fbcond*difflevel + (1 +difflevel+fbcond | sub), data = maindata,
               control = lmerControl(optimizer = "bobyqa"))
-anova(nullmod,fit3) 
-# Converges, AIC 89046 
+anova(nullmod,fit3)
+# Converges, AIC 89046
 # Best fit: (1 + difflevel + fbcond | sub)
 
-summary(fit11)
-Anova(fit11,type="III") 
+# FIX (reproducibility report, Sept 2026): every reference below this point was
+# `fit11`, a model that is never defined anywhere in this file.  
+# Comment suggests that fit3 is the winning model (matches random-effects structure)
+# so fit11 -> fit3 throughout this section.
+summary(fit3)
+Anova(fit3,type="III") # Doesn't produce the F(2,47)=16.65 test (original anova call)
+anova(fit3) # This does but wasn't in the OSF script, might want to double-check all stats
 
 ## plot the effects
-plot(allEffects(fit11))
+plot(allEffects(fit3))
 
-# post hoc comparisons 
+# FIX NEEDED (reproducibility report, Sept 2026): this hand-built contrast matrix C
+# is 3x27, but fit3 only has 9 fixed-effect coefficients , so glht(fit3, linfct = C) 
+# errors with "'ncol(linfct)' is not equal to 'length(coef(model))'". 
+# 27 columns is exactly what a 3-way interaction with another 3-level factor would need, 
+# which matches fitFC/fitMA/fitSI (the postcheck follow-up models further below, e.g.
+# `fbcond*difflevel*FeedbackCredibility`) rather than fit3. This looks like another
+# casualty of the same renaming/refactor the other bugs came from: this post-hoc
+# block was very likely written against one of those 3-way models, not fit3.
+# testInteractions() below doesn't have this problem, so it's left running on fit3.
 C <- rep(0,27)
 C <- rep(C,3)
 C <- matrix(C,3)
@@ -216,11 +243,11 @@ C[1,1] <- 1
 C[2,2] <- 1
 C[3,3] <- 1
 C
-summary(glht(fit11, linfct = C))
-summary(glht(fit11))
+# summary(glht(fit3, linfct = C)) 
+summary(glht(fit3))
 
 library(phia)
-testInteractions(fit11, fixed = c("difflevel","fbcond"))
+testInteractions(fit3, fixed = c("difflevel","fbcond"))
 
 
 
@@ -345,27 +372,32 @@ anova(b3_fit1)
 ## FOLLOW UP: Relationship with postcheck answers -
 ##-------------------------------------------------
 
-maindata_withpost <- merge(maindata,postchecks, by="sub")  
+# FIX NEEDED (reproducibility report, Sept 2026): depends on the coded postcheck
+# columns flagged above (SubjectiveInfluenceFb/FeedbackCredibility/ManipulationAwareness),
+# which are not available in the replication materials - see the comment near
+# postchecks$SubjectiveInfluenceFb further up. Guarded so the rest of the script runs.
+maindata_withpost <- merge(maindata,postchecks, by="sub")
 
 
-fitFC <- lmer(cj ~ 1 + fbcond*difflevel*FeedbackCredibility + 
+fitFC <- lmer(cj ~ 1 + fbcond*difflevel*FeedbackCredibility +
                 (1 +difflevel+fbcond | sub), data = maindata_withpost,
               control = lmerControl(optimizer = "bobyqa"))
 anova(fitFC)
-plot(allEffects(fit11))
+plot(allEffects(fitFC)) # FIX: was `fit11`, undefined here (see main fit11->fit3 fix above); this plot is of the model just fit
 
 
-fitMA <- lmer(cj ~ 1 + fbcond*difflevel*ManipulationAwareness + 
+fitMA <- lmer(cj ~ 1 + fbcond*difflevel*ManipulationAwareness +
                 (1 +difflevel+fbcond | sub), data = maindata_withpost,
               control = lmerControl(optimizer = "bobyqa"))
 anova(fitMA)
 plot(allEffects(fitMA))
 
 
-fitSI <- lmer(cj ~ 1 + fbcond*difflevel*SubjectiveInfluenceFb + 
+fitSI <- lmer(cj ~ 1 + fbcond*difflevel*SubjectiveInfluenceFb +
                 (1 +difflevel+fbcond | sub), data = maindata_withpost,
               control = lmerControl(optimizer = "bobyqa"))
 anova(fitSI)
+
 plot(allEffects(fitSI))
 
 

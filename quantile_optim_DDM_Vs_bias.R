@@ -18,7 +18,13 @@
 #' @export
 library(MALDIquant)
 library(Rcpp)
-library(myPackage)
+# FIX (reproducibility report, Sept 2026): this script used to `library(myPackage)`,
+# a custom personal package that was never included in the OSF/GitHub replication
+# materials, so the project could not even be loaded. The only thing this script
+# actually needed from it was fast_hm(); that function's real source was found
+# unused in script/fast_hm.R and is self-contained (only needs fields + mnormt),
+# so we source it directly instead of the missing package.
+source('fast_hm.R')
 sourceCpp("DDM_with_confidence_slow_fullconfRT.cpp")
 source('build_hm.R')
 source('fastmerge.R')
@@ -31,7 +37,7 @@ quantile_optim_DDM_Vs_bias <- function(params, observations, returnFit,confRT_na
   # v_s = subjective drift/prior belief parameter
   names(params) <- c('a','ter','z','ntrials','sigma','dt','vratio','v_s','bias')
   
-  coherences <- sort(unique(observations$coh)) #/!\ CHANGE ACCORDING TO DATASET
+  coherences <- sort(unique(observations$trialdifflevel)) # FIX (reproducibility report, Sept 2026): was hardcoded to $coh, a column that never existed in this project's data (1_preprocessing.R names the difficulty column "trialdifflevel"); now matches the actual data.
   
   # Generate trials from DDM parameters
   trial = data.frame(matrix(NA,nrow=0,ncol=7))
@@ -40,12 +46,12 @@ quantile_optim_DDM_Vs_bias <- function(params, observations, returnFit,confRT_na
     predictions <- data.frame(DDM_with_confidence_slow_fullconfRT(
       v=drift[d],a=params['a'],ter=params['ter'],z=params['z'],
       ntrials=params['ntrials']*dim(observations)[1]/2/length(drift),s=params['sigma'],
-      dt=params['dt'],t2distribution=rep(observations[observations$coh==coherences[d],confRT_name],times=params['ntrials']),
+      dt=params['dt'],t2distribution=rep(observations[observations$trialdifflevel==coherences[d],confRT_name],times=params['ntrials']),
       postdriftmod=params['vratio']))
     predictionsneg <- data.frame(DDM_with_confidence_slow_fullconfRT(
       v=-drift[d],a=params['a'],ter=params['ter'],z=params['z'],
       ntrials=params['ntrials']*dim(observations)[1]/2/length(drift),s=params['sigma'],
-      dt=params['dt'],t2distribution=rep(observations[observations$coh==coherences[d],confRT_name],times=params['ntrials']),
+      dt=params['dt'],t2distribution=rep(observations[observations$trialdifflevel==coherences[d],confRT_name],times=params['ntrials']),
       postdriftmod=params['vratio']))
     names(predictions) <- c('rt','resp','cor','evidence2','rt2','cj')
     names(predictionsneg) <- c('rt','resp','cor','evidence2','rt2','cj')
@@ -125,8 +131,8 @@ quantile_optim_DDM_Vs_bias <- function(params, observations, returnFit,confRT_na
     obs_props <- NULL; pred_props <- NULL;obs_props_cj <- NULL; pred_props_cj <- NULL
     for (d in 1:length(drift)) {
       # Now, get the quantile RTs on the "observed data" for correct and error distributions separately (for quantiles .1, .3, .5, .7, .9)
-      c_quantiles <- quantile(c_observed[c_observed$coh == coherences[d],]$rt, probs = c(.1,.3,.5,.7,.9), names = FALSE)
-      e_quantiles <- quantile(e_observed[e_observed$coh == coherences[d],]$rt, probs = c(.1,.3,.5,.7,.9), names = FALSE)
+      c_quantiles <- quantile(c_observed[c_observed$trialdifflevel == coherences[d],]$rt, probs = c(.1,.3,.5,.7,.9), names = FALSE)
+      e_quantiles <- quantile(e_observed[e_observed$trialdifflevel == coherences[d],]$rt, probs = c(.1,.3,.5,.7,.9), names = FALSE)
       if (any(is.na(e_quantiles))) {
         e_quantiles <- rep(0,5)
       }
@@ -134,8 +140,8 @@ quantile_optim_DDM_Vs_bias <- function(params, observations, returnFit,confRT_na
         c_quantiles <- rep(0,5)
       }
       # to combine correct and incorrect we scale the expected interquantile probability by the proportion of correct and incorect respectively
-      prop_obs_c <- dim(c_observed[c_observed$coh == coherences[d],])[1] / dim(observations)[1]
-      prop_obs_e <- dim(e_observed[e_observed$coh == coherences[d],])[1] / dim(observations)[1]
+      prop_obs_c <- dim(c_observed[c_observed$trialdifflevel == coherences[d],])[1] / dim(observations)[1]
+      prop_obs_e <- dim(e_observed[e_observed$trialdifflevel == coherences[d],])[1] / dim(observations)[1]
       
       c_obs_proportion = prop_obs_c * c(.1, .2, .2, .2, .2, .1)
       e_obs_proportion = prop_obs_e * c(.1, .2, .2, .2, .2, .1)
@@ -173,8 +179,8 @@ quantile_optim_DDM_Vs_bias <- function(params, observations, returnFit,confRT_na
         e_obs_proportion_cj <- data.frame(var1=1:6,Freq=0)
         
         # Change cj to your affect column to fit affect
-        c_props_cj <- as.data.frame(table(c_observed[c_observed$coh == coherences[d],]$cj)/dim(observations)[1])
-        e_props_cj <- as.data.frame(table(e_observed[e_observed$coh == coherences[d],]$cj)/dim(observations)[1])
+        c_props_cj <- as.data.frame(table(c_observed[c_observed$trialdifflevel == coherences[d],]$cj)/dim(observations)[1])
+        e_props_cj <- as.data.frame(table(e_observed[e_observed$trialdifflevel == coherences[d],]$cj)/dim(observations)[1])
         
         c_obs_proportion_cj[c_obs_proportion_cj$var1 %in% c_props_cj$Var1,"Freq"] <- c_obs_proportion_cj[c_obs_proportion_cj$var1 %in% c_props_cj$Var1,"Freq"] + c_props_cj$Freq
         e_obs_proportion_cj[e_obs_proportion_cj$var1 %in% e_props_cj$Var1,"Freq"] <- e_obs_proportion_cj[e_obs_proportion_cj$var1 %in% e_props_cj$Var1,"Freq"] + e_props_cj$Freq
@@ -199,8 +205,8 @@ quantile_optim_DDM_Vs_bias <- function(params, observations, returnFit,confRT_na
         ) / dim(predictions)[1]
         
       }else{
-        c_quantiles_cj <- quantile(c_observed[c_observed$coh == coherences[d],]$cj, probs = c(.1,.3,.5,.7,.9), names = FALSE)
-        e_quantiles_cj <- quantile(e_observed[e_observed$coh == coherences[d],]$cj, probs = c(.1,.3,.5,.7,.9), names = FALSE)
+        c_quantiles_cj <- quantile(c_observed[c_observed$trialdifflevel == coherences[d],]$cj, probs = c(.1,.3,.5,.7,.9), names = FALSE)
+        e_quantiles_cj <- quantile(e_observed[e_observed$trialdifflevel == coherences[d],]$cj, probs = c(.1,.3,.5,.7,.9), names = FALSE)
         if (any(is.na(e_quantiles_cj))) {
           e_quantiles_cj <- rep(0,5)
         }
@@ -252,7 +258,7 @@ quantile_optim_DDM_Vs_biasfixed <- function(params, observations, returnFit,ddm_
   names(params) <- c('z','ntrials','sigma','dt','bias')
   
   condition = sort(unique(observations[,condition_name]))
-  coherences <- sort(unique(observations$coh)) #/!\ CHANGE ACCORDING TO DATASET
+  coherences <- sort(unique(observations$trialdifflevel)) # FIX (reproducibility report, Sept 2026): was hardcoded to $coh, a column that never existed in this project's data (1_preprocessing.R names the difficulty column "trialdifflevel"); now matches the actual data.
   
   # Generate trials from DDM parameters
   for (cond in 1:length(condition)) {
@@ -263,12 +269,12 @@ quantile_optim_DDM_Vs_biasfixed <- function(params, observations, returnFit,ddm_
       predictions <- data.frame(DDM_with_confidence_slow_fullconfRT(
         v=ddm_params[index_ddm,"drift"],a=ddm_params[index_ddm,"bound"],ter=ddm_params[index_ddm,"ter"],z=params['z'],
         ntrials=params['ntrials']*dim(observations)[1]/2/length(coherences)/length(condition),s=params['sigma'],
-        dt=params['dt'],t2distribution=rep(observations[observations$coh==coherences[d]&observations[,condition_name]==condition[cond],confRT_name],times=params['ntrials']),
+        dt=params['dt'],t2distribution=rep(observations[observations$trialdifflevel==coherences[d]&observations[,condition_name]==condition[cond],confRT_name],times=params['ntrials']),
         postdriftmod=v_ratio[cond]))
       predictionsneg <- data.frame(DDM_with_confidence_slow_fullconfRT(
         v=-ddm_params[index_ddm,"drift"],a=ddm_params[index_ddm,"bound"],ter=ddm_params[index_ddm,"ter"],z=params['z'],
         ntrials=params['ntrials']*dim(observations)[1]/2/length(coherences)/length(condition),s=params['sigma'],
-        dt=params['dt'],t2distribution=rep(observations[observations$coh==coherences[d]&observations[,condition_name]==condition[cond],confRT_name],times=params['ntrials']),
+        dt=params['dt'],t2distribution=rep(observations[observations$trialdifflevel==coherences[d]&observations[,condition_name]==condition[cond],confRT_name],times=params['ntrials']),
         postdriftmod=v_ratio[cond]))
       names(predictions) <- c('rt','resp','cor','evidence2','rt2','cj')
       names(predictionsneg) <- c('rt','resp','cor','evidence2','rt2','cj')
@@ -350,8 +356,8 @@ quantile_optim_DDM_Vs_biasfixed <- function(params, observations, returnFit,ddm_
           e_obs_proportion_cj <- data.frame(var1=1:6,Freq=0)
           
           # Change cj to your affect column to fit affect
-          c_props_cj <- as.data.frame(table(c_observed[c_observed[,condition_name]==condition[cond] & c_observed$coh == coherences[d],]$cj)/dim(observations)[1])
-          e_props_cj <- as.data.frame(table(e_observed[e_observed[,condition_name]==condition[cond] & e_observed$coh == coherences[d],]$cj)/dim(observations)[1])
+          c_props_cj <- as.data.frame(table(c_observed[c_observed[,condition_name]==condition[cond] & c_observed$trialdifflevel == coherences[d],]$cj)/dim(observations)[1])
+          e_props_cj <- as.data.frame(table(e_observed[e_observed[,condition_name]==condition[cond] & e_observed$trialdifflevel == coherences[d],]$cj)/dim(observations)[1])
           
           c_obs_proportion_cj[c_obs_proportion_cj$var1 %in% c_props_cj$Var1,"Freq"] <- c_obs_proportion_cj[c_obs_proportion_cj$var1 %in% c_props_cj$Var1,"Freq"] + c_props_cj$Freq
           e_obs_proportion_cj[e_obs_proportion_cj$var1 %in% e_props_cj$Var1,"Freq"] <- e_obs_proportion_cj[e_obs_proportion_cj$var1 %in% e_props_cj$Var1,"Freq"] + e_props_cj$Freq
@@ -376,8 +382,8 @@ quantile_optim_DDM_Vs_biasfixed <- function(params, observations, returnFit,ddm_
           ) / dim(predictions)[1]
           
         }else{
-          c_quantiles_cj <- quantile(c_observed[c_observed[,condition_name]==condition[cond] & c_observed$coh == coherences[d],]$cj, probs = c(.1,.3,.5,.7,.9), names = FALSE)
-          e_quantiles_cj <- quantile(e_observed[e_observed[,condition_name]==condition[cond] & e_observed$coh == coherences[d],]$cj, probs = c(.1,.3,.5,.7,.9), names = FALSE)
+          c_quantiles_cj <- quantile(c_observed[c_observed[,condition_name]==condition[cond] & c_observed$trialdifflevel == coherences[d],]$cj, probs = c(.1,.3,.5,.7,.9), names = FALSE)
+          e_quantiles_cj <- quantile(e_observed[e_observed[,condition_name]==condition[cond] & e_observed$trialdifflevel == coherences[d],]$cj, probs = c(.1,.3,.5,.7,.9), names = FALSE)
           if (any(is.na(e_quantiles_cj))) {
             e_quantiles_cj <- rep(0,5)
           }
@@ -432,7 +438,7 @@ quantile_optim_DDM_Vs_bias_noddm <- function(params, observations, returnFit,ddm
   names(params) <- c('z','ntrials','sigma','dt')
   
   condition = sort(unique(observations[,condition_name]))
-  coherences <- sort(unique(observations$coh)) #/!\ CHANGE ACCORDING TO DATASET
+  coherences <- sort(unique(observations$trialdifflevel)) # FIX (reproducibility report, Sept 2026): was hardcoded to $coh, a column that never existed in this project's data (1_preprocessing.R names the difficulty column "trialdifflevel"); now matches the actual data.
   
   # Generate trials from DDM parameters
   for (cond in 1:length(condition)) {
@@ -447,12 +453,12 @@ quantile_optim_DDM_Vs_bias_noddm <- function(params, observations, returnFit,ddm
       predictions <- data.frame(DDM_with_confidence_slow_fullconfRT(
         v=ddm_params[index_ddm,"drift"],a=ddm_params[index_ddm,"bound"],ter=ddm_params[index_ddm,"ter"],z=params['z'],
         ntrials=params['ntrials']*dim(observations)[1]/2/length(coherences)/length(condition),s=params['sigma'],
-        dt=params['dt'],t2distribution=rep(observations[observations$coh==coherences[d]&observations[,condition_name]==condition[cond],confRT_name],times=params['ntrials']),
+        dt=params['dt'],t2distribution=rep(observations[observations$trialdifflevel==coherences[d]&observations[,condition_name]==condition[cond],confRT_name],times=params['ntrials']),
         postdriftmod=v_ratio[cond]))
       predictionsneg <- data.frame(DDM_with_confidence_slow_fullconfRT(
         v=-ddm_params[index_ddm,"drift"],a=ddm_params[index_ddm,"bound"],ter=ddm_params[index_ddm,"ter"],z=params['z'],
         ntrials=params['ntrials']*dim(observations)[1]/2/length(coherences)/length(condition),s=params['sigma'],
-        dt=params['dt'],t2distribution=rep(observations[observations$coh==coherences[d]&observations[,condition_name]==condition[cond],confRT_name],times=params['ntrials']),
+        dt=params['dt'],t2distribution=rep(observations[observations$trialdifflevel==coherences[d]&observations[,condition_name]==condition[cond],confRT_name],times=params['ntrials']),
         postdriftmod=v_ratio[cond]))
       names(predictions) <- c('rt','resp','cor','evidence2','rt2','cj')
       names(predictionsneg) <- c('rt','resp','cor','evidence2','rt2','cj')
@@ -534,8 +540,8 @@ quantile_optim_DDM_Vs_bias_noddm <- function(params, observations, returnFit,ddm
           e_obs_proportion_cj <- data.frame(var1=1:6,Freq=0)
           
           # Change cj to your affect column to fit affect
-          c_props_cj <- as.data.frame(table(c_observed[c_observed[,condition_name]==condition[cond] & c_observed$coh == coherences[d],]$cj)/dim(observations)[1])
-          e_props_cj <- as.data.frame(table(e_observed[e_observed[,condition_name]==condition[cond] & e_observed$coh == coherences[d],]$cj)/dim(observations)[1])
+          c_props_cj <- as.data.frame(table(c_observed[c_observed[,condition_name]==condition[cond] & c_observed$trialdifflevel == coherences[d],]$cj)/dim(observations)[1])
+          e_props_cj <- as.data.frame(table(e_observed[e_observed[,condition_name]==condition[cond] & e_observed$trialdifflevel == coherences[d],]$cj)/dim(observations)[1])
           
           c_obs_proportion_cj[c_obs_proportion_cj$var1 %in% c_props_cj$Var1,"Freq"] <- c_obs_proportion_cj[c_obs_proportion_cj$var1 %in% c_props_cj$Var1,"Freq"] + c_props_cj$Freq
           e_obs_proportion_cj[e_obs_proportion_cj$var1 %in% e_props_cj$Var1,"Freq"] <- e_obs_proportion_cj[e_obs_proportion_cj$var1 %in% e_props_cj$Var1,"Freq"] + e_props_cj$Freq
@@ -560,8 +566,8 @@ quantile_optim_DDM_Vs_bias_noddm <- function(params, observations, returnFit,ddm
           ) / dim(predictions)[1]
           
         }else{
-          c_quantiles_cj <- quantile(c_observed[c_observed[,condition_name]==condition[cond] & c_observed$coh == coherences[d],]$cj, probs = c(.1,.3,.5,.7,.9), names = FALSE)
-          e_quantiles_cj <- quantile(e_observed[e_observed[,condition_name]==condition[cond] & e_observed$coh == coherences[d],]$cj, probs = c(.1,.3,.5,.7,.9), names = FALSE)
+          c_quantiles_cj <- quantile(c_observed[c_observed[,condition_name]==condition[cond] & c_observed$trialdifflevel == coherences[d],]$cj, probs = c(.1,.3,.5,.7,.9), names = FALSE)
+          e_quantiles_cj <- quantile(e_observed[e_observed[,condition_name]==condition[cond] & e_observed$trialdifflevel == coherences[d],]$cj, probs = c(.1,.3,.5,.7,.9), names = FALSE)
           if (any(is.na(e_quantiles_cj))) {
             e_quantiles_cj <- rep(0,5)
           }
@@ -615,7 +621,7 @@ quantile_optim_DDM_Vs_biasfixed_ddmfixed <- function(params, observations, retur
   names(params) <- c('z','ntrials','sigma','dt','bias')
   
   condition = sort(unique(observations[,condition_name])) # Sort used to get the same order for all participants
-  coherences <- sort(unique(observations$coh)) #/!\ CHANGE ACCORDING TO DATASET
+  coherences <- sort(unique(observations$trialdifflevel)) # FIX (reproducibility report, Sept 2026): was hardcoded to $coh, a column that never existed in this project's data (1_preprocessing.R names the difficulty column "trialdifflevel"); now matches the actual data.
   
   # Generate trials from DDM parameters
   for (cond in 1:length(condition)) {
@@ -626,12 +632,12 @@ quantile_optim_DDM_Vs_biasfixed_ddmfixed <- function(params, observations, retur
       predictions <- data.frame(DDM_with_confidence_slow_fullconfRT(
         v=ddm_params[index_ddm,"drift"],a=ddm_params[index_ddm,"bound"],ter=ddm_params[index_ddm,"ter"],z=params['z'],
         ntrials=params['ntrials']*dim(observations)[1]/2/length(coherences)/length(condition),s=params['sigma'],
-        dt=params['dt'],t2distribution=rep(observations[observations$coh==coherences[d]&observations[,condition_name]==condition[cond],confRT_name],times=params['ntrials']),
+        dt=params['dt'],t2distribution=rep(observations[observations$trialdifflevel==coherences[d]&observations[,condition_name]==condition[cond],confRT_name],times=params['ntrials']),
         postdriftmod=v_ratio[cond]))
       predictionsneg <- data.frame(DDM_with_confidence_slow_fullconfRT(
         v=-ddm_params[index_ddm,"drift"],a=ddm_params[index_ddm,"bound"],ter=ddm_params[index_ddm,"ter"],z=params['z'],
         ntrials=params['ntrials']*dim(observations)[1]/2/length(coherences)/length(condition),s=params['sigma'],
-        dt=params['dt'],t2distribution=rep(observations[observations$coh==coherences[d]&observations[,condition_name]==condition[cond],confRT_name],times=params['ntrials']),
+        dt=params['dt'],t2distribution=rep(observations[observations$trialdifflevel==coherences[d]&observations[,condition_name]==condition[cond],confRT_name],times=params['ntrials']),
         postdriftmod=v_ratio[cond]))
       names(predictions) <- c('rt','resp','cor','evidence2','rt2','cj')
       names(predictionsneg) <- c('rt','resp','cor','evidence2','rt2','cj')
@@ -713,8 +719,8 @@ quantile_optim_DDM_Vs_biasfixed_ddmfixed <- function(params, observations, retur
           e_obs_proportion_cj <- data.frame(var1=1:6,Freq=0)
           
           # Change cj to your affect column to fit affect
-          c_props_cj <- as.data.frame(table(c_observed[c_observed[,condition_name]==condition[cond] & c_observed$coh == coherences[d],]$cj)/dim(observations)[1])
-          e_props_cj <- as.data.frame(table(e_observed[e_observed[,condition_name]==condition[cond] & e_observed$coh == coherences[d],]$cj)/dim(observations)[1])
+          c_props_cj <- as.data.frame(table(c_observed[c_observed[,condition_name]==condition[cond] & c_observed$trialdifflevel == coherences[d],]$cj)/dim(observations)[1])
+          e_props_cj <- as.data.frame(table(e_observed[e_observed[,condition_name]==condition[cond] & e_observed$trialdifflevel == coherences[d],]$cj)/dim(observations)[1])
           
           c_obs_proportion_cj[c_obs_proportion_cj$var1 %in% c_props_cj$Var1,"Freq"] <- c_obs_proportion_cj[c_obs_proportion_cj$var1 %in% c_props_cj$Var1,"Freq"] + c_props_cj$Freq
           e_obs_proportion_cj[e_obs_proportion_cj$var1 %in% e_props_cj$Var1,"Freq"] <- e_obs_proportion_cj[e_obs_proportion_cj$var1 %in% e_props_cj$Var1,"Freq"] + e_props_cj$Freq
@@ -739,8 +745,8 @@ quantile_optim_DDM_Vs_biasfixed_ddmfixed <- function(params, observations, retur
           ) / dim(predictions)[1]
           
         }else{
-          c_quantiles_cj <- quantile(c_observed[c_observed[,condition_name]==condition[cond] & c_observed$coh == coherences[d],]$cj, probs = c(.1,.3,.5,.7,.9), names = FALSE)
-          e_quantiles_cj <- quantile(e_observed[e_observed[,condition_name]==condition[cond] & e_observed$coh == coherences[d],]$cj, probs = c(.1,.3,.5,.7,.9), names = FALSE)
+          c_quantiles_cj <- quantile(c_observed[c_observed[,condition_name]==condition[cond] & c_observed$trialdifflevel == coherences[d],]$cj, probs = c(.1,.3,.5,.7,.9), names = FALSE)
+          e_quantiles_cj <- quantile(e_observed[e_observed[,condition_name]==condition[cond] & e_observed$trialdifflevel == coherences[d],]$cj, probs = c(.1,.3,.5,.7,.9), names = FALSE)
           if (any(is.na(e_quantiles_cj))) {
             e_quantiles_cj <- rep(0,5)
           }
@@ -795,7 +801,7 @@ quantile_optim_DDM_Vsfixed_bias <- function(params, observations, returnFit,ddm_
   names(params) <- c('z','ntrials','sigma','dt')
   
   condition = sort(unique(observations[,condition_name]))
-  coherences <- sort(unique(observations$coh)) #/!\ CHANGE ACCORDING TO DATASET
+  coherences <- sort(unique(observations$trialdifflevel)) # FIX (reproducibility report, Sept 2026): was hardcoded to $coh, a column that never existed in this project's data (1_preprocessing.R names the difficulty column "trialdifflevel"); now matches the actual data.
   
   # Generate trials from DDM parameters
   for (cond in 1:length(condition)) {
@@ -810,12 +816,12 @@ quantile_optim_DDM_Vsfixed_bias <- function(params, observations, returnFit,ddm_
       predictions <- data.frame(DDM_with_confidence_slow_fullconfRT(
         v=ddm_params[index_ddm,"drift"],a=ddm_params[index_ddm,"bound"],ter=ddm_params[index_ddm,"ter"],z=params['z'],
         ntrials=params['ntrials']*dim(observations)[1]/2/length(coherences)/length(condition),s=params['sigma'],
-        dt=params['dt'],t2distribution=rep(observations[observations$coh==coherences[d]&observations[,condition_name]==condition[cond],confRT_name],times=params['ntrials']),
+        dt=params['dt'],t2distribution=rep(observations[observations$trialdifflevel==coherences[d]&observations[,condition_name]==condition[cond],confRT_name],times=params['ntrials']),
         postdriftmod=v_ratio[cond]))
       predictionsneg <- data.frame(DDM_with_confidence_slow_fullconfRT(
         v=-ddm_params[index_ddm,"drift"],a=ddm_params[index_ddm,"bound"],ter=ddm_params[index_ddm,"ter"],z=params['z'],
         ntrials=params['ntrials']*dim(observations)[1]/2/length(coherences)/length(condition),s=params['sigma'],
-        dt=params['dt'],t2distribution=rep(observations[observations$coh==coherences[d]&observations[,condition_name]==condition[cond],confRT_name],times=params['ntrials']),
+        dt=params['dt'],t2distribution=rep(observations[observations$trialdifflevel==coherences[d]&observations[,condition_name]==condition[cond],confRT_name],times=params['ntrials']),
         postdriftmod=v_ratio[cond]))
       names(predictions) <- c('rt','resp','cor','evidence2','rt2','cj')
       names(predictionsneg) <- c('rt','resp','cor','evidence2','rt2','cj')
@@ -897,8 +903,8 @@ quantile_optim_DDM_Vsfixed_bias <- function(params, observations, returnFit,ddm_
           e_obs_proportion_cj <- data.frame(var1=1:6,Freq=0)
           
           # Change cj to your affect column to fit affect
-          c_props_cj <- as.data.frame(table(c_observed[c_observed[,condition_name]==condition[cond] & c_observed$coh == coherences[d],]$cj)/dim(observations)[1])
-          e_props_cj <- as.data.frame(table(e_observed[e_observed[,condition_name]==condition[cond] & e_observed$coh == coherences[d],]$cj)/dim(observations)[1])
+          c_props_cj <- as.data.frame(table(c_observed[c_observed[,condition_name]==condition[cond] & c_observed$trialdifflevel == coherences[d],]$cj)/dim(observations)[1])
+          e_props_cj <- as.data.frame(table(e_observed[e_observed[,condition_name]==condition[cond] & e_observed$trialdifflevel == coherences[d],]$cj)/dim(observations)[1])
           
           c_obs_proportion_cj[c_obs_proportion_cj$var1 %in% c_props_cj$Var1,"Freq"] <- c_obs_proportion_cj[c_obs_proportion_cj$var1 %in% c_props_cj$Var1,"Freq"] + c_props_cj$Freq
           e_obs_proportion_cj[e_obs_proportion_cj$var1 %in% e_props_cj$Var1,"Freq"] <- e_obs_proportion_cj[e_obs_proportion_cj$var1 %in% e_props_cj$Var1,"Freq"] + e_props_cj$Freq
@@ -923,8 +929,8 @@ quantile_optim_DDM_Vsfixed_bias <- function(params, observations, returnFit,ddm_
           ) / dim(predictions)[1]
           
         }else{
-          c_quantiles_cj <- quantile(c_observed[c_observed[,condition_name]==condition[cond] & c_observed$coh == coherences[d],]$cj, probs = c(.1,.3,.5,.7,.9), names = FALSE)
-          e_quantiles_cj <- quantile(e_observed[e_observed[,condition_name]==condition[cond] & e_observed$coh == coherences[d],]$cj, probs = c(.1,.3,.5,.7,.9), names = FALSE)
+          c_quantiles_cj <- quantile(c_observed[c_observed[,condition_name]==condition[cond] & c_observed$trialdifflevel == coherences[d],]$cj, probs = c(.1,.3,.5,.7,.9), names = FALSE)
+          e_quantiles_cj <- quantile(e_observed[e_observed[,condition_name]==condition[cond] & e_observed$trialdifflevel == coherences[d],]$cj, probs = c(.1,.3,.5,.7,.9), names = FALSE)
           if (any(is.na(e_quantiles_cj))) {
             e_quantiles_cj <- rep(0,5)
           }

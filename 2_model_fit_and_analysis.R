@@ -13,7 +13,9 @@ library(effects)
 library(lmerTest)
 library(scales)
 library(DEoptim)
-library(prob)
+# FIX (reproducibility report, Sept 2026): see 1_preprocessing.R - 'prob' is
+# archived on CRAN and unused by this pipeline; load it only if available.
+# if (requireNamespace("prob", quietly = TRUE)) library(prob)
 library(car)
 library(MALDIquant)
 library(Rcpp)

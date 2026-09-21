@@ -13,7 +13,12 @@ library(reshape)
 library(effects)
 library(lmerTest)
 library(scales)
-library(prob)
+# FIX (reproducibility report, Sept 2026): 'prob' was archived from CRAN on
+# 2022-04-29 (its dependency 'fAsiaOptions' was archived), so a plain
+# library(prob) now stops this script from even starting. None of its
+# functions (probspace/Prob/iidspace/...) are actually called anywhere in
+# this pipeline, so it's loaded only if already installed and otherwise skipped.
+if (requireNamespace("prob", quietly = TRUE)) library(prob)
 curdir <- dirname(rstudioapi::getSourceEditorContext()$path)
 setwd(curdir) ## change our current working directory
 
