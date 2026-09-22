@@ -38,13 +38,7 @@ sort(unique(AllData$sub))
 ## SPLIT DATA AND POSTCHECKS ---------------------------------------------------
 
 Data <- subset(subset(AllData,task!=""), select=-c(post1,post2,post3,post4,post5,post6))
-postchecks <- subset(AllData, select=c(sub,post1,post2,post3,post4,post5,post6))
-
-# Fill in the blank spots for "sub" in the postcheck rows
-library(zoo)
-postchecks$sub[postchecks$sub == ""] <- NA
-postchecks$sub <- na.locf(postchecks$sub)
-postchecks <- subset(postchecks, post1 != "") #remove empty rows
+postchecks <- read.csv(paste0("RecodedPostchecks_Exp1.csv")) #Recoded postcheck answers
 
 head(Data)
 head(postchecks)
@@ -149,26 +143,13 @@ library(ggthemes)
 library(ggridges)
 library(matrixStats)
 
-# FIX NEEDED (reproducibility report, Sept 2026): postchecks only ever gets the raw
-# columns post1..post6. This script has always expected three *coded*
-# categorical columns here instead - SubjectiveInfluenceFb, FeedbackCredibility,
-# ManipulationAwareness - which never existed under those names. 
-# @Hélène do you have perhaps an Excel file or something where you manually coded
-# the free text responses into those three columns? In the meantime, I'm guarding 
-# this chunk here so the rest of the script can still run:
-if (all(c("SubjectiveInfluenceFb","FeedbackCredibility","ManipulationAwareness") %in% names(postchecks))) {
-  postchecks$SubjectiveInfluenceFb <- factor(postchecks$SubjectiveInfluenceFb)
-  postchecks$FeedbackCredibility   <- factor(postchecks$FeedbackCredibility)
-  postchecks$ManipulationAwareness <- factor(postchecks$ManipulationAwareness)
+# FIXED
+postchecks$SubjectiveInfluenceFb <- factor(postchecks$SubjectiveInfluenceFb)
+postchecks$FeedbackCredibility   <- factor(postchecks$FeedbackCredibility)
+postchecks$ManipulationAwareness <- factor(postchecks$ManipulationAwareness)
 
-  posts_table <- table(postchecks$FeedbackCredibility,postchecks$ManipulationAwareness)
-  posts_table <- posts_table[,c(2,3,1)]
-} else {
-  warning("Skipping post-check follow-up analysis: coded postcheck columns ",
-          "(SubjectiveInfluenceFb/FeedbackCredibility/ManipulationAwareness) are ",
-          "not available - see comment above. postchecks currently only has the ",
-          "raw post1..post6 free-text columns.")
-}
+posts_table <- table(postchecks$FeedbackCredibility,postchecks$ManipulationAwareness)
+posts_table <- posts_table[,c(2,3,1)]
 
 
 maindata <- subset(Data, running == "main")
