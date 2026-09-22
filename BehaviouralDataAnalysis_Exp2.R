@@ -192,10 +192,6 @@ anova(nullmod,fit2)
 summary(fit1)
 Anova(fit1, type="III")
 
-# FIX (reproducibility report, Sept 2026): fit9 is never defined in this file (only
-# nullmod/fit1/fit2 are); fit1 is the model just summarized/tested above, so these
-# plots are of fit1.
-# plot the effects
 plot(allEffects(fit1))
 plot(effect("traindiffcond", fit1))
 

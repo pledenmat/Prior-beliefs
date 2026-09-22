@@ -56,8 +56,8 @@ project as it was archived on OSF (https://osf.io/8bf3r/). Fixed here:
 1. **This README** - none existed before.
 2. **`postchecks` referencing non-existent columns in
    `BehaviouralDataAnalysis_Exp1.R`** - `SubjectiveInfluenceFb`,
-   `FeedbackCredibility`, `ManipulationAwareness` were never actual column
-   names (see "Known limitations" - this one is only guarded, not fixed).
+   `FeedbackCredibility`, `ManipulationAwareness` are column names from a previously missing file 
+   "RecodedPostchecks_Exp1.csv". This file has now been added to the repository and is referenced in the analyses.
 3. **`quantile_optim_DDM_Vs_bias.R` hardcoded a `coh` column** that has
    never existed in this project's data; `1_preprocessing.R` names it
    `trialdifflevel`. All internal `$coh` references now say `$trialdifflevel`.
@@ -68,29 +68,19 @@ project as it was archived on OSF (https://osf.io/8bf3r/). Fixed here:
    replication materials. The only function actually needed from it,
    `fast_hm()`, is now sourced directly from `fast_hm.R` to remove the dependency on the package.
 6. **`library(prob)`** - archived from CRAN on 2022-04-29. Turns out this package was never actually used anywhere in this pipeline, so we removed the call to this package.
-7. **Undefined `fit11` / `fit9`** - not flagged by the original report, but
+7. **`BehaviouralDataAnalysis_Exp1.R` specified a  3x27 post-hoc contrast matrix C which didn't
+    match `fit3` as it was leftover code from a follow-up analysis.** The analysis now specifies the correct code for
+    post hoc tests of fit3, and the C-matrix is cut.
+8. **Undefined `fit11` / `fit9`** - not flagged by the original report, but
    found while fixing the above: both behavioral scripts have a whole
    post-hoc section (summary/Anova/plots/glht/testInteractions) written
    against a model variable that's never defined (`fit11` in Exp1, `fit9` in
    Exp2). Repointed at the actual winning model (`fit3` in Exp1, per the
    comment directly above it; `fit1` in Exp2, the model being summarized
    immediately before).
-8. **`quantitative_fit.R` wrongly loaded estimated parameters** - Drift rates were assigned per condition instead of per difficulty level due to pre-publication variable naming changes, leading to reproduced plots in Figure 3 to be way off. Now fixed.
+9. **`BehaviouralDataAnalysis_Exp{1,2}.R`** specified Anova(type=3) for the analysis of confidence, 
+    which produces chi square statistics. Upon request of the editor, we reported F-values instead, 
+    which are obtained by anova() as now updated in the code.
+9. **`quantitative_fit.R` wrongly loaded estimated parameters** - Drift rates were assigned per condition instead of per difficulty level due to pre-publication variable naming changes, leading to reproduced plots in Figure 3 to be way off. Now fixed.
 
 
-## Known limitations (not fixed - ongoing investigations)
-
-**Postcheck coding is missing.** `post1`...`post6` in the
-raw data are free-text debriefing answers (in Dutch). The three named
-variables the analysis expects (`SubjectiveInfluenceFb`,
-`FeedbackCredibility`, `ManipulationAwareness`). The postcheck follow-up analysis (not the main confidence result) is
-guarded to skip cleanly with a warning.
-
-**A post-hoc contrast matrix in `BehaviouralDataAnalysis_Exp1.R` doesn't
-match `fit3`.** Right after the `fit11`->`fit3` fix, there's a hand-built
-3x27 contrast matrix `C` for `glht()`, but `fit3` only has 9 fixed-effect
-coefficients. 27 is exactly what a three-way interaction with another
-3-level factor would need - almost certainly one of the `fitFC`/`fitMA`/
-`fitSI` postcheck models further down, not `fit3`. Needs investigation on whether this is important or can be cut from analysis.
-
-**`BehaviouralDataAnalysis_Exp{1,2}.R` F values do not match manuscript.** Looks like ANOVAs on mixed models were done by using lmerTest::anova(), instead of car:Anova(type="III") currently reported in the scripts. Needs further investigation to confirm.

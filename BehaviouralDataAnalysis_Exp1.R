@@ -197,34 +197,12 @@ anova(nullmod,fit3)
 # Converges, AIC 89046
 # Best fit: (1 + difflevel + fbcond | sub)
 
-# FIX (reproducibility report, Sept 2026): every reference below this point was
-# `fit11`, a model that is never defined anywhere in this file.  
-# Comment suggests that fit3 is the winning model (matches random-effects structure)
-# so fit11 -> fit3 throughout this section.
 summary(fit3)
-Anova(fit3,type="III") # Doesn't produce the F(2,47)=16.65 test (original anova call)
-anova(fit3) # This does but wasn't in the OSF script, might want to double-check all stats
+anova(fit3) 
 
 ## plot the effects
 plot(allEffects(fit3))
 
-# FIX NEEDED (reproducibility report, Sept 2026): this hand-built contrast matrix C
-# is 3x27, but fit3 only has 9 fixed-effect coefficients , so glht(fit3, linfct = C) 
-# errors with "'ncol(linfct)' is not equal to 'length(coef(model))'". 
-# 27 columns is exactly what a 3-way interaction with another 3-level factor would need, 
-# which matches fitFC/fitMA/fitSI (the postcheck follow-up models further below, e.g.
-# `fbcond*difflevel*FeedbackCredibility`) rather than fit3. This looks like another
-# casualty of the same renaming/refactor the other bugs came from: this post-hoc
-# block was very likely written against one of those 3-way models, not fit3.
-# testInteractions() below doesn't have this problem, so it's left running on fit3.
-C <- rep(0,27)
-C <- rep(C,3)
-C <- matrix(C,3)
-C[1,1] <- 1
-C[2,2] <- 1
-C[3,3] <- 1
-C
-# summary(glht(fit3, linfct = C)) 
 summary(glht(fit3))
 
 library(phia)
@@ -353,10 +331,6 @@ anova(b3_fit1)
 ## FOLLOW UP: Relationship with postcheck answers -
 ##-------------------------------------------------
 
-# FIX NEEDED (reproducibility report, Sept 2026): depends on the coded postcheck
-# columns flagged above (SubjectiveInfluenceFb/FeedbackCredibility/ManipulationAwareness),
-# which are not available in the replication materials - see the comment near
-# postchecks$SubjectiveInfluenceFb further up. Guarded so the rest of the script runs.
 maindata_withpost <- merge(maindata,postchecks, by="sub")
 
 
