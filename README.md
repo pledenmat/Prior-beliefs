@@ -1,6 +1,6 @@
 # Manipulating Prior Beliefs Causally Induces Under- and Overconfidence
 
-Replication materials for Van Marcke, Denmat, Verguts, & Desender (2024),
+Replication materials for Van Marcke, Le Denmat, Verguts, & Desender (2024),
 *Psychological Science*, 35(4), 358-375. https://doi.org/10.1177/09567976241231572
 
 ## Two experiments
@@ -75,7 +75,7 @@ project as it was archived on OSF (https://osf.io/8bf3r/). Fixed here:
    Exp2). Repointed at the actual winning model (`fit3` in Exp1, per the
    comment directly above it; `fit1` in Exp2, the model being summarized
    immediately before).
-8. **quantitative_fit.R wrongly loaded estimated parameters** - Drift rates were assigned per condition instead of per difficulty level due to pre-publication variable naming changes, leading to reproduced plots in Figure 3 to be way off. Now fixed.
+8. **`quantitative_fit.R` wrongly loaded estimated parameters** - Drift rates were assigned per condition instead of per difficulty level due to pre-publication variable naming changes, leading to reproduced plots in Figure 3 to be way off. Now fixed.
 
 
 ## Known limitations (not fixed - ongoing investigations)
