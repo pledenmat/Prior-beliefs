@@ -68,8 +68,8 @@ project as it was archived on OSF (https://osf.io/8bf3r/). Fixed here:
    replication materials. The only function actually needed from it,
    `fast_hm()`, is now sourced directly from `fast_hm.R` to remove the dependency on the package.
 6. **`library(prob)`** - archived from CRAN on 2022-04-29. Turns out this package was never actually used anywhere in this pipeline, so we removed the call to this package.
-7. **`BehaviouralDataAnalysis_Exp1.R` specified a  3x27 post-hoc contrast matrix C which didn't
-    match `fit3` as it was leftover code from a follow-up analysis.** The analysis now specifies the correct code for
+7. **`BehaviouralDataAnalysis_Exp1.R`**  specified a  3x27 post-hoc contrast matrix C which didn't
+    match `fit3` as it was leftover code from a follow-up analysis.The analysis now specifies the correct code for
     post hoc tests of fit3, and the C-matrix is cut.
 8. **Undefined `fit11` / `fit9`** - not flagged by the original report, but
    found while fixing the above: both behavioral scripts have a whole
